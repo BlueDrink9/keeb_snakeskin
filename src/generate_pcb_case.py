@@ -1,4 +1,5 @@
 import build123d as bd
+import math
 
 default_params = {
         "base_z_thickness": 3,
@@ -32,7 +33,14 @@ wall_outer = bd.offset(
     base_face,
     params["wall_xy_thickness"],
 )
-inner_cutout = bd.extrude(base_face, wall_height, taper=-9.9)
+
+# calculate taper angle. tan(x) = o/a
+opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
+adj = wall_height
+taper = math.degrees(math.atan(opp/adj))
+# taper=0
+
+inner_cutout = bd.extrude(base_face, wall_height, taper=-taper)
 wall = bd.extrude(wall_outer, wall_height) - inner_cutout
 shape = wall + base
 show_object(shape)
