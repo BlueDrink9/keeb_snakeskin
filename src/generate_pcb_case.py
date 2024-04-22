@@ -1,5 +1,6 @@
 import build123d as bd
 import math
+loc = bd.Location
 
 default_params = {
         "base_z_thickness": 3,
@@ -24,8 +25,7 @@ outline = bd.import_svg("build/outline.svg")
 outline = bd.make_face(outline.wires()).wires()[0]
 base_face = bd.make_face(outline)
 
-wall_height = params["base_z_thickness"] + \
-    params["z_space_under_pcb"] +  \
+wall_height = params["z_space_under_pcb"] +  \
     params["wall_z_height"]
 
 base = bd.extrude(base_face, params["base_z_thickness"])
@@ -38,12 +38,13 @@ wall_outer = bd.offset(
 opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
 adj = wall_height
 taper = math.degrees(math.atan(opp/adj))
-# taper=0
 
 inner_cutout = bd.extrude(base_face, wall_height, taper=-taper)
-wall = bd.extrude(wall_outer, wall_height) - inner_cutout
-shape = wall + base
-show_object(shape)
+inner_cutout.move(loc((0,0,params["base_z_thickness"])))
+show_object(inner_cutout, name="inner")
+wall = bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout
+case = wall + base
+show_object(case, name="case")
 
 
 def generate_case(svg_file, params=None):
