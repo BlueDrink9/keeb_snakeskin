@@ -1,4 +1,5 @@
 import build123d as bd
+from build123d import *
 import math
 loc = bd.Location
 
@@ -18,12 +19,15 @@ default_params = {
     "carrycase_cutout_width": 5,
 }
 
+magnet_height = 2
+magnet_radius = 4/2
+
 params = default_params
 
 outline = bd.import_svg("build/outline.svg")
 
 # For testing
-# outline = bd.Rectangle(30,30).locate(bd.Location((40, 40, 0)))
+outline = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
 
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
@@ -32,6 +36,60 @@ base_face = bd.make_face(outline)
 
 pcb_case_wall_height = params["z_space_under_pcb"] +  \
     params["wall_z_height"]
+
+cutout_outline = bd.offset(base_face,
+                        params["wall_xy_thickness"] +
+                        params["carrycase_tolerance"]
+                        )
+wall_outline = bd.offset(cutout_outline, params["carrycase_wall_xy_thickness"])
+wall_outline -= cutout_outline
+
+wall_height = (
+    params["base_z_thickness"] +
+        params["carrycase_z_gap_between_pcbs"]
+)
+wall = bd.extrude(wall_outline, wall_height)
+# cutout = bd.extrude(cutout_outline, wall_height)
+
+hole_cutout = bd.Plane.XY * bd.Rot(0,90,0) * bd.Cylinder(
+    radius=magnet_radius,
+    height=magnet_height*2 + params["carrycase_tolerance"]
+)
+hole_cutouts = hole_cutout
+# hole_cutouts = inner_face
+# show_object(wall.edges().sort_by(bd.SortBy.LENGTH)[-1])
+
+show_object(hole_cutouts, name="magnets")
+
+def is_wire_for_face(face, wire):
+    inter = face.intersect(wire)
+    try:
+        # If they intersect, this returns a Vector. If they don't, it throughs
+        # an AttributeError about compound not having IsNull
+        inter.center()
+        return True
+    except AttributeError:
+        return False
+
+
+def get_inner_faces(aligned_faces):
+    """Gets the innermost face of a series of concentric faces"""
+    connected_faces = Face.sew_faces(aligned_faces)
+    # Which is "inside" - sort by Shell area
+    shells = ShapeList([Shell(faces) for faces in
+        connected_faces]).sort_by(
+        SortBy.AREA
+    )
+    return shells[0].faces()
+# inner_faces = vert_faces.filter_by(lambda x: is_wire_for_face(x, inner_wire))
+
+vert_faces = wall.faces().filter_by(Axis.Z, reverse=True)
+inner_faces = get_inner_faces(vert_faces)
+f = inner_faces
+shape = f
+show_object(shape, name="shape")
+
+# shape = vert_faces.filter_by(lambda x: bd.Shape.closest_points(vert_faces[0], inner_wires)==0)
 
 def generate_carrycase(base_face, pcb_case_wall_height):
     cutout_outline = bd.offset(base_face,
@@ -96,5 +154,5 @@ if __name__ in ["__cq_main__", "temp"]:
     # object = generate_case("build/outline.svg")
     # show_object(object)
     # object = generate_pcb_case(base_face, pcb_case_wall_height)
-    object = generate_carrycase(base_face, pcb_case_wall_height)
-    show_object(object)
+    # object = generate_carrycase(base_face, pcb_case_wall_height)
+    # show_object(object)
