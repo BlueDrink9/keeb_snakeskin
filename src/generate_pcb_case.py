@@ -1,8 +1,9 @@
 import build123d as bd
+from build123d import Align, Rot
 from build123d import *
 import math
 
-loc = bd.Location
+Loc = bd.Location
 
 # TODO:
 # * Align multiple magnets
@@ -52,7 +53,7 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 params["cutout_position"] = 0.97
 params["carrycase_cutout_position"] = 0.39
 params["z_space_under_pcb"] = 2.4
-params["magnet_position_centre"] = 0.97
+params["magnet_position_centre"] = 0.37
 
 outline = bd.import_svg("build/outline.svg")
 # For testing
@@ -96,7 +97,7 @@ def generate_pcb_case(base_face, wall_height):
     taper = math.degrees(math.atan(opp / adj))
 
     inner_cutout = bd.extrude(base_face, wall_height, taper=-taper)
-    inner_cutout.move(loc((0, 0, params["base_z_thickness"])))
+    inner_cutout.move(Loc((0, 0, params["base_z_thickness"])))
     # show_object(inner_cutout, name="inner")
     wall = (
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout
@@ -143,7 +144,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     blocker_face = bd.offset(base_face, params["wall_xy_thickness"]) - base_face
     # Locate the blocker at the top of the pcb case wall
     blocker = bd.extrude(blocker_face, amount=2).moved(
-        loc((0, 0, wall_height - params["carrycase_z_gap_between_cases"]))
+        Loc((0, 0, wall_height - params["carrycase_z_gap_between_cases"]))
     )
 
     case = wall + blocker
@@ -183,7 +184,7 @@ def generate_cases(svg_file, params=None):
 
 
 def __finger_cutout(location, thickness, width, height):
-    cutout_location = location * bd.Rot(X=-90)
+    cutout_location = location * Rot(X=-90)
     # Mutliplying x and y by ~2 because we're centering it on those axis, but
     # only cutting out of one side.
     # Centering because sometimes depending on the wire we get the location
@@ -195,6 +196,27 @@ def __finger_cutout(location, thickness, width, height):
         height * 2,
     ).located(cutout_location)
     return cutout_box
+
+
+def __magnet_cutout(position):
+    hole = (
+        bd.Plane.XY
+        * bd.Circle(
+            radius=magnet_radius,
+        )
+    )
+    # Add a little extra to the height to ensure there is space for the pcb to slide past the
+    # board hole
+    cutout = bd.extrude(hole, magnet_height + 0.1)
+    # Get second largest face parallel to XY plane - i.e., the inner case face
+    inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
+    inner_wire = inner_case_face.wires()[0]
+    magnet_start = inner_wire ^ position
+    cutout.orientation = magnet_start.orientation
+    cutout = cutout.rotate(bd.Axis.Z, -90)
+    cutout.position = magnet_start.position
+    cutout.position += (0, 0, magnet_radius)
+    return cutout
 
 
 def __lip(base_face):
@@ -210,10 +232,10 @@ def __arc_sector_ray(obj, angle1, angle2):
         A=abs(angle1 - angle2),
         b=500,
         c=500,
-        align=[bd.Align.CENTER, bd.Align.MAX],
+        align=[Align.CENTER, Align.MAX],
     )
     rotation_angle = (angle1 + angle2) / 2
-    location = bd.Location(obj.center()) * bd.Rot(Z=90) * bd.Rot(Z=rotation_angle)
+    location = Loc(obj.center()) * Rot(Z=90) * Rot(Z=rotation_angle)
     triangle.location = location
     return triangle
 
@@ -226,7 +248,7 @@ class Sector(bd.Shape):
             .ThreePointArc(radius, radius, angle1, angle2, startAtCurrent=False)
             .lineTo(0,0)
             .close()
-        ).located(bd.Location(location))
+        ).located(Loc(location))
 
 # show_object(Sector(100, 0, 45), "sector")
 
@@ -238,7 +260,7 @@ if __name__ in ["__cq_main__", "temp"]:
     # show_object(object)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
     # if params["carrycase"]:
-        # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 
 
@@ -260,28 +282,6 @@ wall_outer = bd.offset(
 )
 
 
-hole = (
-    bd.Plane.XZ
-    * bd.Circle(
-        radius=magnet_radius,
-        # radius=magnet_radius, height=magnet_height * 2 + params["carrycase_tolerance"]
-        # align=[bd.Align.MIN, bd.Align.CENTER]
-    )
-)
-hole_cutout = bd.extrude(hole, magnet_height)
-hole_cutouts = hole_cutout
-# hole_cutouts = inner_face
-# show_object(wall.edges().sort_by(bd.SortBy.LENGTH)[-1])
-
-# Get second largest face parallel to XY plane - i.e., the inner case face
-inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
-inner_wire = inner_case_face.wires()[0]
-magnet_start = inner_wire ^ params["magnet_position_centre"]
-hole_cutout.location = magnet_start * bd.Rot(0, 0, 90)
-hole_cutout.position += (0, 0, magnet_radius)
-show_object(inner_wire, name="inner_wire")
-
-show_object(hole_cutouts, name="magnets")
-
 # shape = vert_faces.filter_by(lambda x: bd.Shape.closest_points(vert_faces[0], inner_wires)==0)
-
+cutout = __magnet_cutout(params["magnet_position_centre"])
+show_object(cutout, name="magnet cutout")
