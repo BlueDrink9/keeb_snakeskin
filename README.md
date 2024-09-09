@@ -76,9 +76,9 @@ defaults specified as a top level key:value, for example:
 | `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
 | `carrycase_tolerance` | 0.3 mm | Gap size between the pcb case and the carry case. Will probably need playing around with on your printer to get a good fit. Err on the side of too large if you don't want to print too much. |
 | `carrycase_wall_xy_thickness` | 2 mm | Thickness of the carrycase outer wall |
-| `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 2 mm between them when they are in the case |
+| `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case |
 | `carrycase_cutout_position` | 0.0 | Location, as a percentage, along the walls of the carrycase for the finger removal cutout. Between 0 and 1, representing a percentage along the case. Play with it until you find a good spot for it. |
-| `carrycase_cutout_width` | 5 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
+| `carrycase_cutout_width` | 15 mm | Width of the finger cutout for removing the boards from the case. May cut out more if the area isn't a straight line. |
 
 ### More examples
 

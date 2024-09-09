@@ -20,8 +20,8 @@ default_params = {
     "carrycase_tolerance": 0.3,
     "carrycase_wall_xy_thickness": 4,
     "carrycase_z_gap_between_cases": 11,
-    "carrycase_cutout_position": 0,
-    "carrycase_cutout_width": 5,
+    "carrycase_cutout_position": 0.0,
+    "carrycase_cutout_width": 15,
 }
 
 magnet_height = 2
@@ -29,6 +29,7 @@ magnet_radius = 4/2
 
 params = default_params
 params["cutout_position"] = 0.97
+params["carrycase_cutout_position"] = 0.89
 params["z_space_under_pcb"] = 2.4
 
 outline = bd.import_svg("build/outline.svg")
@@ -106,6 +107,36 @@ show_object(shape, name="shape")
 
 # shape = vert_faces.filter_by(lambda x: bd.Shape.closest_points(vert_faces[0], inner_wires)==0)
 
+def generate_pcb_case(base_face, wall_height):
+    base = bd.extrude(base_face, params["base_z_thickness"])
+    wall_outer = bd.offset(
+        base_face,
+        params["wall_xy_thickness"],
+    )
+
+    # calculate taper angle. tan(x) = o/a
+    opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
+    adj = wall_height
+    taper = math.degrees(math.atan(opp/adj))
+
+    inner_cutout = bd.extrude(base_face, wall_height, taper=-taper)
+    inner_cutout.move(loc((0,0,params["base_z_thickness"])))
+    # show_object(inner_cutout, name="inner")
+    wall = bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout
+    case = wall + base
+
+    # Create finger cutout
+    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    top_inner_wire = topf.wires()[0]
+    cutout_location = top_inner_wire ^ params["cutout_position"]
+    cutout_box = __finger_cutout(cutout_location, params["wall_xy_thickness"], params["cutout_width"], pcb_case_wall_height)
+
+
+    case = case - cutout_box
+    show_object(case, name="case")
+    return case
+
+
 def generate_carrycase(base_face, pcb_case_wall_height):
     cutout_outline = bd.offset(base_face,
                             params["wall_xy_thickness"] +
@@ -130,45 +161,24 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     case = wall + blocker
 
+    # Create finger cutout for removing boards
+    botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
+    bottom_inner_wire = botf.wires()[0]
+    cutout_location = bottom_inner_wire ^ params["carrycase_cutout_position"]
+    cutout_box = __finger_cutout(
+        cutout_location,
+        params["carrycase_wall_xy_thickness"],
+        params["carrycase_cutout_width"],
+        pcb_case_wall_height + params["base_z_thickness"],
+    )
+    # show_object(cutout_box, name="carry case cutout box")
+
+    case -= cutout_box
+
     # Mirror on top face to create both sides
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
     case += bd.mirror(case, about=bd.Plane(topf))
     show_object(case, name="carry case")
-    return case
-
-def generate_pcb_case(base_face, wall_height):
-    base = bd.extrude(base_face, params["base_z_thickness"])
-    wall_outer = bd.offset(
-        base_face,
-        params["wall_xy_thickness"],
-    )
-
-    # calculate taper angle. tan(x) = o/a
-    opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
-    adj = wall_height
-    taper = math.degrees(math.atan(opp/adj))
-
-    inner_cutout = bd.extrude(base_face, wall_height, taper=-taper)
-    inner_cutout.move(loc((0,0,params["base_z_thickness"])))
-    # show_object(inner_cutout, name="inner")
-    wall = bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout
-    case = wall + base
-
-    # Create finger cutout
-    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    top_inner_wire = topf.wires()[0]
-    cutout_location = top_inner_wire ^ params["cutout_position"]
-    cutout_location *= bd.Rot(X=-90)
-    cutout_box = bd.Box(
-        params["wall_xy_thickness"]*2,
-        params["cutout_width"],
-        pcb_case_wall_height,
-        # Align box to be totally inside the wall
-        align=[bd.Align.CENTER, bd.Align.CENTER, bd.Align.MAX],
-    ).located(cutout_location)
-
-    case = case - cutout_box
-    show_object(case, name="case")
     return case
 
 
@@ -180,6 +190,22 @@ def generate_cases(svg_file, params=None):
 
     outline = bd.import_svg(svg_file)
     return
+
+
+def __finger_cutout(location, thickness, width, height):
+    cutout_location = location * bd.Rot(X=-90)
+    # Mutliplying x and y by ~2 because we're centering it on those axis, but
+    # only cutting out of one side.
+    # Centering because sometimes depending on the wire we get the location
+    # from, it'll be flipped, so we can't just align to MAX.
+    cutout_box = bd.Box(
+        # 2.1 to get some overlap
+        thickness*2.1,
+        width,
+        height * 2,
+    ).located(cutout_location)
+    return cutout_box
+
 
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor

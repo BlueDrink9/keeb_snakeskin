@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import math
 
 setup(
     name='keeb_snakeskin',
