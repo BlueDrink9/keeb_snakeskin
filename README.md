@@ -20,7 +20,9 @@ should create a new executable `snakeskin` in your python scripts folder.
 
 ### Input File
 
-The `input_file` argument specifies the path to the input file. By default, it expects a Gerber edge cuts file (probably a `.gm1` extension). However, if the `--dxf` option is used, it expects a DXF file outline of your PCB (using this option means you don't need inkscape).
+#### Getting the starting svg
+
+In kicad, export just the edge.cuts layer as svg (board only, not page).
 
 ### Options
 
@@ -50,20 +52,6 @@ Alternatively, if you already have a `.dxf` outline of your pcb, you can bypass 
 
 The following table outlines the possible variables you can specify for
 your case creation.
-
-| Parameter name | default value | description |
-| -------------- | ------------- | ----------- |
-| `base_z` | 3 mm | Z thickness of bottom of the case, in mm |
-| `wall_xy_thickness` | 2 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case |
-| `wall_z_height` | 1.6 mm | Z height of the wall from the bottom of the PCB. The default is a standard PCB thickness, and is unlikely to need modifying. |
-| `z_space_under_pcb` | 1 mm | The size of the gap beneath the PCB, to leave room for through-hole pins, wires, hotswap sockets etc on the underside. Modify this to at least 1.85 if you are using kailh hotswap sockets under the PCB, for example. Also increase it if you want to have bigger tolerences for the fit and need more space for the walls to narrow in. |
-| `wall_xy_bottom_tolerance` | -0.3 mm | Amount of space between the narrowest part of the walls (at the bottom) and the PCB outline. Use -ve values for friction fit |
-| `wall_xy_top_tolerance` | 0.3 mm | Amount of space between the widest part of the walls (at the top) and the PCB outline. Adjust this depending on printer tolerances and how tight you want the friction fit. You may want to increase `z_space_under_pcb` if the difference between this and `wall_xy_bottom_tolerance` is large |
-| `cutout_angle` | 0 degrees | Location on the walls of the removal
-cutout. 0 means the center right, 90 means center top. |
-| `cutout_width` | 5 mm | Width of the removal cutout. May cut out more if
-the area isn't a straight line. |
-
 To modify the paramters, pass a path to a `.json` file with
 `-c path/to/cfg.json`. This should have anything you want to override from
 defaults specified as a top level key:value, for example:
@@ -74,6 +62,23 @@ defaults specified as a top level key:value, for example:
     "cutout_width": 6
 }
 ```
+
+
+| Parameter name | default value | description |
+| -------------- | ------------- | ----------- |
+| `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
+| `wall_xy_thickness` | 2 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case |
+| `wall_z_height` | 1.6 mm | Z height of the wall from the bottom of the PCB. The default is a standard PCB thickness, and is unlikely to need modifying. |
+| `z_space_under_pcb` | 1 mm | The size of the gap beneath the PCB, to leave room for through-hole pins, wires, hotswap sockets etc on the underside. Modify this to at least 1.85 if you are using kailh hotswap sockets under the PCB, for example. Also increase it if you want to have bigger tolerences for the fit and need more space for the walls to narrow in. By default, leaves just enough space for the pins of a choc switch directly soldered into a 1.6 mm pcb (which I measure stick out at about 0.83 mm). |
+| `wall_xy_bottom_tolerance` | -0.3 mm | Amount of space between the narrowest part of the walls (at the bottom) and the PCB outline. Use -ve values for friction fit |
+| `wall_xy_top_tolerance` | 0.3 mm | Amount of space between the widest part of the walls (at the top) and the PCB outline. Adjust this depending on printer tolerances and how tight you want the friction fit. You may want to increase `z_space_under_pcb` if the difference between this and `wall_xy_bottom_tolerance` is large |
+| `cutout_position` | 0.0 | Location, as a percentage, along the walls of the pcb case for the finger removal cutout. Between 0 and 1, representing a percentage along the walls. Play with it until you find a good spot for it. Known issues: Some faces, for whatever reason, will rarely rotate the cutout sideways. Choosing another position seems to be the only fix. |
+| `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
+| `carrycase_tolerance` | 0.3 mm | Gap size between the pcb case and the carry case. Will probably need playing around with on your printer to get a good fit. Err on the side of too large if you don't want to print too much. |
+| `carrycase_wall_xy_thickness` | 2 mm | Thickness of the carrycase outer wall |
+| `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 2 mm between them when they are in the case |
+| `carrycase_cutout_position` | 0.0 | Location, as a percentage, along the walls of the carrycase for the finger removal cutout. Between 0 and 1, representing a percentage along the case. Play with it until you find a good spot for it. |
+| `carrycase_cutout_width` | 5 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
 
 ### More examples
 

@@ -3,19 +3,24 @@ from build123d import *
 import math
 loc = bd.Location
 
+# TODO: Documentation: PositionMode enum: Length is supposed to be actual length like "mm",
+# parameter is where the start is zero and end is one.
+#
+# location_at / ^ symbol, to match % and @
+
 default_params = {
     "base_z_thickness": 3,
     "wall_xy_thickness": 2,
     "wall_z_height": 1.6,
-    "z_space_under_pcb": 1.6,
+    "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.3,
     "wall_xy_top_tolerance": 0.3,
-    "cutout_angle": 0,
-    "cutout_width": 5,
+    "cutout_position": 0,
+    "cutout_width": 15,
     "carrycase_tolerance": 0.3,
     "carrycase_wall_xy_thickness": 4,
-    "carrycase_z_gap_between_pcbs": 11,
-    "carrycase_cutout_angle": 0,
+    "carrycase_z_gap_between_cases": 11,
+    "carrycase_cutout_position": 0,
     "carrycase_cutout_width": 5,
 }
 
@@ -23,16 +28,19 @@ magnet_height = 2
 magnet_radius = 4/2
 
 params = default_params
+params["cutout_position"] = 0.97
+params["z_space_under_pcb"] = 2.4
 
 outline = bd.import_svg("build/outline.svg")
 
 # For testing
-outline = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
+# outline = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
 
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
 outline = bd.make_face(outline.wires()).wires()[0]
 base_face = bd.make_face(outline)
+
 
 pcb_case_wall_height = params["z_space_under_pcb"] +  \
     params["wall_z_height"]
@@ -46,10 +54,17 @@ wall_outline -= cutout_outline
 
 wall_height = (
     params["base_z_thickness"] +
-        params["carrycase_z_gap_between_pcbs"]
+        params["carrycase_z_gap_between_cases"]
 )
 wall = bd.extrude(wall_outline, wall_height)
 # cutout = bd.extrude(cutout_outline, wall_height)
+
+base = bd.extrude(base_face, params["base_z_thickness"])
+wall_outer = bd.offset(
+    base_face,
+    params["wall_xy_thickness"],
+)
+
 
 hole_cutout = bd.Plane.XY * bd.Rot(0,90,0) * bd.Cylinder(
     radius=magnet_radius,
@@ -101,7 +116,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     wall_height = (
         params["base_z_thickness"] +
-            params["carrycase_z_gap_between_pcbs"]
+            params["carrycase_z_gap_between_cases"]
     )
     wall = bd.extrude(wall_outline, wall_height)
     # cutout = bd.extrude(cutout_outline, wall_height)
@@ -135,13 +150,28 @@ def generate_pcb_case(base_face, wall_height):
     # show_object(inner_cutout, name="inner")
     wall = bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout
     case = wall + base
-    # show_object(case, name="case")
+
+    # Create finger cutout
+    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    top_inner_wire = topf.wires()[0]
+    cutout_location = top_inner_wire ^ params["cutout_position"]
+    cutout_location *= bd.Rot(X=-90)
+    cutout_box = bd.Box(
+        params["wall_xy_thickness"]*2,
+        params["cutout_width"],
+        pcb_case_wall_height,
+        # Align box to be totally inside the wall
+        align=[bd.Align.CENTER, bd.Align.CENTER, bd.Align.MAX],
+    ).located(cutout_location)
+
+    case = case - cutout_box
+    show_object(case, name="case")
     return case
 
 
 def generate_cases(svg_file, params=None):
     if not params:
-        params = {} 
+        params = {}
     default_params.update(params)
     params = default_params
 
@@ -153,6 +183,5 @@ if __name__ in ["__cq_main__", "temp"]:
     pass
     # object = generate_case("build/outline.svg")
     # show_object(object)
-    # object = generate_pcb_case(base_face, pcb_case_wall_height)
-    # object = generate_carrycase(base_face, pcb_case_wall_height)
-    # show_object(object)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
