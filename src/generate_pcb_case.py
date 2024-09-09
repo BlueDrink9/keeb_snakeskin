@@ -115,15 +115,18 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     wall_outline -= cutout_outline
 
     wall_height = (
-        params["base_z_thickness"] +
+        pcb_case_wall_height +
+            params["base_z_thickness"] +
             params["carrycase_z_gap_between_cases"]
     )
     wall = bd.extrude(wall_outline, wall_height)
     # cutout = bd.extrude(cutout_outline, wall_height)
 
     # Part that blocks the pcb case from going all the way through
-    blocker = bd.offset(base_face, params["wall_xy_thickness"]) - base_face
-    blocker = bd.extrude(blocker, amount=2).moved(loc((0,0,pcb_case_wall_height)))
+    blocker_face = bd.offset(base_face, params["wall_xy_thickness"]) - base_face
+    # Locate the blocker at the top of the pcb case wall
+    blocker = bd.extrude(blocker_face, amount=2).moved(
+        loc((0,0,wall_height - params["carrycase_z_gap_between_cases"])))
 
     case = wall + blocker
 
