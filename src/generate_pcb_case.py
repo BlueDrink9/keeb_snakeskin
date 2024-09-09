@@ -4,6 +4,13 @@ import math
 
 loc = bd.Location
 
+# TODO:
+# * Align multiple magnets
+# * Parameterise magnet number? or area, with fixed intervals? But ensure all
+# within a certain angle of one another??
+# * Change position on wire system to angle system - create a line from center, intersect
+# it with the line, and set the location to that intersection.
+#
 # TODO: Documentation: PositionMode enum: Length is supposed to be actual length like "mm",
 # parameter is where the start is zero and end is one.
 #
@@ -18,8 +25,8 @@ loc = bd.Location
 
 default_params = {
     "base_z_thickness": 3,
-    "wall_xy_thickness": 2,
-    "wall_z_height": 1.6,
+    "wall_xy_thickness": 2.5,
+    "wall_z_height": 3.4,
     "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.3,
     "wall_xy_top_tolerance": 0.3,
@@ -28,11 +35,12 @@ default_params = {
     "carrycase": True,
     "carrycase_tolerance": 0.3,
     "carrycase_wall_xy_thickness": 4,
-    "carrycase_z_gap_between_cases": 11,
+    "carrycase_z_gap_between_cases": 9,
     "carrycase_cutout_position": 0.0,
     "carrycase_cutout_xy_width": 15,
     "lip_z_thickness": 1,
     "lip_position_angles": [160, 30],
+    "magnet_position_centre": 0.0,
 }
 
 magnet_height = 2
@@ -44,6 +52,7 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 params["cutout_position"] = 0.97
 params["carrycase_cutout_position"] = 0.39
 params["z_space_under_pcb"] = 2.4
+params["magnet_position_centre"] = 0.97
 
 outline = bd.import_svg("build/outline.svg")
 # For testing
@@ -228,8 +237,8 @@ if __name__ in ["__cq_main__", "temp"]:
     # object = generate_case("build/outline.svg")
     # show_object(object)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+        # carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 
 
@@ -251,26 +260,28 @@ wall_outer = bd.offset(
 )
 
 
-hole_cutout = (
-    bd.Plane.XY
-    * bd.Rot(0, 90, 0)
-    * bd.Cylinder(
-        radius=magnet_radius, height=magnet_height * 2 + params["carrycase_tolerance"]
+hole = (
+    bd.Plane.XZ
+    * bd.Circle(
+        radius=magnet_radius,
+        # radius=magnet_radius, height=magnet_height * 2 + params["carrycase_tolerance"]
+        # align=[bd.Align.MIN, bd.Align.CENTER]
     )
 )
+hole_cutout = bd.extrude(hole, magnet_height)
 hole_cutouts = hole_cutout
 # hole_cutouts = inner_face
 # show_object(wall.edges().sort_by(bd.SortBy.LENGTH)[-1])
 
+# Get second largest face parallel to XY plane - i.e., the inner case face
+inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
+inner_wire = inner_case_face.wires()[0]
+magnet_start = inner_wire ^ params["magnet_position_centre"]
+hole_cutout.location = magnet_start * bd.Rot(0, 0, 90)
+hole_cutout.position += (0, 0, magnet_radius)
+show_object(inner_wire, name="inner_wire")
+
 show_object(hole_cutouts, name="magnets")
-
-# inner_faces = vert_faces.filter_by(lambda x: is_wire_for_face(x, inner_wire))
-
-vert_faces = wall.faces().filter_by(Axis.Z, reverse=True)
-inner_faces = get_inner_faces(vert_faces)
-f = inner_faces
-shape = f
-# show_object(shape, name="shape")
 
 # shape = vert_faces.filter_by(lambda x: bd.Shape.closest_points(vert_faces[0], inner_wires)==0)
 
