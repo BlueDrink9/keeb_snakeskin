@@ -25,7 +25,7 @@ Loc = bd.Location
 # require tolerance/stretching in that direction, but I'm not sure how much).
 
 default_params = {
-    "base_z_thickness": 3,
+    "base_z_thickness": 30,
     "wall_xy_thickness": 2.5,
     "wall_z_height": 3.4,
     "z_space_under_pcb": 1,
@@ -42,6 +42,7 @@ default_params = {
     "lip_z_thickness": 1,
     "lip_position_angles": [160, 30],
     "magnet_position_centre": 0.0,
+    "magnet_position_angle": 100.0,
 }
 
 magnet_height = 2
@@ -198,7 +199,7 @@ def __finger_cutout(location, thickness, width, height):
     return cutout_box
 
 
-def __magnet_cutout(position):
+def __magnet_cutout(angle):
     hole = (
         bd.Plane.XY
         * bd.Circle(
@@ -211,14 +212,40 @@ def __magnet_cutout(position):
     # Get second largest face parallel to XY plane - i.e., the inner case face
     inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = inner_case_face.wires()[0]
-    magnet_start = inner_wire ^ position
-    cutout.orientation = magnet_start.orientation
-    cutout = cutout.rotate(bd.Axis.Z, -90)
-    cutout.position = magnet_start.position
-    cutout.position += (0, 0, magnet_radius)
+    # magnet_start = inner_wire ^ position
+    # cutout.orientation = magnet_start.orientation
+    # cutout = cutout.rotate(bd.Axis.Z, -90)
+    # cutout.position = magnet_start.position
+    # cutout.position += (0, 0, magnet_radius)
+    # return cutout
+    # Calculate the direction vector based on the specified angle
+    direction = bd.Vector(math.cos(math.radians(angle)), math.sin(math.radians(angle)), 0)
+
+    # Project a line from the center of the face along the specified angle
+    face_center = inner_case_face.center()
+    line = bd.Axis(face_center, direction)
+    show_object(bd.Line(face_center, direction * 1000), name="line")
+    # show_object(inner_wire, name="inner_wire")
     return cutout
 
 
+
+    # Find the intersection point between the line and the wire
+    intersection = inner_wire.edges().sort_by(line)[-1]
+    show_object(intersection, "edge")
+    # .intersect(line)
+
+    # if intersection:
+    #     magnet_start = intersection[0]
+    #     cutout.orientation = magnet_start.orientation
+    #     cutout = cutout.rotate(bd.Axis.Z, -90)
+    #     cutout.position = magnet_start.position
+    #     cutout.position += (0, 0, magnet_radius)
+    #     return cutout
+    # # else:
+    # #     print("No intersection found between the line and the wire.")
+    # #     return None
+    #
 def __lip(base_face):
     lip = bd.offset(base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]) - base_face
     lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
@@ -252,36 +279,130 @@ class Sector(bd.Shape):
 
 # show_object(Sector(100, 0, 45), "sector")
 
+#
+# if __name__ in ["__cq_main__", "temp"]:
+#     # For testing via cq-editor
+#     pass
+#     # object = generate_case("build/outline.svg")
+#     # show_object(object)
+#     case = generate_pcb_case(base_face, pcb_case_wall_height)
+#
+#     # if params["carrycase"]:
+#     #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+#
+#
+# cutout_outline = bd.offset(
+#     base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]
+# )
+# wall_outline = bd.offset(cutout_outline, params["carrycase_wall_xy_thickness"])
+# wall_outline -= cutout_outline
+#
+# wall_height = params["base_z_thickness"] + params["carrycase_z_gap_between_cases"]
+# wall = bd.extrude(wall_outline, wall_height)
+# # cutout = bd.extrude(cutout_outline, wall_height)
+#
+# base = bd.extrude(base_face, params["base_z_thickness"])
+# wall_outer = bd.offset(
+#     base_face,
+#     params["wall_xy_thickness"],
+# )
+#
+#
+# # shape = vert_faces.filter_by(lambda x: bd.Shape.closest_points(vert_faces[0], inner_wires)==0)
+# # cutout = __magnet_cutout(params["magnet_position_centre"])
+# cutout = __magnet_cutout(params["magnet_position_angle"])
+# show_object(cutout, name="magnet cutout")
+# angle = params["magnet_position_angle"]
+# hole = (
+#     bd.Plane.XY
+#     * bd.Circle(
+#         radius=magnet_radius,
+#     )
+# )
+# # Add a little extra to the height to ensure there is space for the pcb to slide past the
+# # board hole
+# cutout = bd.extrude(hole, magnet_height + 0.1)
+# # Get second largest face parallel to XY plane - i.e., the inner case face
+# inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
+# inner_wire = inner_case_face.wires()[0]
+# # magnet_start = inner_wire ^ position
+# # cutout.orientation = magnet_start.orientation
+# # cutout = cutout.rotate(bd.Axis.Z, -90)
+# # cutout.position = magnet_start.position
+# # cutout.position += (0, 0, magnet_radius)
+# # return cutout
+# # Calculate the direction vector based on the specified angle
+# direction = bd.Vector(math.cos(math.radians(angle)), math.sin(math.radians(angle)), 0)
+# show_object(inner_case_face, name="inner_case_face")
+#
+# # Project a line from the center of the face along the specified angle
+# face_center = inner_case_face.center()
+# line = bd.Plane(inner_case_face).shift_origin(face_center) * bd.PolarLine(
+#     start=0, length=1000, angle=angle
+# )
+# ax = bd.Axis(bd.Wire(line).edge())
+# show_object(line, name="line")
+# target_face = case.faces().sort_by(ax)
+# show_object(target_face[-1], name="face")
+# # p = bd.Plane.XZ * bd.Rot((0, angle, 0))
+# # p.origin = face_center
+# # p = p * bd.Rectangle(500, 10)
+# # show_object(inner_wire, name="inner_wire")
+# # show_object(p, name="p")
+#
+#
+# # Find the intersection point between the line and the wire
+# target_line = inner_wire.fix_degenerate_edges(30).edges().sort_by(ax)[-1]
+# show_object(target_line, "target_line")
+# dir = line.orientation.normalized()
+# # bd.IntersectingLine(face_center, dir, target_line)
+# # i = p.intersect(intersection)
+# # show_object(i.children[0], name="i")
+# # intersection.intersect(line)
 
-if __name__ in ["__cq_main__", "temp"]:
-    # For testing via cq-editor
-    pass
-    # object = generate_case("build/outline.svg")
-    # show_object(object)
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+# TODO: Instead of wire, create a wall to intersect with. See if that works
+# bett.r Make the wall same height as wall, get center of intersection,
+# hopefuly that works. Hmph
 
+#
+# # Minimum test examples
+# angle = 45
+# f = bd.Rot(13,15,12) * bd.Pos(9, 7, 5) * bd.Box(40, 30, 10).faces()[0]
+# show_object(f, name="face")
+# face_center = f.center()
+# line = bd.Plane(f).shift_origin(face_center) * bd.PolarLine(
+#     start=0, length=1000, angle=angle
+# )
+# show_object(line, name="line")
+# ax = bd.Axis(bd.Wire(line).edge())
+# target_edge = f.edges().sort_by(ax)[-1]
+# show_object(target_edge, name="target_edge")
+#
+# new_f = bd.extrude(f.offset(0.1), 10)
+# # show_object(new_f, name="target_faces")
+# int_fs = new_f.find_intersection(ax)
+# # show_object(int_fs, name="intersected faces")
+# # show_object(f.wires()[0], name="wire")
+# # i = bd.IntersectingLine(start=face_center, direction=(1, 1), other=f.wires()[0])
+# # show_object(i, name="intersected line")
+#
+# f = bd.Pos(12, 12, 12) * bd.Rectangle(10, 10)
+# show_object(f, name="face")
+# face_center = f.center()
+# plane = bd.Plane(f.faces()[0])
+# l = plane * bd.Line(-10, 10)
+# show_object(l, name="line")
+# # Not coplanar!?
+# # i = bd.IntersectingLine(start=plane.origin, direction=(1, 1), other=plane * f.wires()[0])
+# # show_object(i, name="intersected line")
 
-
-
-cutout_outline = bd.offset(
-    base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]
-)
-wall_outline = bd.offset(cutout_outline, params["carrycase_wall_xy_thickness"])
-wall_outline -= cutout_outline
-
-wall_height = params["base_z_thickness"] + params["carrycase_z_gap_between_cases"]
-wall = bd.extrude(wall_outline, wall_height)
-# cutout = bd.extrude(cutout_outline, wall_height)
-
-base = bd.extrude(base_face, params["base_z_thickness"])
-wall_outer = bd.offset(
-    base_face,
-    params["wall_xy_thickness"],
-)
-
-
-# shape = vert_faces.filter_by(lambda x: bd.Shape.closest_points(vert_faces[0], inner_wires)==0)
-cutout = __magnet_cutout(params["magnet_position_centre"])
-show_object(cutout, name="magnet cutout")
+# # Creating a 'catcher' rectangle to intersect with the line/face
+# f = bd.Pos(12, 12, 12) * bd.Rectangle(10, 10)
+# wall_c = f.edges()[0].center()
+# new_plane = bd.Plane(f, origin = wall_c, y_dir=f.face().normal_at(), z_dir = 1)
+# catcher = new_plane * bd.Rectangle(10, 10, align=Align.CENTER)
+# show_object(catcher, name="catcher")
+# f.position -= (1,0,0)
+# show_object(f, name="f")
+# i = catcher.intersect(f)
+# print(len(i.children)) # 0
