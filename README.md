@@ -6,8 +6,7 @@ This case design generally uses a friction fit to get the PCB to stay in the cas
 Cases have a removal cutout in one part of the wall for you to pull the case out
 after pushing in.
 
-Inspired by and in collabouration with the [Compression
-keyboard](https://github.com/compressionKeyboards/compression4c) by Bennett Hermanoff. [More images here](https://compressionkeyboards.com/).
+Inspired by and in collabouration with the [Compression keyboard](https://github.com/compressionKeyboards/compression4c) by Bennett Hermanoff. [More images here](https://compressionkeyboards.com/).
 
 ## Install
 
@@ -20,6 +19,9 @@ Alternatively, see usage option for 'from dxf'.
 should create a new executable `snakeskin` in your python scripts folder.
 
 ## Usage
+
+Overall: Create a config json, at minimum tweaking the cutout positioning for your
+board. Extract your pcb edge cuts as an SVG. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
 
 ### Input File
 
@@ -51,9 +53,9 @@ In this case the output would be `./build/maizeless/case_left.step` and `./build
 Alternatively, if you already have a `.dxf` outline of your pcb, you can bypass the svg conversion step (removing the need for inkscape) and specify it directly with
 `--dxf path/to/outline.dxf`
 
-### Specifying case parameters
+### Specifying parameters
 
-The following table outlines the possible variables you can specify for
+The following tables outline the possible variables you can specify for
 your case creation.
 To modify the paramters, pass a path to a `.json` file with
 `-c path/to/cfg.json`. This should have anything you want to override from
@@ -64,14 +66,13 @@ defaults specified as a top level key:value, for example:
     "wall_xy_thickness": 2.5,
     "cutout_width": 6
 }
-```
 
 
 | Parameter name | default value | description |
 | -------------- | ------------- | ----------- |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
 | `wall_xy_thickness` | 2 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case |
-| `wall_z_height` | 1.6 mm | Z height of the wall from the bottom of the PCB. The default is a standard PCB thickness, and is unlikely to need modifying. |
+| `wall_z_height` | 4.0 mm | Z height of the wall from the bottom of the PCB. The default includes room for magnets for the carrycase. If you aren't adding a carrycase, 1.6 is a good height for a standard PCB thickness if you just want to cover the pcb. |
 | `z_space_under_pcb` | 1 mm | The size of the gap beneath the PCB, to leave room for through-hole pins, wires, hotswap sockets etc on the underside. Modify this to at least 1.85 if you are using kailh hotswap sockets under the PCB, for example. Also increase it if you want to have bigger tolerences for the fit and need more space for the walls to narrow in. By default, leaves just enough space for the pins of a choc switch directly soldered into a 1.6 mm pcb (which I measure stick out at about 0.83 mm). |
 | `wall_xy_bottom_tolerance` | -0.3 mm | Amount of space between the narrowest part of the walls (at the bottom) and the PCB outline. Use -ve values for friction fit |
 | `wall_xy_top_tolerance` | 0.3 mm | Amount of space between the widest part of the walls (at the top) and the PCB outline. Adjust this depending on printer tolerances and how tight you want the friction fit. You may want to increase `z_space_under_pcb` if the difference between this and `wall_xy_bottom_tolerance` is large |
@@ -79,6 +80,13 @@ defaults specified as a top level key:value, for example:
 | `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
 | `carrycase` | True | Whether the output designs should incorporate the compression-style
 carrycase. Will affect the main case as well. |
+
+#### Carrycase options
+
+If you are creating a carrycase (`"carrycase": true`), the following additional parameters are available in the same configuration:
+
+| Parameter name | default value | description |
+| -------------- | ------------- | ----------- |
 | `carrycase_tolerance` | 0.3 mm | Gap size between the pcb case and the carry case. Will probably need playing around with on your printer to get a good fit. Err on the side of too large if you don't want to print too much. |
 | `carrycase_wall_xy_thickness` | 2 mm | Thickness of the carrycase outer wall |
 | `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case |
@@ -88,8 +96,10 @@ carrycase. Will affect the main case as well. |
 | `lip_position_angles` | [160, 30] | A list of two angles, [start_angle, end_angle], that defines the position of the lip on the case, which holds one edge into the carrycase. Measured in degrees from the positive X-axis. Positive angles are measured counterclockwise, with 0 degrees being the positive X-axis and 90 degrees being the positive Y-axis, -90 is the direction of the negative Y axis.The difference between the start and end angles must be less than 180 degrees. It is recommended to set the angles to cover a long, straight section of the case. This must be opposite to the location of the finger cutout on the carry case and the magnets. |
 | `magnet_position` | -90 | Location  along the walls of the carrycase and case where the magnets will be centered, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. |
 | `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the
-magnets in the case from the magnets in the carrycase. How thick the case wall
-is between them. |
+magnets in the case from the magnets in the carrycase. How thick the case wall |
+| `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
+| `magnet_count` | 6 | Number of magnets per case (a split board and
+compression case will need 4* this amount to complete the build). |
 
 ### More examples
 
