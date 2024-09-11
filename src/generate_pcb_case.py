@@ -273,6 +273,11 @@ def __arc_sector_ray(obj, angle1, angle2):
 
 
 def _map_polar_locations(wire, origin):
+    """Populate existing polar_position_maps with the polar location of
+    a wire, where the resulting map is a dict of angle to location for
+    use with wire ^ location (`wire.at_location`). Angle is calculated
+    from the provide origin (intended to be the center of the closed
+    wire)."""
     n_angles = 360
     at_position = 0
     iter = 1/n_angles
@@ -291,6 +296,7 @@ def _map_polar_locations(wire, origin):
 
 
 def _get_polar_location(wire, angle):
+    """Given a wire mapped with _map_polar_locations, return the wire intersection location at `angle`."""
     try:
         map = polar_position_maps[id(wire)]
     except KeyError:
@@ -301,6 +307,7 @@ def _get_polar_location(wire, angle):
 
 
 def _find_nearest_key(d, target_int):
+    """Find the nearest existing key in a dict to a target integer"""
     nearest = min(d, key=lambda x: abs(x - target_int))
     return nearest
 
