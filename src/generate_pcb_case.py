@@ -1,8 +1,9 @@
+import copy
+import math
+from collections import defaultdict
 import build123d as bd
 from build123d import Align, Rot
 from build123d import *
-import math
-from collections import defaultdict
 
 Loc = bd.Location
 
@@ -10,8 +11,7 @@ Loc = bd.Location
 # * Align multiple magnets
 # * Parameterise magnet number? or area, with fixed intervals? But ensure all
 # within a certain angle of one another??
-# * Change position on wire system to angle system - create a line from center, intersect
-# it with the line, and set the location to that intersection.
+# * reduce overhangs
 #
 # TODO: Documentation: PositionMode enum: Length is supposed to be actual length like "mm",
 # parameter is where the start is zero and end is one.
@@ -57,6 +57,7 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 params["cutout_position"] = 32
 params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
+magnet_count = 8
 
 outline = bd.import_svg("build/outline.svg")
 # For testing
@@ -64,7 +65,7 @@ outline = bd.import_svg("build/outline.svg")
 
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
-outline = bd.make_face(outline.wires()).wires()[0]
+outline = bd.make_face(outline.wires()).wire()
 base_face = bd.make_face(outline)
 
 
@@ -110,8 +111,8 @@ def generate_pcb_case(base_face, wall_height):
     # Create finger cutout
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
     top_inner_wire = topf.wires()[0]
-    _map_polar_locations(top_inner_wire, topf.center())
-    cutout_location = _get_polar_location(top_inner_wire, params["cutout_position"])
+    polar_map = PolarWireMap(top_inner_wire, topf.center())
+    cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
     cutout_box = __finger_cutout(
         cutout_location,
         params["wall_xy_thickness"],
@@ -159,8 +160,8 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
-    _map_polar_locations(bottom_inner_wire, botf.center())
-    cutout_location = _get_polar_location(bottom_inner_wire, params["carrycase_cutout_position"])
+    polar_map = PolarWireMap(bottom_inner_wire, botf.center())
+    cutout_location, _ = polar_map.get_polar_location(params["carrycase_cutout_position"])
     cutout_box = __finger_cutout(
         cutout_location,
         params["carrycase_wall_xy_thickness"],
@@ -215,12 +216,26 @@ def _magnet_cutout(case, angle):
     # Get second largest face parallel to XY plane - i.e., the inner case face
     inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = inner_case_face.wires()[0]
-    _map_polar_locations(inner_wire, inner_case_face.center())
-    magnet_start = _get_polar_location(inner_wire, angle)
-    cutout.orientation = magnet_start.orientation
-    cutout = cutout.rotate(bd.Axis.Z, -90)
-    cutout.position = magnet_start.position
-    cutout.position += (0, 0, magnet_radius)
+    polar_map = PolarWireMap(inner_wire, inner_case_face.center())
+    magnet_start, start_percent = polar_map.get_polar_location(angle)
+    at_mm = start_percent * inner_wire.length
+    # magnet_start = inner_wire.location_at(at_mm, position_mode=bd.PositionMode.LENGTH)
+
+    template = cutout
+    for i, magnet_start in enumerate([magnet_start, inner_wire ^ 0.4, inner_wire ^ 0.3]):
+        cutout = copy.copy(template)
+        # cutout.orientation = magnet_start.orientation
+        cutout = cutout.located(bd.Location(cutout.position, magnet_start.orientation))
+        cutout = cutout.rotate(bd.Axis.Z, -90)
+        cutout = cutout.located(bd.Location(magnet_start.position, cutout.orientation))
+        # cutout.position = magnet_start.position
+        # cutout.position += (0, 0, magnet_radius)
+        show_object(cutout, f"magnet_cutout{i}")
+
+    # get mm of start angle and end angle
+    # for mm in range start, end, magnet_spacing: place magnet at position
+    # in mm
+
     show_object(cutout, "magnet_cutout")
     return cutout
 
@@ -246,44 +261,50 @@ def __arc_sector_ray(obj, angle1, angle2):
     return triangle
 
 
-def _map_polar_locations(wire, origin):
-    """Populate existing polar_position_maps with the polar location of
-    a wire, where the resulting map is a dict of angle to location for
-    use with wire ^ location (`wire.at_location`). Angle is calculated
-    from the provide origin (intended to be the center of the closed
-    wire)."""
-    n_angles = 360
-    at_position = 0
-    iter = 1/n_angles
-    while at_position <= 1:
-        location = wire ^ at_position
-        at_position += iter
-        ax1 = bd.Axis.X
-        ax2 = bd.Wire(bd.Line(origin, location.position)).edge()
-        ax2 = bd.Axis(edge = ax2)
-        angle = round(ax1.angle_between(ax2))
-        if ax2.direction.Y < 0:
-            # Angle between gives up to 180 as a positive value, so we need to
-            # flip it for -ve angles.
-            angle = -angle
-        polar_position_maps[id(wire)][angle] = at_position
+class PolarWireMap():
+    """Maps between polar locations of a wire relative to a central origin, where the resulting map is a dict of angle to location for
+        use with wire ^ location (`wire.at_location`). Angle is calculated
+        from the provide origin (intended to be the center of the closed
+        wire)."""
+    def __init__(self, wire, origin):
+        self.wire, self.origin = wire, origin
+        self.map_ = {}
+        self.__map_polar_locations()
 
+    def get_polar_location(self, angle):
+        """return the wire's intersection location at `angle`."""
+        angle = _find_nearest_key(self.map_, angle)
+        at = self.map_[angle]
+        return self.wire ^ at, at
 
-def _get_polar_location(wire, angle):
-    """Given a wire mapped with _map_polar_locations, return the wire intersection location at `angle`."""
-    try:
-        map = polar_position_maps[id(wire)]
-    except KeyError:
-        print("Wire not yet mapped, this is a dev error")
-        raise
-    angle = _find_nearest_key(map, angle)
-    return wire ^ map[angle]
+    def __map_polar_locations(self):
+        """Populate map with the polar location of
+        a wire, where the resulting map is a dict of angle to location for
+        use with wire ^ location (`wire.at_location`). Angle is calculated
+        from the provide origin (intended to be the center of the closed
+        wire)."""
+        n_angles = 360
+        at_position = 0
+        iter = 1/n_angles
+        while at_position <= 1:
+            location = self.wire ^ at_position
+            at_position += iter
+            ax1 = bd.Axis.X
+            ax2 = bd.Wire(bd.Line(self.origin, location.position)).edge()
+            ax2 = bd.Axis(edge = ax2)
+            angle = round(ax1.angle_between(ax2))
+            if ax2.direction.Y < 0:
+                # Angle between gives up to 180 as a positive value, so we need to
+                # flip it for -ve angles.
+                angle = -angle
+            self.map_[angle] = at_position
 
 
 def _find_nearest_key(d, target_int):
     """Find the nearest existing key in a dict to a target integer"""
     nearest = min(d, key=lambda x: abs(x - target_int))
     return nearest
+
 
 class Sector(bd.Shape):
     """Sector of a circle with tip at location, between angle1 and angle2 in degrees, where 0 is the X axis and -90 is the negative Y axis."""
