@@ -2,6 +2,7 @@ import build123d as bd
 from build123d import Align, Rot
 from build123d import *
 import math
+from collections import defaultdict
 
 Loc = bd.Location
 
@@ -31,7 +32,7 @@ default_params = {
     "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.3,
     "wall_xy_top_tolerance": 0.3,
-    "cutout_position": 0,
+    "cutout_position": 90,
     "cutout_width": 15,
     "carrycase": True,
     "carrycase_tolerance": 0.3,
@@ -48,10 +49,13 @@ default_params = {
 magnet_height = 2
 magnet_radius = 4 / 2
 
-params = default_params
+polar_position_maps = defaultdict(dict)
+
+params = default_params # TODO: merge this with user params
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
-params["cutout_position"] = 0.97
+# params["cutout_position"] = 0.97
+params["cutout_position"] = 93
 params["carrycase_cutout_position"] = 0.39
 params["z_space_under_pcb"] = 2.4
 params["magnet_position_centre"] = 0.37
@@ -108,7 +112,10 @@ def generate_pcb_case(base_face, wall_height):
     # Create finger cutout
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
     top_inner_wire = topf.wires()[0]
-    cutout_location = top_inner_wire ^ params["cutout_position"]
+    _map_polar_locations(top_inner_wire, topf.center())
+    cutout_location = _get_polar_location(top_inner_wire, params["cutout_position"])
+    # cutout_location = top_inner_wire ^ params["cutout_position"]
+    # cutout_location = top_inner_wire ^ 0.5
     cutout_box = __finger_cutout(
         cutout_location,
         params["wall_xy_thickness"],
@@ -267,6 +274,38 @@ def __arc_sector_ray(obj, angle1, angle2):
     return triangle
 
 
+def _map_polar_locations(wire, origin):
+    n_angles = 360
+    at_position = 0
+    iter = 1/n_angles
+    while at_position <= 1:
+        location = wire ^ at_position
+        at_position += iter
+        ax1 = bd.Axis.X
+        ax2 = bd.Wire(bd.Line(origin, location.position)).edge()
+        ax2 = bd.Axis(edge = ax2)
+        angle = round(ax1.angle_between(ax2))
+        if ax2.direction.Y < 0:
+            # Angle between gives up to 180 as a positive value, so we need to
+            # flip it for -ve angles.
+            angle = -angle
+        polar_position_maps[id(wire)][angle] = at_position
+
+
+def _get_polar_location(wire, angle):
+    try:
+        map = polar_position_maps[id(wire)]
+    except KeyError:
+        print("Wire not yet mapped, this is a dev error")
+        raise
+    angle = _find_nearest_key(map, angle)
+    return wire ^ map[angle]
+
+
+def _find_nearest_key(d, target_int):
+    nearest = min(d, key=lambda x: abs(x - target_int))
+    return nearest
+
 class Sector(bd.Shape):
     """Sector of a circle with tip at location, between angle1 and angle2 in degrees, where 0 is the X axis and -90 is the negative Y axis."""
     def __init__(self, radius, angle1, angle2, location=(0,0)):
@@ -276,21 +315,22 @@ class Sector(bd.Shape):
             .lineTo(0,0)
             .close()
         ).located(Loc(location))
+    # JernArc(start, startTangent, radius, angle) is altenrative
 
 # show_object(Sector(100, 0, 45), "sector")
 
-#
-# if __name__ in ["__cq_main__", "temp"]:
-#     # For testing via cq-editor
-#     pass
-#     # object = generate_case("build/outline.svg")
-#     # show_object(object)
-#     case = generate_pcb_case(base_face, pcb_case_wall_height)
-#
-#     # if params["carrycase"]:
-#     #     carry = generate_carrycase(base_face, pcb_case_wall_height)
-#
-#
+
+if __name__ in ["__cq_main__", "temp"]:
+    # For testing via cq-editor
+    pass
+    # object = generate_case("build/outline.svg")
+    # show_object(object)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
+
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+
+
 # cutout_outline = bd.offset(
 #     base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]
 # )
@@ -401,8 +441,8 @@ class Sector(bd.Shape):
 # wall_c = f.edges()[0].center()
 # new_plane = bd.Plane(f, origin = wall_c, y_dir=f.face().normal_at(), z_dir = 1)
 # catcher = new_plane * bd.Rectangle(10, 10, align=Align.CENTER)
-# show_object(catcher, name="catcher")
+# # show_object(catcher, name="catcher")
 # f.position -= (1,0,0)
-# show_object(f, name="f")
+# # show_object(f, name="f")
 # i = catcher.intersect(f)
-# print(len(i.children)) # 0
+# # print(len(i.children)) # 0
