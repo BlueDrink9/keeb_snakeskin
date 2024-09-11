@@ -68,7 +68,7 @@ outline = bd.import_svg("build/outline.svg")
 # edges that an svg gets imported with.
 outline = bd.make_face(outline.wires()).wire()
 base_face = bd.make_face(outline)
-show_object(base_face, name="base_face")
+# show_object(base_face, name="base_face")
 
 
 def is_wire_for_face(face, wire):
@@ -206,7 +206,14 @@ def __finger_cutout(location, thickness, width, height):
         thickness * 2.1,
         width,
         height * 2,
-    ).located(cutout_location)
+    )
+    # Smooth the sides of the cutout
+    cutout_box = bd.fillet(
+        cutout_box.edges()
+        .filter_by(bd.Axis.X)
+        , height/2
+    )
+    cutout_box.locate(cutout_location)
     return cutout_box
 
 
@@ -338,5 +345,5 @@ if __name__ in ["__cq_main__", "temp"]:
     # show_object(object)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
