@@ -204,7 +204,7 @@ def __finger_cutout(location, thickness, width, height):
     return cutout_box
 
 
-def __magnet_cutout(angle):
+def _magnet_cutout(angle):
     hole = (
         bd.Plane.XY
         * bd.Circle(
@@ -217,40 +217,18 @@ def __magnet_cutout(angle):
     # Get second largest face parallel to XY plane - i.e., the inner case face
     inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = inner_case_face.wires()[0]
-    # magnet_start = inner_wire ^ position
-    # cutout.orientation = magnet_start.orientation
-    # cutout = cutout.rotate(bd.Axis.Z, -90)
-    # cutout.position = magnet_start.position
-    # cutout.position += (0, 0, magnet_radius)
-    # return cutout
-    # Calculate the direction vector based on the specified angle
-    direction = bd.Vector(math.cos(math.radians(angle)), math.sin(math.radians(angle)), 0)
+    magnet_start = inner_wire ^ position
 
-    # Project a line from the center of the face along the specified angle
-    face_center = inner_case_face.center()
-    line = bd.Axis(face_center, direction)
-    show_object(bd.Line(face_center, direction * 1000), name="line")
-    # show_object(inner_wire, name="inner_wire")
+    _map_polar_locations(inner_wire, inner_case_face.center())
+    magnet_start = _get_polar_location(inner_wire, angle)
+    cutout.orientation = magnet_start.orientation
+    cutout = cutout.rotate(bd.Axis.Z, -90)
+    cutout.position = magnet_start.position
+    cutout.position += (0, 0, magnet_radius)
+    show_object(cutout, "magnet_cutout")
     return cutout
 
 
-
-    # Find the intersection point between the line and the wire
-    intersection = inner_wire.edges().sort_by(line)[-1]
-    show_object(intersection, "edge")
-    # .intersect(line)
-
-    # if intersection:
-    #     magnet_start = intersection[0]
-    #     cutout.orientation = magnet_start.orientation
-    #     cutout = cutout.rotate(bd.Axis.Z, -90)
-    #     cutout.position = magnet_start.position
-    #     cutout.position += (0, 0, magnet_radius)
-    #     return cutout
-    # # else:
-    # #     print("No intersection found between the line and the wire.")
-    # #     return None
-    #
 def __lip(base_face):
     lip = bd.offset(base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]) - base_face
     lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
