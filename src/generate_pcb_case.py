@@ -58,6 +58,8 @@ params["cutout_position"] = 32
 params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
 magnet_count = 8
+# Distance between magnet centers, in mm
+magnet_spacing = 15
 
 outline = bd.import_svg("build/outline.svg")
 # For testing
@@ -205,6 +207,16 @@ def __finger_cutout(location, thickness, width, height):
 
 
 def _magnet_cutout(case, angle):
+    # Get second largest face parallel to XY plane - i.e., the inner case face
+    inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
+    inner_wire = inner_case_face.wires()[0]
+    polar_map = PolarWireMap(inner_wire, inner_case_face.center())
+    _, center_percent = polar_map.get_polar_location(angle)
+    center_at_mm = center_percent * inner_wire.length
+    span = magnet_count * magnet_spacing
+    start = center_at_mm - span / 2
+    end = center_at_mm + span / 2
+
     hole = (
         bd.Plane.XY
             # TODO: Make this a teardrop? At least a shallow one?
@@ -212,29 +224,18 @@ def _magnet_cutout(case, angle):
             radius=magnet_radius,
         )
     )
-    cutout = bd.extrude(hole, params["wall_xy_thickness"] - params["magnet_separation_distance"])
-    # Get second largest face parallel to XY plane - i.e., the inner case face
-    inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
-    inner_wire = inner_case_face.wires()[0]
-    polar_map = PolarWireMap(inner_wire, inner_case_face.center())
-    magnet_start, start_percent = polar_map.get_polar_location(angle)
-    at_mm = start_percent * inner_wire.length
-    # magnet_start = inner_wire.location_at(at_mm, position_mode=bd.PositionMode.LENGTH)
+    template = bd.extrude(hole, params["wall_xy_thickness"] - params["magnet_separation_distance"])
 
-    template = cutout
-    for i, magnet_start in enumerate([magnet_start, inner_wire ^ 0.4, inner_wire ^ 0.3]):
+    position = start - magnet_spacing
+    while position <= end:
+        position += magnet_spacing
         cutout = copy.copy(template)
-        # cutout.orientation = magnet_start.orientation
-        cutout = cutout.located(bd.Location(cutout.position, magnet_start.orientation))
+        location = inner_wire.location_at(position, position_mode=bd.PositionMode.LENGTH)
+        cutout.orientation = location.orientation
         cutout = cutout.rotate(bd.Axis.Z, -90)
-        cutout = cutout.located(bd.Location(magnet_start.position, cutout.orientation))
-        # cutout.position = magnet_start.position
-        # cutout.position += (0, 0, magnet_radius)
-        show_object(cutout, f"magnet_cutout{i}")
-
-    # get mm of start angle and end angle
-    # for mm in range start, end, magnet_spacing: place magnet at position
-    # in mm
+        cutout.position = location.position
+        cutout.position += (0, 0, magnet_radius)
+        show_object(cutout, f"magnet_cutout_{position}")
 
     show_object(cutout, "magnet_cutout")
     return cutout
