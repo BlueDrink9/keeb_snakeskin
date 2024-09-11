@@ -66,7 +66,7 @@ outline = bd.import_svg("build/outline.svg")
 
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
-outline = bd.make_face(outline.wires()).wire()
+outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
 base_face = bd.make_face(outline)
 # show_object(base_face, name="base_face")
 
@@ -173,6 +173,24 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         pcb_case_wall_height - magnet_height - 0.3,
     )
     # show_object(cutout_box, name="carry case cutout box")
+
+    # What can we fillet here? SVG is probably causing issues
+    # topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    # top_wires = topf.wires().sort_by_distance(topf.center())
+    # top_edges = topf.edges().sort_by_distance(topf.center())
+    # show_object(top_wires, name="top_wires")
+    # cutout_box = bd.fillet(top_edges, 0.5)
+    # cutout_box = bd.fillet(top_wires.last.edges(), 0.5)
+    # e = case.edges().group_by(bd.Axis.Z)[-1].sort_by(-bd.Axis.Y)[1]
+    # show_object(e, name="e")
+    # case = bd.fillet(e, 3)
+    case = bd.Part() + case
+    # topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    # top_wires = topf.wires().sort_by_distance(topf.center())
+    # e = top_wires.last.fix_degenerate_edges(5).edges()
+    # show_object(e, name="e")
+    # # case = bd.fillet(e, 3)
+
 
     case -= cutout_box
 
@@ -345,5 +363,6 @@ if __name__ in ["__cq_main__", "temp"]:
     # show_object(object)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+
