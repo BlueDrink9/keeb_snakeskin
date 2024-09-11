@@ -214,6 +214,7 @@ def _magnet_cutout(base_face, angle):
     # Get second largest face parallel to XY plane - i.e., the inner case face
     # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = base_face.wires()[0]
+    # show_object(inner_wire, name="inner_wire")
     polar_map = PolarWireMap(inner_wire, base_face.center())
     _, center_percent = polar_map.get_polar_location(angle)
     center_at_mm = center_percent * inner_wire.length
@@ -229,7 +230,7 @@ def _magnet_cutout(base_face, angle):
         )
     )
     template = bd.extrude(hole, params["wall_xy_thickness"] - params["magnet_separation_distance"])
-    # Extend a bit futher into the case to ensure no overlap
+    # Extend a bit futher into the case to ensure no overlap, e.g. due to taper
     template += bd.extrude(hole, -(magnet_height + 0.2))
 
     cutouts = []
@@ -241,7 +242,9 @@ def _magnet_cutout(base_face, angle):
         cutout.orientation = location.orientation
         cutout = cutout.rotate(bd.Axis.Z, -90)
         cutout.position = location.position
-        cutout.position += (0, 0, magnet_radius + params["base_z_thickness"])
+        # Add 0.01 to avoid overlap issue cutting into base slightly. Float
+        # error??
+        cutout.position += (0, 0, magnet_radius + params["base_z_thickness"] + 0.01)
         cutouts.append(cutout)
         # show_object(cutout, f"magnet_cutout_{position}")
 
