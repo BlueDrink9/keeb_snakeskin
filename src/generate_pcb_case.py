@@ -26,19 +26,19 @@ Loc = bd.Location
 # require tolerance/stretching in that direction, but I'm not sure how much).
 
 default_params = {
-    "base_z_thickness": 30,
+    "base_z_thickness": 3,
     "wall_xy_thickness": 2.5,
     "wall_z_height": 3.4,
     "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.3,
     "wall_xy_top_tolerance": 0.3,
-    "cutout_position": 90,
+    "cutout_position": 10,
     "cutout_width": 15,
     "carrycase": True,
     "carrycase_tolerance": 0.3,
     "carrycase_wall_xy_thickness": 4,
     "carrycase_z_gap_between_cases": 9,
-    "carrycase_cutout_position": 0.0,
+    "carrycase_cutout_position": 90,
     "carrycase_cutout_xy_width": 15,
     "lip_z_thickness": 1,
     "lip_position_angles": [160, 30],
@@ -54,9 +54,8 @@ polar_position_maps = defaultdict(dict)
 params = default_params # TODO: merge this with user params
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
-# params["cutout_position"] = 0.97
-params["cutout_position"] = 93
-params["carrycase_cutout_position"] = 0.39
+params["cutout_position"] = 32
+params["carrycase_cutout_position"] = 92
 params["z_space_under_pcb"] = 2.4
 params["magnet_position_centre"] = 0.37
 
@@ -114,8 +113,6 @@ def generate_pcb_case(base_face, wall_height):
     top_inner_wire = topf.wires()[0]
     _map_polar_locations(top_inner_wire, topf.center())
     cutout_location = _get_polar_location(top_inner_wire, params["cutout_position"])
-    # cutout_location = top_inner_wire ^ params["cutout_position"]
-    # cutout_location = top_inner_wire ^ 0.5
     cutout_box = __finger_cutout(
         cutout_location,
         params["wall_xy_thickness"],
@@ -163,7 +160,8 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
-    cutout_location = bottom_inner_wire ^ params["carrycase_cutout_position"]
+    _map_polar_locations(bottom_inner_wire, botf.center())
+    cutout_location = _get_polar_location(bottom_inner_wire, params["carrycase_cutout_position"])
     cutout_box = __finger_cutout(
         cutout_location,
         params["carrycase_wall_xy_thickness"],
@@ -325,10 +323,10 @@ if __name__ in ["__cq_main__", "temp"]:
     pass
     # object = generate_case("build/outline.svg")
     # show_object(object)
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 
 # cutout_outline = bd.offset(
