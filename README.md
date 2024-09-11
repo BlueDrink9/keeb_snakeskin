@@ -82,10 +82,14 @@ carrycase. Will affect the main case as well. |
 | `carrycase_tolerance` | 0.3 mm | Gap size between the pcb case and the carry case. Will probably need playing around with on your printer to get a good fit. Err on the side of too large if you don't want to print too much. |
 | `carrycase_wall_xy_thickness` | 2 mm | Thickness of the carrycase outer wall |
 | `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case |
-| `carrycase_cutout_position` | 90 | Location  along the walls of the carrycase for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. |
+| `carrycase_cutout_position` | -90 | Location  along the walls of the carrycase for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. Should be opposite the lip, on the same side as the magnets. |
 | `carrycase_cutout_xy_width` | 15 mm | Width of the finger cutout for removing the boards from the case. May cut out more if the area isn't a straight line. |
 | `lip_z_thickness` | 1 mm | Thickness of the lip cut out of the case to allow
 | `lip_position_angles` | [160, 30] | A list of two angles, [start_angle, end_angle], that defines the position of the lip on the case, which holds one edge into the carrycase. Measured in degrees from the positive X-axis. Positive angles are measured counterclockwise, with 0 degrees being the positive X-axis and 90 degrees being the positive Y-axis, -90 is the direction of the negative Y axis.The difference between the start and end angles must be less than 180 degrees. It is recommended to set the angles to cover a long, straight section of the case. This must be opposite to the location of the finger cutout on the carry case and the magnets. |
+| `magnet_position` | -90 | Location  along the walls of the carrycase and case where the magnets will be centered, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. |
+| `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the
+magnets in the case from the magnets in the carrycase. How thick the case wall
+is between them. |
 
 ### More examples
 

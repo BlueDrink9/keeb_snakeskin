@@ -42,8 +42,8 @@ default_params = {
     "carrycase_cutout_xy_width": 15,
     "lip_z_thickness": 1,
     "lip_position_angles": [160, 30],
-    "magnet_position_centre": 0.0,
-    "magnet_position_angle": 100.0,
+    "magnet_position": -90.0,
+    "magnet_separation_distance": 0.3,
 }
 
 magnet_height = 2
@@ -57,7 +57,6 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 params["cutout_position"] = 32
 params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
-params["magnet_position_centre"] = 0.37
 
 outline = bd.import_svg("build/outline.svg")
 # For testing
@@ -204,21 +203,18 @@ def __finger_cutout(location, thickness, width, height):
     return cutout_box
 
 
-def _magnet_cutout(angle):
+def _magnet_cutout(case, angle):
     hole = (
         bd.Plane.XY
+            # TODO: Make this a teardrop? At least a shallow one?
         * bd.Circle(
             radius=magnet_radius,
         )
     )
-    # Add a little extra to the height to ensure there is space for the pcb to slide past the
-    # board hole
-    cutout = bd.extrude(hole, magnet_height + 0.1)
+    cutout = bd.extrude(hole, params["wall_xy_thickness"] - params["magnet_separation_distance"])
     # Get second largest face parallel to XY plane - i.e., the inner case face
     inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = inner_case_face.wires()[0]
-    magnet_start = inner_wire ^ position
-
     _map_polar_locations(inner_wire, inner_case_face.center())
     magnet_start = _get_polar_location(inner_wire, angle)
     cutout.orientation = magnet_start.orientation
@@ -308,7 +304,9 @@ if __name__ in ["__cq_main__", "temp"]:
     pass
     # object = generate_case("build/outline.svg")
     # show_object(object)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+
+_magnet_cutout(case, params["magnet_position"])
