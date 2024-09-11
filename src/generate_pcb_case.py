@@ -8,10 +8,7 @@ from build123d import *
 Loc = bd.Location
 
 # TODO:
-# * Align multiple magnets
-# * Parameterise magnet number? or area, with fixed intervals? But ensure all
-# within a certain angle of one another??
-# * reduce overhangs
+# * reduce overhangs. Chamfer carrycase blocker
 #
 # TODO: Documentation: PositionMode enum: Length is supposed to be actual length like "mm",
 # parameter is where the start is zero and end is one.
@@ -28,7 +25,7 @@ Loc = bd.Location
 default_params = {
     "base_z_thickness": 3,
     "wall_xy_thickness": 2.5,
-    "wall_z_height": 3.4,
+    "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.3,
     "wall_xy_top_tolerance": 0.3,
@@ -43,11 +40,15 @@ default_params = {
     "lip_z_thickness": 1,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
-    "magnet_separation_distance": 0.3,
+    "magnet_separation_distance": 0.4,
+    "magnet_spacing": 12,
+    "magnet_count": 6,
 }
 
 magnet_height = 2
-magnet_radius = 4 / 2
+# Adding a bit of extra space around the radius, so that we can print magnet
+# holes without supports and account for the resulting droop.
+magnet_radius = 4 / 2 + 0.3
 
 polar_position_maps = defaultdict(dict)
 
@@ -57,9 +58,7 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 params["cutout_position"] = 32
 params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
-magnet_count = 8
-# Distance between magnet centers, in mm
-magnet_spacing = 15
+params["magnet_position"] = -112
 
 outline = bd.import_svg("build/outline.svg")
 # For testing
@@ -69,6 +68,7 @@ outline = bd.import_svg("build/outline.svg")
 # edges that an svg gets imported with.
 outline = bd.make_face(outline.wires()).wire()
 base_face = bd.make_face(outline)
+show_object(base_face, name="base_face")
 
 
 def is_wire_for_face(face, wire):
@@ -124,9 +124,11 @@ def generate_pcb_case(base_face, wall_height):
 
     case = case - cutout_box
 
-    # Cut out a lip for the carrycase
     if params["carrycase"]:
+        # Cut out a lip for the carrycase
         case -= __lip(base_face)
+        # Cut out magnet holes
+        case -= _magnet_cutout(base_face, params["magnet_position"])
 
     show_object(case, name="case")
     return case
@@ -168,15 +170,17 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         cutout_location,
         params["carrycase_wall_xy_thickness"],
         params["carrycase_cutout_xy_width"],
-        (pcb_case_wall_height + params["base_z_thickness"]) - magnet_height - 1,
+        pcb_case_wall_height - magnet_height - 0.3,
     )
     # show_object(cutout_box, name="carry case cutout box")
 
     case -= cutout_box
 
+    case -= _magnet_cutout(cutout_outline, params["magnet_position"])
+
     # Mirror on top face to create both sides
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    case += bd.mirror(case, about=bd.Plane(topf))
+    # case += bd.mirror(case, about=bd.Plane(topf))
     show_object(case, name="carry case")
     return case
 
@@ -206,14 +210,14 @@ def __finger_cutout(location, thickness, width, height):
     return cutout_box
 
 
-def _magnet_cutout(case, angle):
+def _magnet_cutout(base_face, angle):
     # Get second largest face parallel to XY plane - i.e., the inner case face
-    inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
-    inner_wire = inner_case_face.wires()[0]
-    polar_map = PolarWireMap(inner_wire, inner_case_face.center())
+    # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
+    inner_wire = base_face.wires()[0]
+    polar_map = PolarWireMap(inner_wire, base_face.center())
     _, center_percent = polar_map.get_polar_location(angle)
     center_at_mm = center_percent * inner_wire.length
-    span = magnet_count * magnet_spacing
+    span = params["magnet_count"] * params["magnet_spacing"]
     start = center_at_mm - span / 2
     end = center_at_mm + span / 2
 
@@ -225,20 +229,23 @@ def _magnet_cutout(case, angle):
         )
     )
     template = bd.extrude(hole, params["wall_xy_thickness"] - params["magnet_separation_distance"])
+    # Extend a bit futher into the case to ensure no overlap
+    template += bd.extrude(hole, -(magnet_height + 0.2))
 
-    position = start - magnet_spacing
+    cutouts = []
+    position = start - params["magnet_spacing"]
     while position <= end:
-        position += magnet_spacing
+        position += params["magnet_spacing"]
         cutout = copy.copy(template)
         location = inner_wire.location_at(position, position_mode=bd.PositionMode.LENGTH)
         cutout.orientation = location.orientation
         cutout = cutout.rotate(bd.Axis.Z, -90)
         cutout.position = location.position
-        cutout.position += (0, 0, magnet_radius)
-        show_object(cutout, f"magnet_cutout_{position}")
+        cutout.position += (0, 0, magnet_radius + params["base_z_thickness"])
+        cutouts.append(cutout)
+        # show_object(cutout, f"magnet_cutout_{position}")
 
-    show_object(cutout, "magnet_cutout")
-    return cutout
+    return cutouts
 
 
 def __lip(base_face):
@@ -330,5 +337,3 @@ if __name__ in ["__cq_main__", "temp"]:
 
     # if params["carrycase"]:
     #     carry = generate_carrycase(base_face, pcb_case_wall_height)
-
-_magnet_cutout(case, params["magnet_position"])
