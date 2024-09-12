@@ -78,8 +78,10 @@ defaults specified as a top level key:value, for example:
 | `wall_xy_top_tolerance` | 0.3 mm | Amount of space between the widest part of the walls (at the top) and the PCB outline. Adjust this depending on printer tolerances and how tight you want the friction fit. You may want to increase `z_space_under_pcb` if the difference between this and `wall_xy_bottom_tolerance` is large |
 | `cutout_position` | 10 | Location  along the walls of the pcb case for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. |
 | `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
-| `carrycase` | True | Whether the output designs should incorporate the compression-style
-carrycase. Will affect the main case as well. |
+| `honeycomb_base` | False | Make the base of the case a honeycombed/hexagon cage instead of solid |
+| `honeycomb_radius` | 6 mm | Radius of the blank space hexagons for the honeycomb case base |
+| `honeycomb_thickness` | 2 mm | Thickness of the bars (space between hexagons) of the honeycomb case base |
+| `carrycase` | True | Whether the output designs should incorporate the compression-style carrycase. Will affect the main case as well. |
 
 #### Carrycase options
 

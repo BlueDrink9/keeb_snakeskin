@@ -14,7 +14,8 @@ else:
     script_dir = Path(os.getcwd())
 
 # TODO:
-# * reduce overhangs. Chamfer carrycase blocker
+# * reduce overhangs. Chamfer carrycase blocker X nvm, this is going to be too
+# hard with current version.
 #
 # TODO: Testing:
 # * Unmirror the carrycase
@@ -32,6 +33,9 @@ default_params = {
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
+    "honeycomb_base": False,
+    "honeycomb_radius": 6,
+    "honeycomb_thickness": 2,
     "carrycase": True,
     "carrycase_tolerance": 0.3,
     "carrycase_wall_xy_thickness": 4,
@@ -53,13 +57,16 @@ magnet_radius = 4 / 2 + 0.3
 
 polar_position_maps = defaultdict(dict)
 
+slice = Loc((30, 0, 0)) * bd.Box(300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER))
+
 params = default_params # TODO: merge this with user params
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 params["cutout_position"] = 32
 params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
-params["magnet_position"] = -112
+params["magnet_position"] = -132
+params["honeycomb_base"] = True
 
 outline = bd.import_svg(script_dir / "build/outline.svg")
 # For testing
@@ -93,6 +100,7 @@ def get_inner_faces(aligned_faces):
 
 def generate_pcb_case(base_face, wall_height):
     base = bd.extrude(base_face, params["base_z_thickness"])
+
     wall_outer = bd.offset(
         base_face,
         params["wall_xy_thickness"],
@@ -103,12 +111,22 @@ def generate_pcb_case(base_face, wall_height):
     adj = wall_height
     taper = math.degrees(math.atan(opp / adj))
 
-    inner_cutout = bd.extrude(base_face, wall_height, taper=-taper)
+    # inner_face = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
+    inner_face = base_face
+    inner_cutout = bd.extrude(inner_face, wall_height, taper=-taper)
     inner_cutout.move(Loc((0, 0, params["base_z_thickness"])))
     # show_object(inner_cutout, name="inner")
     wall = (
-        bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout
+        bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
     )
+
+    if params["honeycomb_base"]:
+        # Create honeycomb by subtracting it from the top face of the base.
+        hc = _create_honeycomb_tile(
+            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+        )
+        base -= hc
+
     case = wall + base
 
     # Create finger cutout
@@ -130,6 +148,9 @@ def generate_pcb_case(base_face, wall_height):
         case -= __lip(base_face)
         # Cut out magnet holes
         case -= _magnet_cutout(base_face, params["magnet_position"])
+
+    # For test prints
+    # case -= slice
 
     show_object(case, name="case")
     return case
@@ -183,6 +204,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     case -= cutout_box
 
     case -= _magnet_cutout(cutout_outline, params["magnet_position"])
+
+    # For test prints
+    # case -= slice
 
     # Mirror on top face to create both sides
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
@@ -330,6 +354,19 @@ def _find_nearest_key(d, target_int):
     return nearest
 
 
+def _create_honeycomb_tile(depth, face):
+    radius = params["honeycomb_radius"]
+    cell_thickness = params["honeycomb_thickness"]
+    d_between_centers = radius + cell_thickness
+    locs = HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
+    h = bd.RegularPolygon(radius, 6)
+    h = bd.extrude(h, -depth)
+    hs = Plane(face) * locs * h
+    return hs
+
+
+
+
 class Sector(bd.Shape):
     """Sector of a circle with tip at location, between angle1 and angle2 in degrees, where 0 is the X axis and -90 is the negative Y axis."""
     def __init__(self, radius, angle1, angle2, location=(0,0)):
@@ -343,14 +380,39 @@ class Sector(bd.Shape):
 
 # show_object(Sector(100, 0, 45), "sector")
 
-
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor
     pass
     # object = generate_case("build/outline.svg")
     # show_object(object)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
+# Export
+if "__file__" in locals():
+    script_dir = Path(__file__).parent
+    bd.export_stl(case, str(script_dir / "build/case.stl"))
+    bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
+
+
+# hds = _create_honeycomb_tile(8, 2, params["base_z_thickness"])
+# # show_object(hds)
+# x = bd.Box(100,100,10).intersect(bd.Compound(hds))
+# show_object(x)
+
+# b = bd.Box(100,100,10, align=(Align.CENTER, Align.CENTER, Align.CENTER))
+# radius = 8
+# cell_thickness = 2
+# depth = 2
+# d_between_centers = radius + cell_thickness
+# locs = HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
+# h = bd.RegularPolygon(radius, 6)
+# hs = bd.extrude(h, -depth)
+# hc = Plane(b.faces().sort_by().first) * locs * hs
+# show_object(hc, name="hc")
+# b -= hc
+# show_object(b, name="b")
+
+# f = bd.make_face(bd.Polyline((0, 0), (-5, 0), (0, -5), (0,0)))
