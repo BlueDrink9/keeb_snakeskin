@@ -150,14 +150,35 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     wall = bd.extrude(wall_outline, wall_height)
     # cutout = bd.extrude(cutout_outline, wall_height)
 
-    # Part that blocks the pcb case from going all the way through
-    blocker_face = bd.offset(base_face, params["wall_xy_thickness"]) - base_face
-    # Locate the blocker at the top of the pcb case wall
-    blocker = bd.extrude(blocker_face, amount=2).moved(
-        Loc((0, 0, wall_height - params["carrycase_z_gap_between_cases"]))
-    )
 
-    case = wall + blocker
+    # Part that blocks the pcb case from going all the way through
+    # To get a taper that allows a printable overhang, we need to do it in
+    # layers because the complexity of SVG outlines make sweeps or chamfers
+    # impossible along the whole blocker.
+    bparts = []
+    base_blocker_face = bd.offset(
+        base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance"])
+    )
+    blocker_thickness = (params["wall_xy_thickness"] + params["carrycase_tolerance"])
+    iter_n = 10
+    iter = blocker_thickness / iter_n
+    for i in range(0, iter_n):
+        blocker_face = base_blocker_face - bd.offset(base_face, i*iter)
+
+        # Locate the blocker at the top of the pcb case wall
+        blocker = bd.extrude(blocker_face, amount=iter)
+        # Move to start of blocker positioning
+        blocker.move(
+            Loc((0, 0, (wall_height - params["carrycase_z_gap_between_cases"])))
+        )
+        # Plus layer iteration
+        blocker.move(
+            Loc((0, 0, iter * i))
+        )
+        bparts.append(blocker)
+        # show_object(blocker, name=f"blocker_{i}")
+
+    case = wall + bparts
 
     # Add lip to hold board in
     case += __lip(base_face)
@@ -175,31 +196,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     )
     # show_object(cutout_box, name="carry case cutout box")
 
-    # What can we fillet here? SVG is probably causing issues
-    # topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    # top_wires = topf.wires().sort_by_distance(topf.center())
-    # top_edges = topf.edges().sort_by_distance(topf.center())
-    # show_object(top_wires, name="top_wires")
-    # cutout_box = bd.fillet(top_edges, 0.5)
-    # cutout_box = bd.fillet(top_wires.last.edges(), 0.5)
-    # e = case.edges().group_by(bd.Axis.Z)[-1].sort_by(-bd.Axis.Y)[1]
-    # show_object(e, name="e")
-    # case = bd.fillet(e, 3)
-    case = bd.Part() + case
-    # topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    # top_wires = topf.wires().sort_by_distance(topf.center())
-    # e = top_wires.last.fix_degenerate_edges(5).edges()
-    # show_object(e, name="e")
-    # # case = bd.fillet(e, 3)
-
-
     case -= cutout_box
 
     case -= _magnet_cutout(cutout_outline, params["magnet_position"])
 
     # Mirror on top face to create both sides
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    # case += bd.mirror(case, about=bd.Plane(topf))
+    case += bd.mirror(case, about=bd.Plane(topf))
     show_object(case, name="carry case")
     return case
 
@@ -362,8 +365,8 @@ if __name__ in ["__cq_main__", "temp"]:
     pass
     # object = generate_case("build/outline.svg")
     # show_object(object)
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
 
