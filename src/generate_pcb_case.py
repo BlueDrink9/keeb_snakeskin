@@ -1,19 +1,20 @@
 import copy
 import math
+import os
 from collections import defaultdict
+from pathlib import Path
 import build123d as bd
 from build123d import Align, Rot
 from build123d import *
 
 Loc = bd.Location
+if "__file__" in globals():
+    script_dir = Path(__file__).parent
+else:
+    script_dir = Path(os.getcwd())
 
 # TODO:
 # * reduce overhangs. Chamfer carrycase blocker
-#
-# TODO: Documentation: PositionMode enum: Length is supposed to be actual length like "mm",
-# parameter is where the start is zero and end is one.
-#
-# location_at / ^ symbol, to match % and @
 #
 # TODO: Testing:
 # * Unmirror the carrycase
@@ -60,7 +61,7 @@ params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
 params["magnet_position"] = -112
 
-outline = bd.import_svg("build/outline.svg")
+outline = bd.import_svg(script_dir / "build/outline.svg")
 # For testing
 # outline = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
 
