@@ -111,7 +111,10 @@ def generate_pcb_case(base_face, wall_height):
     adj = wall_height
     taper = math.degrees(math.atan(opp / adj))
 
-    # inner_face = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
+    # inner_face = bd.offset(base_face, -params["wall_xy_bottom_tolerance"])
+    # Seem to only be able to offset the bottom a small amount before freezing
+    # things... might not be worth the risk.
+    # inner_face = bd.offset(base_face, -0.05)
     inner_face = base_face
     inner_cutout = bd.extrude(inner_face, wall_height, taper=-taper)
     inner_cutout.move(Loc((0, 0, params["base_z_thickness"])))
