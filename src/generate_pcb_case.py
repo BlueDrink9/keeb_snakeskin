@@ -152,33 +152,17 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
 
     # Part that blocks the pcb case from going all the way through
-    # To get a taper that allows a printable overhang, we need to do it in
-    # layers because the complexity of SVG outlines make sweeps or chamfers
-    # impossible along the whole blocker.
-    bparts = []
+    blocker_thickness = 2
     base_blocker_face = bd.offset(
         base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance"])
     )
-    blocker_thickness = (params["wall_xy_thickness"] + params["carrycase_tolerance"])
-    iter_n = 10
-    iter = blocker_thickness / iter_n
-    for i in range(0, iter_n):
-        blocker_face = base_blocker_face - bd.offset(base_face, i*iter)
-
-        # Locate the blocker at the top of the pcb case wall
-        blocker = bd.extrude(blocker_face, amount=iter)
-        # Move to start of blocker positioning
-        blocker.move(
-            Loc((0, 0, (wall_height - params["carrycase_z_gap_between_cases"])))
-        )
-        # Plus layer iteration
-        blocker.move(
-            Loc((0, 0, iter * i))
-        )
-        bparts.append(blocker)
-        # show_object(blocker, name=f"blocker_{i}")
-
-    case = wall + bparts
+    blocker_face = base_blocker_face - base_face
+    blocker = bd.extrude(blocker_face, amount=blocker_thickness)
+    # Locate the blocker at the top of the pcb case wall
+    blocker.move(
+        Loc((0, 0, (wall_height - params["carrycase_z_gap_between_cases"])))
+    )
+    case = wall + blocker
 
     # Add lip to hold board in
     case += __lip(base_face)
