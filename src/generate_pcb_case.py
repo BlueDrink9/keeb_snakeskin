@@ -74,14 +74,48 @@ params["z_space_under_pcb"] = 2.4
 params["magnet_position"] = -132
 params["honeycomb_base"] = True
 
-outline = bd.import_svg(script_dir / "build/outline.svg")
+
+def import_svg(path):
+    """Import SVG as paths and convert to build123d face. Although build123d has a native SVG import, it doesn't create clean wire connections from kicad exports of some shapes (in my experience), causing some more advanced operations to fail (e.g. tapers).
+    This is how I used to do it, using b123d import:
+    # Round trip from outline to wires to face to wires to connect the disconnected
+    # edges that an svg gets imported with.
+    outline = bd.import_svg(script_dir / "build/outline.svg")
+    outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+    """
+    import svgpathtools as svg
+    paths, attributes = svg.svg2paths(path)
+    lines = []
+    for p in paths:
+        if isinstance(p[0], svg.Line):
+            lines.append(bd.Line((p.start.real, p.start.imag), (p.end.real, p.end.imag)))
+        elif isinstance(p[0], svg.Arc):
+            # Seems all the arcs have same value for real + imag, so just use real
+            r = p[0].radius.real
+            lines.append(bd.RadiusArc((p.start.real, p.start.imag), (p.end.real, p.end.imag), radius=r))
+        else:
+            print("Unknown path type")
+
+    lines = Curve() + lines
+    # show_object(lines)
+    face = make_face(lines)
+    # show_object(face)
+    return face
+
+
+# outline = bd.import_svg(script_dir / "build/outline.svg")
+
+# outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
+
 # For testing
 # outline = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
+# outline = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
 
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
-outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
-base_face = bd.make_face(outline)
+# outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+# base_face = bd.make_face(outline)
+base_face = import_svg(script_dir / "build/outline.svg")
 # show_object(base_face, name="base_face")
 
 
@@ -387,23 +421,29 @@ class Sector(bd.Shape):
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor
     pass
-    # object = generate_case("build/outline.svg")
-    # show_object(object)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
 
-# Export
-if "__file__" in locals():
-    script_dir = Path(__file__).parent
-    bd.export_stl(case, str(script_dir / "build/case.stl"))
-    bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
+# # Export
+# if "__file__" in locals():
+#     script_dir = Path(__file__).parent
+#     bd.export_stl(case, str(script_dir / "build/case.stl"))
+#     bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
 
 
-small_base = bd.offset(base_face, -5.3)
-small_base = bd.extrude(small_base, 3)
-show_object(small_base)
+#     # calculate taper angle. tan(x) = o/a
+# opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
+# wall_height = params["wall_z_height"]
+# adj = wall_height
+# taper = math.degrees(math.atan(opp / adj))
+# inner_face = bd.offset(base_face, -1.75)
+# show_object(inner_face, name="inner_face")
+
+
+# inner_cutout = bd.extrude(inner_face, wall_height, taper=-1.0)
+# show_object(inner_cutout, name="inner")
 
 # hds = _create_honeycomb_tile(8, 2, params["base_z_thickness"])
 # # show_object(hds)
