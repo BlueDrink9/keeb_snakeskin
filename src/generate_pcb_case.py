@@ -14,13 +14,11 @@ else:
     script_dir = Path(os.getcwd())
 
 # TODO:
+# * Change bottom tolerance to account for z space underneath pcb
+# * Try flipping the cutout to get a negative tolerance on the bottom.
 # * reduce overhangs. Chamfer carrycase blocker X nvm, this is going to be too
 # hard with current version. Ah, but what if I do it before subtracting center?
 # Can extrude with taper outwards, so maybe I can apply that.
-# * Change bottom tolerance to account for z space underneath pcb
-# * Try flipping the cutout to get a negative tolerance on the bottom.
-# * Increase XY tolerance with carrycase. Extra 0.5-1mm?. Add Y tolerance with carrycase. 0.5
-# mm? Add tolerance for lip too, about the same amount?
 # * Stand, attachments for straps. Separate module?
 #
 # TODO: Testing:
@@ -63,11 +61,13 @@ magnet_radius = 4 / 2
 
 polar_position_maps = defaultdict(dict)
 
+# For test prints, slice off the end
 slice = Loc((30, 0, 0)) * bd.Box(300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER))
 
 params = default_params # TODO: merge this with user params
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
+# TODO: Move these to my personal maizeless build script
 params["cutout_position"] = 32
 params["carrycase_cutout_position"] = -108
 params["z_space_under_pcb"] = 2.4
@@ -85,23 +85,14 @@ base_face = bd.make_face(outline)
 # show_object(base_face, name="base_face")
 
 
-def is_wire_for_face(face, wire):
-    inter = face.intersect(wire)
-    try:
-        # If they intersect, this returns a Vector. If they don't, it throughs
-        # an AttributeError about compound not having IsNull
-        inter.center()
-        return True
-    except AttributeError:
-        return False
+def generate_cases(svg_file, params=None):
+    if not params:
+        params = {}
+    default_params.update(params)
+    params = default_params
 
-
-def get_inner_faces(aligned_faces):
-    """Gets the innermost face of a series of concentric faces"""
-    connected_faces = Face.sew_faces(aligned_faces)
-    # Which is "inside" - sort by Shell area
-    shells = ShapeList([Shell(faces) for faces in connected_faces]).sort_by(SortBy.AREA)
-    return shells[0].faces()
+    outline = bd.import_svg(svg_file)
+    return
 
 
 def generate_pcb_case(base_face, wall_height):
@@ -222,16 +213,6 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     case += bd.mirror(case, about=bd.Plane(topf))
     show_object(case, name="carry case")
     return case
-
-
-def generate_cases(svg_file, params=None):
-    if not params:
-        params = {}
-    default_params.update(params)
-    params = default_params
-
-    outline = bd.import_svg(svg_file)
-    return
 
 
 def __finger_cutout(location, thickness, width, height):
@@ -408,10 +389,10 @@ if __name__ in ["__cq_main__", "temp"]:
     pass
     # object = generate_case("build/outline.svg")
     # show_object(object)
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # Export
 if "__file__" in locals():
@@ -419,6 +400,10 @@ if "__file__" in locals():
     bd.export_stl(case, str(script_dir / "build/case.stl"))
     bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
 
+
+small_base = bd.offset(base_face, -5.3)
+small_base = bd.extrude(small_base, 3)
+show_object(small_base)
 
 # hds = _create_honeycomb_tile(8, 2, params["base_z_thickness"])
 # # show_object(hds)
