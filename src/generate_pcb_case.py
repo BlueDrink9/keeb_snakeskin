@@ -35,7 +35,7 @@ else:
 
 default_params = {
     "base_z_thickness": 3,
-    "wall_xy_thickness": 2.5,
+    "wall_xy_thickness": 3,
     "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.3,
@@ -54,7 +54,7 @@ default_params = {
     "lip_z_thickness": 2,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
-    "magnet_separation_distance": 0.4,
+    "magnet_separation_distance": 1,
     "magnet_spacing": 12,
     "magnet_count": 6,
 }
@@ -62,7 +62,7 @@ default_params = {
 magnet_height = 2
 # Adding a bit of extra space around the radius, so that we can print magnet
 # holes without supports and account for the resulting droop.
-magnet_radius = 4 / 2 + 0.3
+magnet_radius = 4 / 2 + 0.2
 
 polar_position_maps = defaultdict(dict)
 
@@ -132,12 +132,12 @@ def generate_pcb_case(base_face, wall_height):
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
     )
 
-    if params["honeycomb_base"]:
-        # Create honeycomb by subtracting it from the top face of the base.
-        hc = _create_honeycomb_tile(
-            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
-        )
-        base -= hc
+    # if params["honeycomb_base"]:
+    #     # Create honeycomb by subtracting it from the top face of the base.
+    #     hc = _create_honeycomb_tile(
+    #         params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+    #     )
+    #     base -= hc
 
     case = wall + base
 
