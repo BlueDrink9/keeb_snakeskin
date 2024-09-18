@@ -17,13 +17,11 @@ else:
 # * reduce overhangs. Chamfer carrycase blocker X nvm, this is going to be too
 # hard with current version. Ah, but what if I do it before subtracting center?
 # Can extrude with taper outwards, so maybe I can apply that.
-# * Increase XY tolerance with carrycase. Extra 0.5-1mm?. Add Y tolerance with carrycase. 0.5
-# mm? Add tolerance for lip too, about the same amount?
-# * Maybe make elipsoid, more tolerance
-# vertically.
-# * Stand, attachments for straps. Separate module?
 # * Change bottom tolerance to account for z space underneath pcb
 # * Try flipping the cutout to get a negative tolerance on the bottom.
+# * Increase XY tolerance with carrycase. Extra 0.5-1mm?. Add Y tolerance with carrycase. 0.5
+# mm? Add tolerance for lip too, about the same amount?
+# * Stand, attachments for straps. Separate module?
 #
 # TODO: Testing:
 # * Unmirror the carrycase
@@ -45,12 +43,14 @@ default_params = {
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
     "carrycase": True,
-    "carrycase_tolerance": 0.3,
+    "carrycase_tolerance_x": 0.8,
+    "carrycase_tolerance_y": 0.5,
     "carrycase_wall_xy_thickness": 4,
     "carrycase_z_gap_between_cases": 9,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
     "lip_z_thickness": 2,
+    "lip_xy_len": 1.5,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
     "magnet_separation_distance": 1,
@@ -129,12 +129,12 @@ def generate_pcb_case(base_face, wall_height):
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
     )
 
-    if params["honeycomb_base"]:
-        # Create honeycomb by subtracting it from the top face of the base.
-        hc = _create_honeycomb_tile(
-            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
-        )
-        base -= hc
+    # if params["honeycomb_base"]:
+    #     # Create honeycomb by subtracting it from the top face of the base.
+    #     hc = _create_honeycomb_tile(
+    #         params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+    #     )
+    #     base -= hc
 
     case = wall + base
 
@@ -167,7 +167,7 @@ def generate_pcb_case(base_face, wall_height):
 
 def generate_carrycase(base_face, pcb_case_wall_height):
     cutout_outline = bd.offset(
-        base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]
+        base_face, params["wall_xy_thickness"] + params["carrycase_tolerance_x"]
     )
     wall_outline = bd.offset(cutout_outline, params["carrycase_wall_xy_thickness"])
     wall_outline -= cutout_outline
@@ -184,13 +184,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Part that blocks the pcb case from going all the way through
     blocker_thickness = 2
     base_blocker_face = bd.offset(
-        base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance"])
+        base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance_x"])
     )
     blocker_face = base_blocker_face - base_face
     blocker = bd.extrude(blocker_face, amount=blocker_thickness)
     # Locate the blocker at the top of the pcb case wall
     blocker.move(
-        Loc((0, 0, (wall_height - params["carrycase_z_gap_between_cases"])))
+        Loc((0, 0, (wall_height + params["carrycase_tolerance_y"] - params["carrycase_z_gap_between_cases"])))
     )
     case = wall + blocker
 
@@ -280,7 +280,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     )
 
     if carrycase:
-        distance = (params["wall_xy_thickness"] + params["carrycase_tolerance"] + magnet_height)
+        distance = (params["wall_xy_thickness"] + params["carrycase_tolerance_x"] + magnet_height)
     else:
         # Distance into main wall of case
         distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
@@ -306,7 +306,8 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 
 
 def __lip(base_face, carrycase=False):
-    lip = bd.offset(base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]) - base_face
+    outer_face = bd.offset(base_face, params["wall_xy_thickness"])
+    lip = bd.offset(outer_face, params["carrycase_tolerance_x"]) - bd.offset(outer_face, -params["lip_xy_len"])
     lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
     lip_z_len = params["lip_z_thickness"]
     if not carrycase:
