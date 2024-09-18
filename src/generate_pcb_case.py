@@ -215,7 +215,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     case -= cutout_box
 
-    case -= _magnet_cutout(cutout_outline, params["magnet_position"])
+    case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
 
     # For test prints
     # case -= slice
@@ -259,12 +259,12 @@ def __finger_cutout(location, thickness, width, height):
     return cutout_box
 
 
-def _magnet_cutout(base_face, angle):
+def _magnet_cutout(main_face, angle, carrycase=False):
     # Get second largest face parallel to XY plane - i.e., the inner case face
     # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
-    inner_wire = base_face.wires()[0]
+    inner_wire = main_face.wires()[0]
     # show_object(inner_wire, name="inner_wire")
-    polar_map = PolarWireMap(inner_wire, base_face.center())
+    polar_map = PolarWireMap(inner_wire, main_face.center())
     _, center_percent = polar_map.get_polar_location(angle)
     center_at_mm = center_percent * inner_wire.length
     span = params["magnet_count"] * params["magnet_spacing"]
@@ -278,9 +278,16 @@ def _magnet_cutout(base_face, angle):
             radius=magnet_radius,
         )
     )
-    template = bd.extrude(hole, params["wall_xy_thickness"] - params["magnet_separation_distance"])
-    # Extend a bit futher into the case to ensure no overlap, e.g. due to taper
-    template += bd.extrude(hole, -(magnet_height + 0.2))
+
+    if carrycase:
+        distance = (params["wall_xy_thickness"] + params["carrycase_tolerance"] + magnet_height)
+    else:
+        # Distance into main wall of case
+        distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
+    template = bd.extrude(hole, distance)
+    if not carrycase:
+        # Extend a bit futher into the case to ensure no overlap, e.g. due to taper
+        template += bd.extrude(hole, -(magnet_height + 0.2))
 
     cutouts = []
     position = start - params["magnet_spacing"]
@@ -297,6 +304,7 @@ def _magnet_cutout(base_face, angle):
         cutouts.append(cutout)
         # show_object(cutout, f"magnet_cutout_{position}")
 
+    # show_object(cutouts, name=f"magnet_cutouts_{carrycase}")
     return cutouts
 
 
@@ -404,8 +412,8 @@ if __name__ in ["__cq_main__", "temp"]:
     # show_object(object)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # Export
 if "__file__" in locals():
