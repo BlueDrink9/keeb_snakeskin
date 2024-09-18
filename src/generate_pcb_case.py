@@ -19,8 +19,7 @@ else:
 # Can extrude with taper outwards, so maybe I can apply that.
 # * Increase XY tolerance with carrycase. Extra 0.5-1mm?. Add Y tolerance with carrycase. 0.5
 # mm? Add tolerance for lip too, about the same amount?
-# * increase magnet wall thickness
-# * Slight decrease in extra magnet size. Maybe make elipsoid, more tolerance
+# * Maybe make elipsoid, more tolerance
 # vertically.
 # * Stand, attachments for straps. Separate module?
 # * Change bottom tolerance to account for z space underneath pcb
@@ -60,9 +59,7 @@ default_params = {
 }
 
 magnet_height = 2
-# Adding a bit of extra space around the radius, so that we can print magnet
-# holes without supports and account for the resulting droop.
-magnet_radius = 4 / 2 + 0.2
+magnet_radius = 4 / 2
 
 polar_position_maps = defaultdict(dict)
 
@@ -132,12 +129,12 @@ def generate_pcb_case(base_face, wall_height):
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
     )
 
-    # if params["honeycomb_base"]:
-    #     # Create honeycomb by subtracting it from the top face of the base.
-    #     hc = _create_honeycomb_tile(
-    #         params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
-    #     )
-    #     base -= hc
+    if params["honeycomb_base"]:
+        # Create honeycomb by subtracting it from the top face of the base.
+        hc = _create_honeycomb_tile(
+            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+        )
+        base -= hc
 
     case = wall + base
 
@@ -260,6 +257,9 @@ def __finger_cutout(location, thickness, width, height):
 
 
 def _magnet_cutout(main_face, angle, carrycase=False):
+    # Adding a bit of extra space around the radius, so that we can print
+    # magnet holes without supports and account for the resulting droop.
+    magnet_radius_y = magnet_radius + 0.2
     # Get second largest face parallel to XY plane - i.e., the inner case face
     # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = main_face.wires()[0]
@@ -273,9 +273,9 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 
     hole = (
         bd.Plane.XY
-            # TODO: Make this a teardrop? At least a shallow one?
-        * bd.Circle(
-            radius=magnet_radius,
+        * bd.Ellipse(
+            x_radius=magnet_radius,
+            y_radius=magnet_radius_y,
         )
     )
 
@@ -285,9 +285,6 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         # Distance into main wall of case
         distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
     template = bd.extrude(hole, distance)
-    if not carrycase:
-        # Extend a bit futher into the case to ensure no overlap, e.g. due to taper
-        template += bd.extrude(hole, -(magnet_height + 0.2))
 
     cutouts = []
     position = start - params["magnet_spacing"]
@@ -300,7 +297,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         cutout.position = location.position
         # Add 0.01 to avoid overlap issue cutting into base slightly. Float
         # error??
-        cutout.position += (0, 0, magnet_radius + params["base_z_thickness"] + 0.01)
+        cutout.position += (0, 0, magnet_radius_y + params["base_z_thickness"] + 0.01)
         cutouts.append(cutout)
         # show_object(cutout, f"magnet_cutout_{position}")
 
