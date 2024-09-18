@@ -43,8 +43,8 @@ default_params = {
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
     "carrycase": True,
-    "carrycase_tolerance_x": 0.8,
-    "carrycase_tolerance_y": 0.5,
+    "carrycase_tolerance_xy": 0.8,
+    "carrycase_tolerance_z": 0.5,
     "carrycase_wall_xy_thickness": 4,
     "carrycase_z_gap_between_cases": 9,
     "carrycase_cutout_position": -90,
@@ -167,7 +167,7 @@ def generate_pcb_case(base_face, wall_height):
 
 def generate_carrycase(base_face, pcb_case_wall_height):
     cutout_outline = bd.offset(
-        base_face, params["wall_xy_thickness"] + params["carrycase_tolerance_x"]
+        base_face, params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
     )
     wall_outline = bd.offset(cutout_outline, params["carrycase_wall_xy_thickness"])
     wall_outline -= cutout_outline
@@ -184,13 +184,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Part that blocks the pcb case from going all the way through
     blocker_thickness = 2
     base_blocker_face = bd.offset(
-        base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance_x"])
+        base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance_xy"])
     )
     blocker_face = base_blocker_face - base_face
     blocker = bd.extrude(blocker_face, amount=blocker_thickness)
     # Locate the blocker at the top of the pcb case wall
     blocker.move(
-        Loc((0, 0, (wall_height + params["carrycase_tolerance_y"] - params["carrycase_z_gap_between_cases"])))
+        Loc((0, 0, (wall_height + params["carrycase_tolerance_z"] - params["carrycase_z_gap_between_cases"])))
     )
     case = wall + blocker
 
@@ -280,7 +280,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     )
 
     if carrycase:
-        distance = (params["wall_xy_thickness"] + params["carrycase_tolerance_x"] + magnet_height)
+        distance = (params["wall_xy_thickness"] + params["carrycase_tolerance_xy"] + magnet_height)
     else:
         # Distance into main wall of case
         distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
@@ -307,7 +307,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 
 def __lip(base_face, carrycase=False):
     outer_face = bd.offset(base_face, params["wall_xy_thickness"])
-    lip = bd.offset(outer_face, params["carrycase_tolerance_x"]) - bd.offset(outer_face, -params["lip_xy_len"])
+    lip = bd.offset(outer_face, params["carrycase_tolerance_xy"]) - bd.offset(outer_face, -params["lip_xy_len"])
     lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
     lip_z_len = params["lip_z_thickness"]
     if not carrycase:
