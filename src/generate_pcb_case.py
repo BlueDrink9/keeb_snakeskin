@@ -15,7 +15,16 @@ else:
 
 # TODO:
 # * reduce overhangs. Chamfer carrycase blocker X nvm, this is going to be too
-# hard with current version.
+# hard with current version. Ah, but what if I do it before subtracting center?
+# Can extrude with taper outwards, so maybe I can apply that.
+# * Increase XY tolerance with carrycase. Extra 0.5-1mm?. Add Y tolerance with carrycase. 0.5
+# mm? Add tolerance for lip too, about the same amount?
+# * increase magnet wall thickness
+# * Slight decrease in extra magnet size. Maybe make elipsoid, more tolerance
+# vertically.
+# * Stand, attachments for straps. Separate module?
+# * Change bottom tolerance to account for z space underneath pcb
+# * Try flipping the cutout to get a negative tolerance on the bottom.
 #
 # TODO: Testing:
 # * Unmirror the carrycase
@@ -42,7 +51,7 @@ default_params = {
     "carrycase_z_gap_between_cases": 9,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
-    "lip_z_thickness": 1,
+    "lip_z_thickness": 2,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
     "magnet_separation_distance": 0.4,
@@ -189,7 +198,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     case = wall + blocker
 
     # Add lip to hold board in
-    case += __lip(base_face)
+    case += __lip(base_face, carrycase=True)
 
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
@@ -291,9 +300,14 @@ def _magnet_cutout(base_face, angle):
     return cutouts
 
 
-def __lip(base_face):
+def __lip(base_face, carrycase=False):
     lip = bd.offset(base_face, params["wall_xy_thickness"] + params["carrycase_tolerance"]) - base_face
     lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
+    lip_z_len = params["lip_z_thickness"]
+    if not carrycase:
+        # A little extra tolerance for lip cutout so that it fits more
+        # smoothly, even with a bit of residual support plastic or warping.
+        lip_z_len += 0.3
     lip = bd.extrude(lip, params["lip_z_thickness"])
     # show_object(lip, name="lip")
     return lip
