@@ -112,15 +112,15 @@ def import_svg(path):
                         # l = bd.RadiusArc((p.start.real, p.start.imag), (p.end.real, p.end.imag), radius=r)
                     else:
                         log("Unknown path type for ", p)
-                    log(f"path_{i}\n{str(p)}  len={p.length}")
-                    show_object(l, name=f"path_{i}")
+                    # log(f"path_{i}\n{str(p)}  len={p.length}")
+                    # show_object(l, name=f"path_{i}")
                     line_start = l @ 1
 
-            show_object(bd_l.line, name="line")
+            # show_object(bd_l.line, name="line")
             make_face()
 
     face = bd_s.sketch.face()
-    show_object(face, "imported face")
+    # show_object(face, "imported face")
     return face
 
 # Function to calculate Euclidean distance between two points
@@ -177,7 +177,7 @@ def sort_paths(lines):
 # base_face = bd.mirror(bd.make_face(outline), about=bd.Plane.XZ.offset(-outline.center().X-3.5))
 # show_object(base_face, name="raw_import_base_face")
 base_face = import_svg(script_dir / "build/outline.svg")
-# show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
+show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
 
 
 def generate_cases(svg_file, params=None):
@@ -198,7 +198,7 @@ def generate_pcb_case(base_face, wall_height):
         params["wall_xy_thickness"],
     )
 
-    inner_cutout = _friction_fit_cutout(base_face, wall_height)
+    inner_cutout = _friction_fit_cutout(base_face)
     # show_object(inner_cutout, name="inner")
     wall = (
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
@@ -299,7 +299,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     return case
 
 
-def _friction_fit_cutout(base_face, wall_height):
+def _friction_fit_cutout(base_face):
     """Create a shape representing the inner case space, within the walls, to
     be cut out of the overall base shape.
 
@@ -312,43 +312,62 @@ def _friction_fit_cutout(base_face, wall_height):
     perverts the pcb outline shape a little more.
     We then cut off the extra bottom bit at the bottom of the case inner."""
 
+    wall_height_pcb_up = params["wall_z_height"]
+    total_wall_height  = wall_height_pcb_up + params["z_space_under_pcb"]
     # calculate taper angle to blend between bottom and top tolerance.
     # tan(x) = o/a, where o is the total taper distance change on the XY plane,
     # and opp is the change in the Z axis.
-    opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
-    adj = wall_height - params["z_space_under_pcb"]
+    opp = params["wall_xy_top_tolerance"] - params["wall_xy_bottom_tolerance"]
+    # Adj is just the height between the top and bottom tolerances, where
+    # top = top of the wall, and bottom = where the pcb should
+    # sit (z_space_under_pcb above the case bottom).
+    adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
+
+    T = math.tan(math.radians(taper))
+    # We have two XY offsets - one at the bottom where the case should start, and
+    # one where the pcb starts.
+    pcb_bottom_offset = params["wall_xy_bottom_tolerance"] / T
+    case_bottom_offset = T * params["z_space_under_pcb"]
+    bottom_offset = pcb_bottom_offset + case_bottom_offset
+    log(bottom_offset)
+    # bottom_face = _size_scale(base_face.face(), -bottom_offset)
+    bottom_face = safe_offset2d(base_face.face(), bottom_offset)
+    show_object(bottom_face, name="bottom_face")
+    extruded = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    show_object(extruded, name="extruded")
+
+
     # taper = 45
     # With the maizeness, above 1 mm seemed to not cause problems. Going to 1.5
     # to be safe.
-    safe_offset = 0.3
-
-    log(taper)
-    T = math.tan(math.radians(90 - taper))
-    log(T)
-    offset_bottom_drop = T * safe_offset
-    # offset_bottom = bd.offset(base_face, -safe_offset)
-    # offset_bottom = bd.offset(base_face, 3)
-    log(wall_height + offset_bottom_drop)
-    # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
-    top_face = base_face.moved(Loc((0,0,wall_height)))
-    log(top_face)
-    top_face = bd.offset(top_face, params["wall_xy_top_tolerance"])
-    top_face = bd.offset(top_face, 0.0)
-    # top_face = bd.offset(base_face.moved(Loc((0,0,wall_height))), 0.3, min_edge_length=0.3)
-    show_object(top_face, name="top_face")
-    # inner_cutout = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
-    # inner_cutout = bd.offset(base_face, -2.4, min_edge_length=0.3)
-    # offset_bottom = bd.offset(base_face, -0.3)
-    offset_bottom = bd.scale(base_face, 0.95)
-    # inner_cutout = bd.loft(bd.Sketch() + [offset_bottom, top_face])
-    # show_object(inner_cutout, name="inner_cutout")
-    extruded = bd.extrude(offset_bottom, amount=wall_height, taper=-taper)
-    # extruded = bd.extrude(base_face, amount=wall_height, taper=0)
-    show_object(extruded, name="extruded")
-    # return extruded
-    # inner_cutout = overkill_cutout
-
+    # safe_offset = 0.3
+    #
+    # # log(taper)
+    # # log(T)
+    # offset_bottom_drop = T * safe_offset
+    # # offset_bottom = bd.offset(base_face, -safe_offset)
+    # # offset_bottom = bd.offset(base_face, 3)
+    # # log(wall_height + offset_bottom_drop)
+    # # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
+    # top_face = base_face.moved(Loc((0,0,wall_height)))
+    # # log(top_face)
+    # top_face = bd.offset(top_face, params["wall_xy_top_tolerance"])
+    # top_face = bd.offset(top_face, 0.0)
+    # # top_face = bd.offset(base_face.moved(Loc((0,0,wall_height))), 0.3, min_edge_length=0.3)
+    # show_object(top_face, name="top_face")
+    # # inner_cutout = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
+    # # inner_cutout = bd.offset(base_face, -2.4, min_edge_length=0.3)
+    # # offset_bottom = bd.offset(base_face, -0.3)
+    # offset_bottom = bd.scale(base_face, 0.95)
+    # # inner_cutout = bd.loft(bd.Sketch() + [offset_bottom, top_face])
+    # # show_object(inner_cutout, name="inner_cutout")
+    # extruded = bd.extrude(offset_bottom, amount=wall_height, taper=-taper)
+    # # extruded = bd.extrude(base_face, amount=wall_height, taper=0)
+    # show_object(extruded, name="extruded")
+    # # return extruded
+    # # inner_cutout = overkill_cutout
+    #
     # inner_face = bd.offset(base_face, -params["wall_xy_bottom_tolerance"])
     # Seem to only be able to offset the bottom a small amount before freezing
     # things... might not be worth the risk.
@@ -359,6 +378,39 @@ def _friction_fit_cutout(base_face, wall_height):
     # show_object(inner_cutout, name="inner_cutout")
     # return inner_cutout
 
+def safe_offset2d(face: Face, offset: float):
+    outer = face.outer_wire().offset_2d(offset)
+    inners = [inner.offset_2d(-offset) for inner in face.inner_wires()]
+    new_face = Face(outer)
+    for inner in inners:
+        new_face -= Face(inner)
+    return new_face
+
+def _size_scale(obj, size_change):
+    """Scale an object by a size, such that the new size bounding box is be
+    size_change smaller in the x, y and z axis."""
+    import build123d as bd
+    obj = bd.Rectangle(10, 10)
+    obj = obj.copy()
+    center = obj.center()
+    bb = obj.bounding_box()
+    zchange = 1
+    if bb.size.Z > 0:
+        zchange = size_change/bb.size.Z
+    factor = (1-(size_change/bb.size.X), 1-(size_change/bb.size.Y), 1-zchange)
+
+    log(factor)
+    obj = bd.scale(obj, by=factor).face()
+    extruded = bd.extrude(obj, amount=2, taper=-19, dir=obj.normal_at(obj.center()))
+    # obj.move(center)
+
+    # bb = obj.bounding_box()
+    # xlen_new = bb.max.X - bb.min.X
+    # ylen_new = bb.max.Y - bb.min.Y
+    # print(xlen, xlen_new, xlen_new - xlen)
+    # print(ylen, ylen_new, ylen_new - ylen)
+
+    return obj
 
 def _finger_cutout(location, thickness, width, height):
     cutout_location = location * Rot(X=-90)
@@ -545,7 +597,7 @@ if "__file__" in locals():
 #     bd.export_stl(case, str(script_dir / "build/case.stl"))
 #     bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
 
-x = _friction_fit_cutout(base_face, pcb_case_wall_height)
+x = _friction_fit_cutout(base_face)
 
 # bd.export_stl(x, str(script_dir / "build/test.stl"))
 
