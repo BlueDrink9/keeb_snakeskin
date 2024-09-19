@@ -57,6 +57,7 @@ default_params = {
     "magnet_count": 6,
 }
 params = default_params # TODO: merge this with user params
+
 # TODO: Move these to my personal maizeless build script
 params["cutout_position"] = -34
 params["carrycase_cutout_position"] = 105
@@ -65,17 +66,16 @@ params["magnet_position"] = 100
 params["honeycomb_base"] = True
 params["wall_z_height"] = 2.6
 params["lip_position_angles"] = [-160, -30]
-# params["wall_xy_bottom_tolerance"]= -0.2
-# params["wall_xy_top_tolerance"]= 0.1
-
 
 magnet_height = 2
 magnet_radius = 4 / 2
 
 polar_position_maps = defaultdict(dict)
 
+test_print = False
 # For test prints, slice off the end
-slice = Loc((30, 0, 0)) * bd.Box(300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER))
+if test_print:
+    slice = Loc((30, 0, 0)) * bd.Box(300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER))
 
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
@@ -234,14 +234,14 @@ def generate_pcb_case(base_face, wall_height):
 
     if params["carrycase"]:
         # Cut out a lip for the carrycase
-        case -= __lip(base_face)
+        case += _lip(base_face)
         # Cut out magnet holes
-        case -= _magnet_cutout(base_face, params["magnet_position"])
+        # case -= _magnet_cutout(base_face, params["magnet_position"])
 
-    # For test prints
-    # case -= slice
+    if test_print:
+        case -= slice
 
-    show_object(case, name="case")
+    show_object(case, name="case", options={"color": (0, 255, 0)})
     return case
 
 
@@ -275,7 +275,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     case = wall + blocker
 
     # Add lip to hold board in
-    case += __lip(base_face, carrycase=True)
+    case += _lip(base_face, carrycase=True)
 
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
@@ -294,13 +294,14 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
 
-    # For test prints
-    # case -= slice
+    if test_print:
+        case -= slice
 
     # Mirror on top face to create both sides
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    case += bd.mirror(case, about=bd.Plane(topf))
-    show_object(case, name="carry case")
+    if not test_print:
+        case += bd.mirror(case, about=bd.Plane(topf))
+    show_object(case, name="carry case", options={"color": (0, 0, 255)})
     return case
 
 
@@ -329,11 +330,12 @@ def _friction_fit_cutout(base_face):
     adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
 
-    # We seem to be able to get away with small tapers/extrutions up smaller
+    # We seem to be able to get away with small tapers/extrusions up smaller
     # wall heights.
     # So let's try having an untapered wall below the pcb, and only tapering
     # where the bottom tolerance will come into play.
-    bottom_face = _safe_offset2d(base_face.face(), -params["wall_xy_bottom_tolerance"])
+    # bottom_face = _safe_offset2d(base_face.face(), params["wall_xy_bottom_tolerance"])
+    bottom_face = _size_scale(base_face, -0.3)
     under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
     face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
     tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
@@ -362,19 +364,28 @@ def _size_scale(obj, size_change):
     """Scale an object by a size, such that the new size bounding box is be
     size_change smaller in the x, y and z axis."""
     import build123d as bd
-    obj = bd.Rectangle(10, 10)
     obj = obj.copy()
     center = obj.center()
     bb = obj.bounding_box()
-    zchange = 1
+    zchange = 0
     if bb.size.Z > 0:
         zchange = size_change/bb.size.Z
-    factor = (1-(size_change/bb.size.X), 1-(size_change/bb.size.Y), 1-zchange)
-
-    log(factor)
-    obj = bd.scale(obj, by=factor).face()
-    extruded = bd.extrude(obj, amount=2, taper=-19, dir=obj.normal_at(obj.center()))
-    # obj.move(center)
+    factor = (
+        1 + (size_change/bb.size.X),
+        1 + (size_change/bb.size.Y),
+        1 + zchange
+    )
+    # log(factor)
+    # log(obj)
+    # Scaling by a vector changes the object too much, messes things up.
+    # We'll have to scale by a scalar. Picking the smallest of the factors to
+    # minimise change on the tightest axis.
+    # obj = bd.scale(obj, by=factor).face()
+    obj = bd.scale(obj, by=min(factor)).face()
+    # show_object(obj, name="scaled")
+    # log(obj)
+    # extruded = bd.extrude(obj, amount=2, taper=-19, dir=(0,0,1))
+    obj.move(Loc(center - obj.center()))
 
     # bb = obj.bounding_box()
     # xlen_new = bb.max.X - bb.min.X
@@ -455,7 +466,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     return cutouts
 
 
-def __lip(base_face, carrycase=False):
+def _lip(base_face, carrycase=False):
     outer_face = bd.offset(base_face, params["wall_xy_thickness"])
     lip = bd.offset(outer_face, params["carrycase_tolerance_xy"]) - bd.offset(outer_face, -params["lip_xy_len"])
     lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
@@ -465,7 +476,7 @@ def __lip(base_face, carrycase=False):
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
     lip = bd.extrude(lip, params["lip_z_thickness"])
-    # show_object(lip, name="lip")
+    show_object(lip, name="lip")
     return lip
 
 
@@ -558,8 +569,8 @@ if __name__ in ["__cq_main__", "temp"]:
     pass
     case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
 if "__file__" in locals():
