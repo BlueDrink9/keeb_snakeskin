@@ -56,6 +56,16 @@ default_params = {
     "magnet_spacing": 12,
     "magnet_count": 6,
 }
+params = default_params # TODO: merge this with user params
+# TODO: Move these to my personal maizeless build script
+params["cutout_position"] = 32
+params["carrycase_cutout_position"] = -108
+params["z_space_under_pcb"] = 2.4
+params["magnet_position"] = -132
+params["honeycomb_base"] = True
+# params["wall_xy_bottom_tolerance"]= -0.2
+# params["wall_xy_top_tolerance"]= 0.1
+
 
 magnet_height = 2
 magnet_radius = 4 / 2
@@ -65,16 +75,7 @@ polar_position_maps = defaultdict(dict)
 # For test prints, slice off the end
 slice = Loc((30, 0, 0)) * bd.Box(300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER))
 
-params = default_params # TODO: merge this with user params
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
-
-# TODO: Move these to my personal maizeless build script
-params["cutout_position"] = 32
-params["carrycase_cutout_position"] = -108
-params["z_space_under_pcb"] = 2.4
-params["magnet_position"] = -132
-params["honeycomb_base"] = True
-
 
 def import_svg(path):
     """Import SVG as paths and convert to build123d face. Although build123d has a native SVG import, it doesn't create clean wire connections from kicad exports of some shapes (in my experience), causing some more advanced operations to fail (e.g. tapers).
@@ -96,6 +97,8 @@ def import_svg(path):
         with BuildSketch() as bd_s:
             with BuildLine() as bd_l:
                 line_start = point(paths[0].start)
+                # Add first path to the end again, to ensure the loop is closed
+                # paths.append(paths[0])
                 for i, p in enumerate(paths):
                     # Filter out tiny edges that may cause issues with OCCT ops
                     if p.length() < 0.3:
@@ -324,61 +327,54 @@ def _friction_fit_cutout(base_face):
     adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
 
-    T = math.tan(math.radians(taper))
-    # We have two XY offsets - one at the bottom where the case should start, and
-    # one where the pcb starts.
-    pcb_bottom_offset = params["wall_xy_bottom_tolerance"] / T
+    T = math.tan(math.radians(taper))  # opp/adj
+    # We have two XY offsets from base_face - one at the bottom where the case
+    # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
     case_bottom_offset = T * params["z_space_under_pcb"]
-    bottom_offset = pcb_bottom_offset + case_bottom_offset
-    log(bottom_offset)
+    bottom_offset = case_bottom_offset - params["wall_xy_bottom_tolerance"]
+    log(f"taper {taper}")
+    log(f"T {T}")
+    log(f"cbo {case_bottom_offset}")
+    log(f"BO {bottom_offset}")
     # bottom_face = _size_scale(base_face.face(), -bottom_offset)
-    bottom_face = safe_offset2d(base_face.face(), bottom_offset)
+    bottom_face = _safe_offset2d(base_face.face(), -bottom_offset)
+    # bottom_face = base_face
     show_object(bottom_face, name="bottom_face")
-    extruded = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
-    show_object(extruded, name="extruded")
+    # This big a taper (default about 8 degrees) is too much for the b123d
+    # engine and causes a crash/invalid shape. 3 looks like as much as we can
+    # do for now, shoot.
+    # cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    # cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-3)
+    # show_object(cutout, name="cutout")
 
-
-    # taper = 45
-    # With the maizeness, above 1 mm seemed to not cause problems. Going to 1.5
-    # to be safe.
-    # safe_offset = 0.3
-    #
-    # # log(taper)
-    # # log(T)
-    # offset_bottom_drop = T * safe_offset
-    # # offset_bottom = bd.offset(base_face, -safe_offset)
-    # # offset_bottom = bd.offset(base_face, 3)
-    # # log(wall_height + offset_bottom_drop)
-    # # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
-    # top_face = base_face.moved(Loc((0,0,wall_height)))
-    # # log(top_face)
-    # top_face = bd.offset(top_face, params["wall_xy_top_tolerance"])
-    # top_face = bd.offset(top_face, 0.0)
-    # # top_face = bd.offset(base_face.moved(Loc((0,0,wall_height))), 0.3, min_edge_length=0.3)
+    # # # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
+    # top_face = base_face.moved(Loc((0,0,wall_height_pcb_up)))
+    # top_face = base_face.moved(Loc((0,0,2)))
+    # top_face = _safe_offset2d(top_face, params["wall_xy_top_tolerance"])
     # show_object(top_face, name="top_face")
-    # # inner_cutout = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
-    # # inner_cutout = bd.offset(base_face, -2.4, min_edge_length=0.3)
-    # # offset_bottom = bd.offset(base_face, -0.3)
-    # offset_bottom = bd.scale(base_face, 0.95)
+    # bottom_face = _safe_offset2d(base_face, -bottom_offset)
+    # # bottom_face = bd.scale(base_face, 0.95)
     # # inner_cutout = bd.loft(bd.Sketch() + [offset_bottom, top_face])
     # # show_object(inner_cutout, name="inner_cutout")
-    # extruded = bd.extrude(offset_bottom, amount=wall_height, taper=-taper)
-    # # extruded = bd.extrude(base_face, amount=wall_height, taper=0)
+    # extruded = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    # # # extruded = bd.extrude(base_face, amount=wall_height, taper=0)
     # show_object(extruded, name="extruded")
-    # # return extruded
-    # # inner_cutout = overkill_cutout
-    #
-    # inner_face = bd.offset(base_face, -params["wall_xy_bottom_tolerance"])
-    # Seem to only be able to offset the bottom a small amount before freezing
-    # things... might not be worth the risk.
-    # inner_face = bd.offset(base_face, -0.05)
-    # inner_face = base_face
-    # inner_cutout = bd.extrude(inner_face, wall_height, taper=-taper)
-    # inner_cutout.move(Loc((0, 0, params["base_z_thickness"])))
-    # show_object(inner_cutout, name="inner_cutout")
-    # return inner_cutout
+    # # # return extruded
+    # # # inner_cutout = overkill_cutout
 
-def safe_offset2d(face: Face, offset: float):
+
+
+    # return cutout
+
+
+def _safe_offset2d(face: Face, offset: float):
+    """2D offset that is less likely to create invalid geometry.
+    "the regular offset function fails when I do an inward offset where the
+    enlarged inner wires overlap the new outer wire. If I instead reconstruct
+    the face by subtracting the holes, I get what I want"
+    https://discord.com/channels/964330484911972403/1074840524181217452/1285681009240838174
+    """
+
     outer = face.outer_wire().offset_2d(offset)
     inners = [inner.offset_2d(-offset) for inner in face.inner_wires()]
     new_face = Face(outer)
