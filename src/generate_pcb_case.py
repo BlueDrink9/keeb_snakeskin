@@ -6,6 +6,7 @@ from pathlib import Path
 import build123d as bd
 from build123d import Align, Rot
 from build123d import *
+import svgpathtools as svg
 
 Loc = bd.Location
 if "__file__" in globals():
@@ -44,7 +45,7 @@ default_params = {
     "carrycase_tolerance_xy": 0.8,
     "carrycase_tolerance_z": 0.5,
     "carrycase_wall_xy_thickness": 4,
-    "carrycase_z_gap_between_cases": 9,
+    "carrycase_z_gap_between_cases": 9 + 1,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
     "lip_z_thickness": 2,
@@ -83,25 +84,84 @@ def import_svg(path):
     outline = bd.import_svg(script_dir / "build/outline.svg")
     outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
-    import svgpathtools as svg
-    paths, attributes = svg.svg2paths(path)
-    lines = []
-    for p in paths:
-        if isinstance(p[0], svg.Line):
-            lines.append(bd.Line((p.start.real, p.start.imag), (p.end.real, p.end.imag)))
-        elif isinstance(p[0], svg.Arc):
-            # Seems all the arcs have same value for real + imag, so just use real
-            r = p[0].radius.real
-            lines.append(bd.RadiusArc((p.start.real, p.start.imag), (p.end.real, p.end.imag), radius=r))
-        else:
-            print("Unknown path type")
+    def point(path_point):
+        return (path_point.real, path_point.imag)
 
-    lines = Curve() + lines
-    # show_object(lines)
-    face = make_face(lines)
-    # show_object(face)
+    paths, attributes = svg.svg2paths(path)
+    paths = [p[0] for p in paths]
+    # paths.sort(key=lambda x: x.start)
+    paths = sort_paths(paths)
+    lines = []
+    with BuildPart() as bd_p:
+        with BuildSketch() as bd_s:
+            with BuildLine() as bd_l:
+                line_start = point(paths[0].start)
+                for i, p in enumerate(paths):
+                    # Filter out tiny edges that may cause issues with OCCT ops
+                    if p.length() < 0.3:
+                        continue
+                    if isinstance(p, svg.Line):
+                        l = bd.Line(line_start, point(p.end))
+                    elif isinstance(p, svg.Arc):
+                        # Seems all the arcs have same value for real + imag, so just use real
+                        r = p.radius.real
+                        l = bd.RadiusArc(line_start, point(p.end), radius=r)
+                        # This approximates the arc with a spline. It's slow
+                        # and doesn't seem to help anything.
+                        # l = bd.RadiusArc(line_start, point(p.end), radius=r, mode=bd.Mode.PRIVATE)
+                        # l = bd.RadiusArc((p.start.real, p.start.imag), (p.end.real, p.end.imag), radius=r)
+                    else:
+                        log("Unknown path type for ", p)
+                    log(f"path_{i}\n{str(p)}  len={p.length}")
+                    show_object(l, name=f"path_{i}")
+                    line_start = l @ 1
+
+            show_object(bd_l.line, name="line")
+            make_face()
+
+    face = bd_s.sketch.face()
+    show_object(face, "imported face")
     return face
 
+# Function to calculate Euclidean distance between two points
+def euclidean_distance(p1, p2):
+    return math.sqrt((p1.real - p2.real)**2 + (p1.imag - p2.imag)**2)
+
+def sort_paths(lines):
+    """Return list of paths sorted and flipped so that they are connected end to end as the list iterates."""
+    if not lines:
+        return []
+
+    # Start with the first line
+    sorted_lines = [lines.pop(0)]
+
+    while lines:
+        last_line = sorted_lines[-1]
+        last_end = last_line.end
+
+        # Find the closest line to the last end point
+        closest_line, closest_distance, flip = None, float('inf'), False
+        for line in lines:
+            dist_start = euclidean_distance(last_end, line.start)
+            dist_end = euclidean_distance(last_end, line.end)
+            # if end is closer than start, flip the line right way around
+            if dist_start < closest_distance:
+                closest_line, closest_distance, flip = line, dist_start, False
+            if dist_end < closest_distance:
+                closest_line, closest_distance, flip = line, dist_end, True
+
+        # Flip the line if necessary
+        if flip:
+            t = closest_line.start
+            closest_line.start = closest_line.end
+            closest_line.end = t
+            if isinstance(closest_line, svg.Arc):
+                closest_line.radius = -closest_line.radius
+
+        sorted_lines.append(closest_line)
+        lines.remove(closest_line)
+
+    return sorted_lines
 
 # outline = bd.import_svg(script_dir / "build/outline.svg")
 
@@ -114,9 +174,10 @@ def import_svg(path):
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
 # outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
-# base_face = bd.make_face(outline)
+# base_face = bd.mirror(bd.make_face(outline), about=bd.Plane.XZ.offset(-outline.center().X-3.5))
+# show_object(base_face, name="raw_import_base_face")
 base_face = import_svg(script_dir / "build/outline.svg")
-# show_object(base_face, name="base_face")
+# show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
 
 
 def generate_cases(svg_file, params=None):
@@ -137,18 +198,7 @@ def generate_pcb_case(base_face, wall_height):
         params["wall_xy_thickness"],
     )
 
-    # calculate taper angle. tan(x) = o/a
-    opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
-    adj = wall_height
-    taper = math.degrees(math.atan(opp / adj))
-
-    # inner_face = bd.offset(base_face, -params["wall_xy_bottom_tolerance"])
-    # Seem to only be able to offset the bottom a small amount before freezing
-    # things... might not be worth the risk.
-    # inner_face = bd.offset(base_face, -0.05)
-    inner_face = base_face
-    inner_cutout = bd.extrude(inner_face, wall_height, taper=-taper)
-    inner_cutout.move(Loc((0, 0, params["base_z_thickness"])))
+    inner_cutout = _friction_fit_cutout(base_face, wall_height)
     # show_object(inner_cutout, name="inner")
     wall = (
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
@@ -168,7 +218,7 @@ def generate_pcb_case(base_face, wall_height):
     top_inner_wire = topf.wires()[0]
     polar_map = PolarWireMap(top_inner_wire, topf.center())
     cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
-    cutout_box = __finger_cutout(
+    cutout_box = _finger_cutout(
         cutout_location,
         params["wall_xy_thickness"],
         params["cutout_width"],
@@ -227,7 +277,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     bottom_inner_wire = botf.wires()[0]
     polar_map = PolarWireMap(bottom_inner_wire, botf.center())
     cutout_location, _ = polar_map.get_polar_location(params["carrycase_cutout_position"])
-    cutout_box = __finger_cutout(
+    cutout_box = _finger_cutout(
         cutout_location,
         params["carrycase_wall_xy_thickness"],
         params["carrycase_cutout_xy_width"],
@@ -249,7 +299,68 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     return case
 
 
-def __finger_cutout(location, thickness, width, height):
+def _friction_fit_cutout(base_face, wall_height):
+    """Create a shape representing the inner case space, within the walls, to
+    be cut out of the overall base shape.
+
+    b123d engine has bizare problems with tapers on tiny -ve offsets from the
+    face, which we need for the bottom tolerance.
+    To work around this, we are offsetting a fixed, 'working' distance first,
+    then tapering up such that it passes through the bottom tolerance size at
+    the appropriate height (and continues to the top tolerance size).
+    This does have a slight side effect in that the larger negative offset
+    perverts the pcb outline shape a little more.
+    We then cut off the extra bottom bit at the bottom of the case inner."""
+
+    # calculate taper angle to blend between bottom and top tolerance.
+    # tan(x) = o/a, where o is the total taper distance change on the XY plane,
+    # and opp is the change in the Z axis.
+    opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
+    adj = wall_height - params["z_space_under_pcb"]
+    taper = math.degrees(math.atan(opp / adj))
+    # taper = 45
+    # With the maizeness, above 1 mm seemed to not cause problems. Going to 1.5
+    # to be safe.
+    safe_offset = 0.3
+
+    log(taper)
+    T = math.tan(math.radians(90 - taper))
+    log(T)
+    offset_bottom_drop = T * safe_offset
+    # offset_bottom = bd.offset(base_face, -safe_offset)
+    # offset_bottom = bd.offset(base_face, 3)
+    log(wall_height + offset_bottom_drop)
+    # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
+    top_face = base_face.moved(Loc((0,0,wall_height)))
+    log(top_face)
+    top_face = bd.offset(top_face, params["wall_xy_top_tolerance"])
+    top_face = bd.offset(top_face, 0.0)
+    # top_face = bd.offset(base_face.moved(Loc((0,0,wall_height))), 0.3, min_edge_length=0.3)
+    show_object(top_face, name="top_face")
+    # inner_cutout = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
+    # inner_cutout = bd.offset(base_face, -2.4, min_edge_length=0.3)
+    # offset_bottom = bd.offset(base_face, -0.3)
+    offset_bottom = bd.scale(base_face, 0.95)
+    # inner_cutout = bd.loft(bd.Sketch() + [offset_bottom, top_face])
+    # show_object(inner_cutout, name="inner_cutout")
+    extruded = bd.extrude(offset_bottom, amount=wall_height, taper=-taper)
+    # extruded = bd.extrude(base_face, amount=wall_height, taper=0)
+    show_object(extruded, name="extruded")
+    # return extruded
+    # inner_cutout = overkill_cutout
+
+    # inner_face = bd.offset(base_face, -params["wall_xy_bottom_tolerance"])
+    # Seem to only be able to offset the bottom a small amount before freezing
+    # things... might not be worth the risk.
+    # inner_face = bd.offset(base_face, -0.05)
+    # inner_face = base_face
+    # inner_cutout = bd.extrude(inner_face, wall_height, taper=-taper)
+    # inner_cutout.move(Loc((0, 0, params["base_z_thickness"])))
+    # show_object(inner_cutout, name="inner_cutout")
+    # return inner_cutout
+
+
+def _finger_cutout(location, thickness, width, height):
     cutout_location = location * Rot(X=-90)
     # Mutliplying x and y by ~2 because we're centering it on those axis, but
     # only cutting out of one side.
@@ -421,28 +532,39 @@ class Sector(bd.Shape):
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor
     pass
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # if params["carrycase"]:
+    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
-# if "__file__" in locals():
+if "__file__" in locals():
+    show_object = lambda *a, **kw: None
+    log = lambda x: print(x)
 #     script_dir = Path(__file__).parent
 #     bd.export_stl(case, str(script_dir / "build/case.stl"))
 #     bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
 
+x = _friction_fit_cutout(base_face, pcb_case_wall_height)
+
+# bd.export_stl(x, str(script_dir / "build/test.stl"))
 
 #     # calculate taper angle. tan(x) = o/a
+# wall_height = pcb_case_wall_height
 # opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
 # wall_height = params["wall_z_height"]
 # adj = wall_height
 # taper = math.degrees(math.atan(opp / adj))
-# inner_face = bd.offset(base_face, -1.75)
+# log(taper)
+# inner_face = base_face
+# inner_face = bd.offset(base_face, -1.5)
+# # inner_face = bd.offset(base_face, -1)
+# # inner_face = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
 # show_object(inner_face, name="inner_face")
 
-
-# inner_cutout = bd.extrude(inner_face, wall_height, taper=-1.0)
+# # # inner_cutout = bd.extrude(inner_face, wall_height, taper=-1.1)
+# inner_cutout = bd.extrude(inner_face, wall_height + 5, taper=-taper)
+# # # inner_cutout = bd.extrude(inner_face, wall_height)
 # show_object(inner_cutout, name="inner")
 
 # hds = _create_honeycomb_tile(8, 2, params["base_z_thickness"])
@@ -464,3 +586,44 @@ if __name__ in ["__cq_main__", "temp"]:
 # show_object(b, name="b")
 
 # f = bd.make_face(bd.Polyline((0, 0), (-5, 0), (0, -5), (0,0)))
+
+# import cadquery as cq
+# b3d_solid = bd.Solid.make_box(1,1,1)
+# cq_solid = cq.Solid.makeBox(1,1,1)
+# cq_solid.wrapped = base_face.wrapped
+# log(cq_solid.faces())
+# # cq_solid = cq_solid.wires().close().extrude(1)
+# # cq_solid = cq.Workplane(cq_solid.faces()).faces().wires().toPending().extrude(until=5)
+# cq_solid = cq_solid.extrudeLinear(cq_solid.faces(), cq.Vector((0,0,10)), taper=-1)
+# # cq_solid = cq_solid.extrudeLinear(cq.Sketch().rect(1,1), vecNormal=cq.Vector((0,0,1)), taper=0)
+# # cq_solid = cq.Workplane().circle(2.0).rect(0.5, 0.75).extrude(0.5).findSolid()
+# b3d_solid.wrapped = cq_solid.wrapped
+# show_object(b3d_solid)
+
+# edges =sorted(base_face.edges(), key=lambda e: e.length)
+# log([e.length for e in edges])
+# show_object(edges[0], name=f"edge_0")
+# for i, edge in enumerate(edges):
+#     # if edge.length < 5:
+#     #     show_object(edge, name=f"edge_{i}")
+#     show_object(edge, name=f"edge_{i}")
+
+
+# from svgpathtools import parse_path, Line, Path, wsvg
+# def offset_curve(path, offset_distance, steps=1000):
+#     """Takes in a Path object, `path`, and a distance,
+#     `offset_distance`, and outputs an piecewise-linear approximation
+#     of the 'parallel' offset curve."""
+#     nls = []
+#     for seg in path:
+#         ct = 1
+#         for k in range(steps):
+#             t = k / steps
+#             offset_vector = offset_distance * seg.normal(t)
+#             nl = Line(seg.point(t), seg.point(t) + offset_vector)
+#             nls.append(nl)
+#     connect_the_dots = [Line(nls[k].end, nls[k+1].end) for k in range(len(nls)-1)]
+#     if path.isclosed():
+#         connect_the_dots.append(Line(nls[-1].end, nls[0].end))
+#     offset_path = Path(*connect_the_dots)
+#     return offset_path
