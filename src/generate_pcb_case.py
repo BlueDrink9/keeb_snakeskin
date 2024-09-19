@@ -34,7 +34,7 @@ default_params = {
     "wall_xy_thickness": 3,
     "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
-    "wall_xy_bottom_tolerance": -0.6,
+    "wall_xy_bottom_tolerance": -0.3,
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
@@ -330,18 +330,25 @@ def _friction_fit_cutout(base_face):
     adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
 
-    # We seem to be able to get away with small tapers/extrusions up smaller
-    # wall heights.
-    # So let's try having an untapered wall below the pcb, and only tapering
-    # where the bottom tolerance will come into play.
-    # bottom_face = _safe_offset2d(base_face.face(), params["wall_xy_bottom_tolerance"])
-    bottom_face = _size_scale(base_face, -0.3)
-    under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
-    face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
-    tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
-    case_inner_cutout = under_pcb + tapered_cutout
-    # show_object(case_inner_cutout, name="case_inner_cutout")
+    # # We seem to be able to get away with small tapers/extrusions up smaller
+    # # wall heights.
+    # # So let's try having an untapered wall below the pcb, and only tapering
+    # # where the bottom tolerance will come into play.
+    # # bottom_face = _safe_offset2d(base_face.face(), params["wall_xy_bottom_tolerance"])
+    # under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
+    # face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
+    # tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
+    # case_inner_cutout = under_pcb + tapered_cutout
 
+    T = math.tan(math.radians(taper))  # opp/adj
+    # # We have two XY offsets from base_face - one at the bottom where the case
+    # # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
+    case_bottom_offset = T * params["z_space_under_pcb"]
+    bottom_offset = -case_bottom_offset + params["wall_xy_bottom_tolerance"]
+    bottom_face = _size_scale(base_face, bottom_offset)
+    case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+
+    # show_object(case_inner_cutout, name="case_inner_cutout")
     return case_inner_cutout
 
 
