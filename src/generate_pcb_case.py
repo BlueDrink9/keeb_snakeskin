@@ -58,11 +58,13 @@ default_params = {
 }
 params = default_params # TODO: merge this with user params
 # TODO: Move these to my personal maizeless build script
-params["cutout_position"] = 32
-params["carrycase_cutout_position"] = -108
+params["cutout_position"] = -34
+params["carrycase_cutout_position"] = 105
 params["z_space_under_pcb"] = 2.4
-params["magnet_position"] = -132
+params["magnet_position"] = 100
 params["honeycomb_base"] = True
+params["wall_z_height"] = 2.6
+params["lip_position_angles"] = [-160, -30]
 # params["wall_xy_bottom_tolerance"]= -0.2
 # params["wall_xy_top_tolerance"]= 0.1
 
@@ -201,7 +203,7 @@ def generate_pcb_case(base_face, wall_height):
         params["wall_xy_thickness"],
     )
 
-    inner_cutout = _friction_fit_cutout(base_face)
+    inner_cutout = _friction_fit_cutout(base_face.face().move(Loc((0, 0, params["base_z_thickness"]))))
     # show_object(inner_cutout, name="inner")
     wall = (
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
@@ -554,10 +556,10 @@ class Sector(bd.Shape):
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor
     pass
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
 if "__file__" in locals():
