@@ -7,10 +7,11 @@ setup(
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     install_requires=[
-        'cadquery',
-        'pygerber',
-        'drawsvg',
-        'svg2dxf @ git+https://github.com/multigcs/svg2dxf.git',
+        'build123d > 0.7.0',
+        'svgpathtools',
+        # 'pygerber',
+        # 'drawsvg',
+        # 'svg2dxf @ git+https://github.com/multigcs/svg2dxf.git',
     ],
     entry_points={
         'console_scripts': [

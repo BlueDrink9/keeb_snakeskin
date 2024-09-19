@@ -34,7 +34,7 @@ default_params = {
     "wall_xy_thickness": 3,
     "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
-    "wall_xy_bottom_tolerance": -0.3,
+    "wall_xy_bottom_tolerance": -0.6,
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
@@ -98,7 +98,7 @@ def import_svg(path):
             with BuildLine() as bd_l:
                 line_start = point(paths[0].start)
                 # Add first path to the end again, to ensure the loop is closed
-                # paths.append(paths[0])
+                paths.append(paths[0])
                 for i, p in enumerate(paths):
                     # Filter out tiny edges that may cause issues with OCCT ops
                     if p.length() < 0.3:
@@ -327,25 +327,41 @@ def _friction_fit_cutout(base_face):
     adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
 
-    T = math.tan(math.radians(taper))  # opp/adj
-    # We have two XY offsets from base_face - one at the bottom where the case
-    # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
-    case_bottom_offset = T * params["z_space_under_pcb"]
-    bottom_offset = case_bottom_offset - params["wall_xy_bottom_tolerance"]
-    log(f"taper {taper}")
-    log(f"T {T}")
-    log(f"cbo {case_bottom_offset}")
-    log(f"BO {bottom_offset}")
-    # bottom_face = _size_scale(base_face.face(), -bottom_offset)
-    bottom_face = _safe_offset2d(base_face.face(), -bottom_offset)
-    # bottom_face = base_face
-    show_object(bottom_face, name="bottom_face")
-    # This big a taper (default about 8 degrees) is too much for the b123d
-    # engine and causes a crash/invalid shape. 3 looks like as much as we can
-    # do for now, shoot.
-    # cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
-    # cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-3)
+    # T = math.tan(math.radians(taper))  # opp/adj
+    # # We have two XY offsets from base_face - one at the bottom where the case
+    # # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
+    # case_bottom_offset = T * params["z_space_under_pcb"]
+    # bottom_offset = case_bottom_offset - params["wall_xy_bottom_tolerance"]
+    # log(f"taper {taper}")
+    # log(f"T {T}")
+    # log(f"cbo {case_bottom_offset}")
+    # log(f"BO {bottom_offset}")
+    # # bottom_face = _size_scale(base_face.face(), -bottom_offset)
+    # bottom_face = _safe_offset2d(base_face.face(), -bottom_offset)
+    # # bottom_face = base_face
+    # # show_object(bottom_face, name="bottom_face")
+    # # This big a taper (default about 8 degrees) is too much for the b123d
+    # # engine and causes a crash/invalid shape. 3 looks like as much as we can
+    # # do for now, shoot.
+    # cutout = bd.extrude(bottom_face, amount=params["wall_z_height"], taper=-taper)
+    # # cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
     # show_object(cutout, name="cutout")
+
+    # We seem to be able to get away with small tapers/extrutions up smaller
+    # wall heights.
+    # So let's try having an untapered wall below the pcb, and only tapering
+    # where the bottom tolerance will come into play.
+    bottom_face = _safe_offset2d(base_face.face(), -params["wall_xy_bottom_tolerance"])
+    # bottom_face = bd.offset(base_face.face(), -params["wall_xy_bottom_tolerance"])
+    show_object(bottom_face, name="bottom_face")
+    under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
+    face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
+    show_object(face_at_pcb, name="face_at_pcb")
+    tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
+    show_object(tapered_cutout, name="tapered_cutout")
+    case_inner_cutout = under_pcb + tapered_cutout
+    show_object(case_inner_cutout, name="case_inner_cutout")
+
 
     # # # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
     # top_face = base_face.moved(Loc((0,0,wall_height_pcb_up)))
