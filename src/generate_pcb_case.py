@@ -327,60 +327,18 @@ def _friction_fit_cutout(base_face):
     adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
 
-    # T = math.tan(math.radians(taper))  # opp/adj
-    # # We have two XY offsets from base_face - one at the bottom where the case
-    # # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
-    # case_bottom_offset = T * params["z_space_under_pcb"]
-    # bottom_offset = case_bottom_offset - params["wall_xy_bottom_tolerance"]
-    # log(f"taper {taper}")
-    # log(f"T {T}")
-    # log(f"cbo {case_bottom_offset}")
-    # log(f"BO {bottom_offset}")
-    # # bottom_face = _size_scale(base_face.face(), -bottom_offset)
-    # bottom_face = _safe_offset2d(base_face.face(), -bottom_offset)
-    # # bottom_face = base_face
-    # # show_object(bottom_face, name="bottom_face")
-    # # This big a taper (default about 8 degrees) is too much for the b123d
-    # # engine and causes a crash/invalid shape. 3 looks like as much as we can
-    # # do for now, shoot.
-    # cutout = bd.extrude(bottom_face, amount=params["wall_z_height"], taper=-taper)
-    # # cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
-    # show_object(cutout, name="cutout")
-
     # We seem to be able to get away with small tapers/extrutions up smaller
     # wall heights.
     # So let's try having an untapered wall below the pcb, and only tapering
     # where the bottom tolerance will come into play.
     bottom_face = _safe_offset2d(base_face.face(), -params["wall_xy_bottom_tolerance"])
-    # bottom_face = bd.offset(base_face.face(), -params["wall_xy_bottom_tolerance"])
-    show_object(bottom_face, name="bottom_face")
     under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
     face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
-    show_object(face_at_pcb, name="face_at_pcb")
     tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
-    show_object(tapered_cutout, name="tapered_cutout")
     case_inner_cutout = under_pcb + tapered_cutout
-    show_object(case_inner_cutout, name="case_inner_cutout")
+    # show_object(case_inner_cutout, name="case_inner_cutout")
 
-
-    # # # top_face = bd.Plane(base_face).offset(offset_bottom_drop) * base_face
-    # top_face = base_face.moved(Loc((0,0,wall_height_pcb_up)))
-    # top_face = base_face.moved(Loc((0,0,2)))
-    # top_face = _safe_offset2d(top_face, params["wall_xy_top_tolerance"])
-    # show_object(top_face, name="top_face")
-    # bottom_face = _safe_offset2d(base_face, -bottom_offset)
-    # # bottom_face = bd.scale(base_face, 0.95)
-    # # inner_cutout = bd.loft(bd.Sketch() + [offset_bottom, top_face])
-    # # show_object(inner_cutout, name="inner_cutout")
-    # extruded = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
-    # # # extruded = bd.extrude(base_face, amount=wall_height, taper=0)
-    # show_object(extruded, name="extruded")
-    # # # return extruded
-    # # # inner_cutout = overkill_cutout
-
-
-
-    # return cutout
+    return case_inner_cutout
 
 
 def _safe_offset2d(face: Face, offset: float):
@@ -390,13 +348,13 @@ def _safe_offset2d(face: Face, offset: float):
     the face by subtracting the holes, I get what I want"
     https://discord.com/channels/964330484911972403/1074840524181217452/1285681009240838174
     """
-
     outer = face.outer_wire().offset_2d(offset)
     inners = [inner.offset_2d(-offset) for inner in face.inner_wires()]
     new_face = Face(outer)
     for inner in inners:
         new_face -= Face(inner)
     return new_face
+
 
 def _size_scale(obj, size_change):
     """Scale an object by a size, such that the new size bounding box is be
@@ -605,89 +563,8 @@ if __name__ in ["__cq_main__", "temp"]:
 if "__file__" in locals():
     show_object = lambda *a, **kw: None
     log = lambda x: print(x)
-#     script_dir = Path(__file__).parent
-#     bd.export_stl(case, str(script_dir / "build/case.stl"))
-#     bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
-
-x = _friction_fit_cutout(base_face)
+    script_dir = Path(__file__).parent
+    bd.export_stl(case, str(script_dir / "build/case.stl"))
+    bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
 
 # bd.export_stl(x, str(script_dir / "build/test.stl"))
-
-#     # calculate taper angle. tan(x) = o/a
-# wall_height = pcb_case_wall_height
-# opp = -params["wall_xy_bottom_tolerance"] + params["wall_xy_top_tolerance"]
-# wall_height = params["wall_z_height"]
-# adj = wall_height
-# taper = math.degrees(math.atan(opp / adj))
-# log(taper)
-# inner_face = base_face
-# inner_face = bd.offset(base_face, -1.5)
-# # inner_face = bd.offset(base_face, -1)
-# # inner_face = bd.offset(base_face, params["wall_xy_bottom_tolerance"])
-# show_object(inner_face, name="inner_face")
-
-# # # inner_cutout = bd.extrude(inner_face, wall_height, taper=-1.1)
-# inner_cutout = bd.extrude(inner_face, wall_height + 5, taper=-taper)
-# # # inner_cutout = bd.extrude(inner_face, wall_height)
-# show_object(inner_cutout, name="inner")
-
-# hds = _create_honeycomb_tile(8, 2, params["base_z_thickness"])
-# # show_object(hds)
-# x = bd.Box(100,100,10).intersect(bd.Compound(hds))
-# show_object(x)
-
-# b = bd.Box(100,100,10, align=(Align.CENTER, Align.CENTER, Align.CENTER))
-# radius = 8
-# cell_thickness = 2
-# depth = 2
-# d_between_centers = radius + cell_thickness
-# locs = HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
-# h = bd.RegularPolygon(radius, 6)
-# hs = bd.extrude(h, -depth)
-# hc = Plane(b.faces().sort_by().first) * locs * hs
-# show_object(hc, name="hc")
-# b -= hc
-# show_object(b, name="b")
-
-# f = bd.make_face(bd.Polyline((0, 0), (-5, 0), (0, -5), (0,0)))
-
-# import cadquery as cq
-# b3d_solid = bd.Solid.make_box(1,1,1)
-# cq_solid = cq.Solid.makeBox(1,1,1)
-# cq_solid.wrapped = base_face.wrapped
-# log(cq_solid.faces())
-# # cq_solid = cq_solid.wires().close().extrude(1)
-# # cq_solid = cq.Workplane(cq_solid.faces()).faces().wires().toPending().extrude(until=5)
-# cq_solid = cq_solid.extrudeLinear(cq_solid.faces(), cq.Vector((0,0,10)), taper=-1)
-# # cq_solid = cq_solid.extrudeLinear(cq.Sketch().rect(1,1), vecNormal=cq.Vector((0,0,1)), taper=0)
-# # cq_solid = cq.Workplane().circle(2.0).rect(0.5, 0.75).extrude(0.5).findSolid()
-# b3d_solid.wrapped = cq_solid.wrapped
-# show_object(b3d_solid)
-
-# edges =sorted(base_face.edges(), key=lambda e: e.length)
-# log([e.length for e in edges])
-# show_object(edges[0], name=f"edge_0")
-# for i, edge in enumerate(edges):
-#     # if edge.length < 5:
-#     #     show_object(edge, name=f"edge_{i}")
-#     show_object(edge, name=f"edge_{i}")
-
-
-# from svgpathtools import parse_path, Line, Path, wsvg
-# def offset_curve(path, offset_distance, steps=1000):
-#     """Takes in a Path object, `path`, and a distance,
-#     `offset_distance`, and outputs an piecewise-linear approximation
-#     of the 'parallel' offset curve."""
-#     nls = []
-#     for seg in path:
-#         ct = 1
-#         for k in range(steps):
-#             t = k / steps
-#             offset_vector = offset_distance * seg.normal(t)
-#             nl = Line(seg.point(t), seg.point(t) + offset_vector)
-#             nls.append(nl)
-#     connect_the_dots = [Line(nls[k].end, nls[k+1].end) for k in range(len(nls)-1)]
-#     if path.isclosed():
-#         connect_the_dots.append(Line(nls[-1].end, nls[0].end))
-#     offset_path = Path(*connect_the_dots)
-#     return offset_path
