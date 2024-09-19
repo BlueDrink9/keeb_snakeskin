@@ -269,16 +269,33 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
 
     # Part that blocks the pcb case from going all the way through
-    blocker_thickness = 2
-    base_blocker_face = bd.offset(
-        base_face, (params["wall_xy_thickness"] + params["carrycase_tolerance_xy"])
+    # Blocker is made of 3 parts:
+    # 1. a flat layer offset blocker_thickness_xy, extruded  2 * blocker_thickness_z
+    # from the base face,
+    # 2. a subtracted layer starting at blocker_thickness_z that that tapers out
+    # to the carrycase wall, to create a printable overhang,
+    # 3. a subtracted layer extruded blocker_thickness from base_face.
+    blocker_thickness_xy = params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
+    blocker_thickness_z = 2
+    taper = 50
+    overhang_thickness_z = (blocker_thickness_xy - 0.1) / math.tan(math.radians(taper))
+    blocker_hull = bd.extrude(
+        bd.offset(base_face, blocker_thickness_xy), amount=blocker_thickness_z + overhang_thickness_z
     )
-    blocker_face = base_blocker_face - base_face
-    blocker = bd.extrude(blocker_face, amount=blocker_thickness)
-    # Locate the blocker at the top of the pcb case wall
+    overhang = bd.extrude(
+        base_face.moved(Loc((0, 0, blocker_thickness_z))),
+        overhang_thickness_z, taper=-taper
+    )
+    blocker_inner_cutout = bd.extrude(
+        base_face, amount=blocker_thickness_z
+    )
+    blocker = blocker_hull - overhang - blocker_inner_cutout
+    # Locate the blocker at the top of the pcb case all
     blocker.move(
         Loc((0, 0, (wall_height + params["carrycase_tolerance_z"] - params["carrycase_z_gap_between_cases"])))
     )
+    # show_object(blocker, name="blocker")
+
     case = wall + blocker
 
     # Add lip to hold board in
@@ -584,10 +601,10 @@ class Sector(bd.Shape):
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor
     pass
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    # if params["carrycase"]:
-    #     carry = generate_carrycase(base_face, pcb_case_wall_height)
+    if params["carrycase"]:
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
 if "__file__" in locals():
