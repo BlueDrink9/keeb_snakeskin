@@ -125,6 +125,7 @@ def import_svg(path):
             make_face()
 
     face = bd_s.sketch.face()
+    face.move(Loc(-face.center()))
     # show_object(face, "imported face")
     return face
 
@@ -168,21 +169,27 @@ def sort_paths(lines):
 
     return sorted_lines
 
-# outline = bd.import_svg(script_dir / "build/outline.svg")
+outline = bd.import_svg(script_dir / "build/outline.svg")
 
 # outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
 
-# For testing
-# outline = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
-# outline = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
-
 # Round trip from outline to wires to face to wires to connect the disconnected
 # edges that an svg gets imported with.
-# outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
-# base_face = bd.mirror(bd.make_face(outline), about=bd.Plane.XZ.offset(-outline.center().X-3.5))
-# show_object(base_face, name="raw_import_base_face")
-base_face = import_svg(script_dir / "build/outline.svg")
-show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
+outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+# show_object(outline, name="raw_import_outline")
+base_face = bd.make_face(outline)
+base_face.move(Loc(-base_face.center()))
+base_face = bd.mirror(base_face, about=bd.Plane.XZ)
+show_object(base_face, name="raw_import_base_face")
+
+# base_face = import_svg(script_dir / "build/outline.svg")
+
+# For testing
+# base_face = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
+# base_face = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
+
+
+# show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
 
 
 def generate_cases(svg_file, params=None):
@@ -234,9 +241,9 @@ def generate_pcb_case(base_face, wall_height):
 
     if params["carrycase"]:
         # Cut out a lip for the carrycase
-        case += _lip(base_face)
+        case -= _lip(base_face)
         # Cut out magnet holes
-        # case -= _magnet_cutout(base_face, params["magnet_position"])
+        case -= _magnet_cutout(base_face, params["magnet_position"])
 
     if test_print:
         case -= slice
@@ -469,7 +476,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         cutouts.append(cutout)
         # show_object(cutout, f"magnet_cutout_{position}")
 
-    # show_object(cutouts, name=f"magnet_cutouts_{carrycase}")
+    # show_object(cutouts, name=f"magnet_cutouts_{carrycase}", options={"alpha": 0.8})
     return cutouts
 
 
@@ -483,7 +490,7 @@ def _lip(base_face, carrycase=False):
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
     lip = bd.extrude(lip, params["lip_z_thickness"])
-    show_object(lip, name="lip")
+    show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
 
