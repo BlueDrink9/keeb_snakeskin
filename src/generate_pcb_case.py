@@ -460,6 +460,9 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         # Distance into main wall of case
         distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
     template = bd.extrude(hole, distance)
+    if not carrycase:
+        # Extend into the case too to ensure no overlap, e.g. due to taper
+        template += bd.extrude(hole, -(magnet_height))
 
     cutouts = []
     position = start - params["magnet_spacing"]
@@ -490,7 +493,7 @@ def _lip(base_face, carrycase=False):
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
     lip = bd.extrude(lip, params["lip_z_thickness"])
-    show_object(lip, name="lip", options={"alpha": 0.8})
+    # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
 
