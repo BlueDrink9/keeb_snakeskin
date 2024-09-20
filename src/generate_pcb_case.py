@@ -58,7 +58,7 @@ default_params = {
     "magnet_spacing": 12,
     "magnet_count": 6,
 }
-params = default_params # TODO: merge this with user params
+params = default_params  # TODO: merge this with user params
 
 # TODO: Move these to my personal maizeless build script
 params["cutout_position"] = -34
@@ -77,9 +77,12 @@ polar_position_maps = defaultdict(dict)
 test_print = False
 # For test prints, slice off the end
 if test_print:
-    slice = Loc((30, 0, 0)) * bd.Box(300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER))
+    slice = Loc((30, 0, 0)) * bd.Box(
+        300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER)
+    )
 
 pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
+
 
 def import_svg(path):
     """Import SVG as paths and convert to build123d face. Although build123d has a native SVG import, it doesn't create clean wire connections from kicad exports of some shapes (in my experience), causing some more advanced operations to fail (e.g. tapers).
@@ -89,6 +92,7 @@ def import_svg(path):
     outline = bd.import_svg(script_dir / "build/outline.svg")
     outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
+
     def point(path_point):
         return (path_point.real, path_point.imag)
 
@@ -131,9 +135,11 @@ def import_svg(path):
     # show_object(face, "imported face")
     return face
 
+
 # Function to calculate Euclidean distance between two points
 def euclidean_distance(p1, p2):
-    return math.sqrt((p1.real - p2.real)**2 + (p1.imag - p2.imag)**2)
+    return math.sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
+
 
 def sort_paths(lines):
     """Return list of paths sorted and flipped so that they are connected end to end as the list iterates."""
@@ -148,7 +154,7 @@ def sort_paths(lines):
         last_end = last_line.end
 
         # Find the closest line to the last end point
-        closest_line, closest_distance, flip = None, float('inf'), False
+        closest_line, closest_distance, flip = None, float("inf"), False
         for line in lines:
             dist_start = euclidean_distance(last_end, line.start)
             dist_end = euclidean_distance(last_end, line.end)
@@ -170,6 +176,7 @@ def sort_paths(lines):
         lines.remove(closest_line)
 
     return sorted_lines
+
 
 outline = bd.import_svg(script_dir / "build/outline.svg")
 
@@ -212,10 +219,14 @@ def generate_pcb_case(base_face, wall_height):
         params["wall_xy_thickness"],
     )
 
-    inner_cutout = _friction_fit_cutout(base_face.face().move(Loc((0, 0, params["base_z_thickness"]))))
+    inner_cutout = _friction_fit_cutout(
+        base_face.face().move(Loc((0, 0, params["base_z_thickness"])))
+    )
     # show_object(inner_cutout, name="inner")
     wall = (
-        bd.extrude(wall_outer, wall_height + params["base_z_thickness"]) - inner_cutout - base
+        bd.extrude(wall_outer, wall_height + params["base_z_thickness"])
+        - inner_cutout
+        - base
     )
 
     # if params["honeycomb_base"]:
@@ -272,7 +283,6 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     wall = bd.extrude(wall_outline, wall_height)
     # cutout = bd.extrude(cutout_outline, wall_height)
 
-
     # Part that blocks the pcb case from going all the way through
     # Blocker is made of 3 parts:
     # 1. a flat layer offset blocker_thickness_xy, extruded  2 * blocker_thickness_z
@@ -280,24 +290,36 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # 2. a subtracted layer starting at blocker_thickness_z that that tapers out
     # to the carrycase wall, to create a printable overhang,
     # 3. a subtracted layer extruded blocker_thickness from base_face.
-    blocker_thickness_xy = params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
+    blocker_thickness_xy = (
+        params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
+    )
     blocker_thickness_z = 2
     taper = 50
     overhang_thickness_z = (blocker_thickness_xy - 0.1) / math.tan(math.radians(taper))
     blocker_hull = bd.extrude(
-        bd.offset(base_face, blocker_thickness_xy), amount=blocker_thickness_z + overhang_thickness_z
+        bd.offset(base_face, blocker_thickness_xy),
+        amount=blocker_thickness_z + overhang_thickness_z,
     )
     overhang = bd.extrude(
         base_face.moved(Loc((0, 0, blocker_thickness_z))),
-        overhang_thickness_z, taper=-taper
+        overhang_thickness_z,
+        taper=-taper,
     )
-    blocker_inner_cutout = bd.extrude(
-        base_face, amount=blocker_thickness_z
-    )
+    blocker_inner_cutout = bd.extrude(base_face, amount=blocker_thickness_z)
     blocker = blocker_hull - overhang - blocker_inner_cutout
     # Locate the blocker at the top of the pcb case all
     blocker.move(
-        Loc((0, 0, (wall_height + params["carrycase_tolerance_z"] - params["carrycase_z_gap_between_cases"])))
+        Loc(
+            (
+                0,
+                0,
+                (
+                    wall_height
+                    + params["carrycase_tolerance_z"]
+                    - params["carrycase_z_gap_between_cases"]
+                ),
+            )
+        )
     )
     # show_object(blocker, name="blocker")
 
@@ -310,7 +332,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
     polar_map = PolarWireMap(bottom_inner_wire, botf.center())
-    cutout_location, _ = polar_map.get_polar_location(params["carrycase_cutout_position"])
+    cutout_location, _ = polar_map.get_polar_location(
+        params["carrycase_cutout_position"]
+    )
     cutout_box = _finger_cutout(
         cutout_location,
         params["carrycase_wall_xy_thickness"],
@@ -351,7 +375,7 @@ def _friction_fit_cutout(base_face):
     We then cut off the extra bottom bit at the bottom of the case inner."""
 
     wall_height_pcb_up = params["wall_z_height"]
-    total_wall_height  = wall_height_pcb_up + params["z_space_under_pcb"]
+    total_wall_height = wall_height_pcb_up + params["z_space_under_pcb"]
     # calculate taper angle to blend between bottom and top tolerance.
     # tan(x) = o/a, where o is the total taper distance change on the XY plane,
     # and opp is the change in the Z axis.
@@ -403,27 +427,31 @@ def _size_scale(obj, size_change):
     """Scale an object by a size, such that the new size bounding box is be
     size_change smaller in the x, y and z axis."""
     import build123d as bd
+
     obj = copy.copy(obj)
     center = obj.center()
     bb = obj.bounding_box()
     zchange = 0
     if bb.size.Z > 0:
-        zchange = size_change/bb.size.Z
-    factor = (
-        1 + (size_change/bb.size.X),
-        1 + (size_change/bb.size.Y),
-        1 + zchange
-    )
+        zchange = size_change / bb.size.Z
+    factor = (1 + (size_change / bb.size.X), 1 + (size_change / bb.size.Y), 1 + zchange)
     # log(factor)
     # log(obj)
     # Scaling by a vector changes the object too much, messes things up.
     # We'll have to scale by a scalar. Picking the smallest of the factors to
     # minimise change on the tightest axis.
+    # plane = bd.Plane(obj.face())
+    # show_object(plane, name="plane")
     # obj = bd.scale(obj, by=factor).face()
+    # obj = bd.project(obj, workplane=bd.Plane.XY).face()
     obj = bd.scale(obj, by=min(factor)).face()
+    # log(dir(obj))
+    # log(obj)
     # show_object(obj, name="scaled")
+    # return None
     # log(obj)
     # extruded = bd.extrude(obj, amount=2, taper=-19, dir=(0,0,1))
+
     obj.move(Loc(center - obj.center()))
 
     # bb = obj.bounding_box()
@@ -433,6 +461,7 @@ def _size_scale(obj, size_change):
     # print(ylen, ylen_new, ylen_new - ylen)
 
     return obj
+
 
 def _finger_cutout(location, thickness, width, height):
     cutout_location = location * Rot(X=-90)
@@ -447,11 +476,7 @@ def _finger_cutout(location, thickness, width, height):
         height * 2,
     )
     # Smooth the sides of the cutout
-    cutout_box = bd.fillet(
-        cutout_box.edges()
-        .filter_by(bd.Axis.X)
-        , height/2
-    )
+    cutout_box = bd.fillet(cutout_box.edges().filter_by(bd.Axis.X), height / 2)
     cutout_box.locate(cutout_location)
     return cutout_box
 
@@ -471,16 +496,17 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     start = center_at_mm - span / 2
     end = center_at_mm + span / 2
 
-    hole = (
-        bd.Plane.XY
-        * bd.Ellipse(
-            x_radius=magnet_radius,
-            y_radius=magnet_radius_y,
-        )
+    hole = bd.Plane.XY * bd.Ellipse(
+        x_radius=magnet_radius,
+        y_radius=magnet_radius_y,
     )
 
     if carrycase:
-        distance = (params["wall_xy_thickness"] + params["carrycase_tolerance_xy"] + magnet_height)
+        distance = (
+            params["wall_xy_thickness"]
+            + params["carrycase_tolerance_xy"]
+            + magnet_height
+        )
     else:
         # Distance into main wall of case
         distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
@@ -494,7 +520,9 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     while position <= end:
         position += params["magnet_spacing"]
         cutout = copy.copy(template)
-        location = inner_wire.location_at(position, position_mode=bd.PositionMode.LENGTH)
+        location = inner_wire.location_at(
+            position, position_mode=bd.PositionMode.LENGTH
+        )
         cutout.orientation = location.orientation
         cutout = cutout.rotate(bd.Axis.Z, -90)
         cutout.position = location.position
@@ -510,8 +538,16 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 
 def _lip(base_face, carrycase=False):
     outer_face = bd.offset(base_face, params["wall_xy_thickness"])
-    lip = bd.offset(outer_face, params["carrycase_tolerance_xy"]) - bd.offset(outer_face, -params["lip_xy_len"])
-    lip = lip.intersect(__arc_sector_ray(base_face, params["lip_position_angles"][0], params["lip_position_angles"][1]))
+    lip = bd.offset(outer_face, params["carrycase_tolerance_xy"]) - bd.offset(
+        outer_face, -params["lip_xy_len"]
+    )
+    lip = lip.intersect(
+        __arc_sector_ray(
+            base_face,
+            params["lip_position_angles"][0],
+            params["lip_position_angles"][1],
+        )
+    )
     lip_z_len = params["lip_z_thickness"]
     if not carrycase:
         # A little extra tolerance for lip cutout so that it fits more
@@ -535,11 +571,13 @@ def __arc_sector_ray(obj, angle1, angle2):
     return triangle
 
 
-class PolarWireMap():
-    """Maps between polar locations of a wire relative to a central origin, where the resulting map is a dict of angle to location for
-        use with wire ^ location (`wire.at_location`). Angle is calculated
-        from the provide origin (intended to be the center of the closed
-        wire)."""
+class PolarWireMap:
+    """Maps between polar locations of a wire relative to a central origin,
+    where the resulting map is a dict of angle to location for
+    use with wire ^ location (`wire.at_location`). Angle is calculated
+    from the provide origin (intended to be the center of the closed
+    wire)."""
+
     def __init__(self, wire, origin):
         self.wire, self.origin = wire, origin
         self.map_ = {}
@@ -559,13 +597,13 @@ class PolarWireMap():
         wire)."""
         n_angles = 360
         at_position = 0
-        iter = 1/n_angles
+        iter = 1 / n_angles
         while at_position <= 1:
             location = self.wire ^ at_position
             at_position += iter
             ax1 = bd.Axis.X
             ax2 = bd.Wire(bd.Line(self.origin, location.position)).edge()
-            ax2 = bd.Axis(edge = ax2)
+            ax2 = bd.Axis(edge=ax2)
             angle = round(ax1.angle_between(ax2))
             if ax2.direction.Y < 0:
                 # Angle between gives up to 180 as a positive value, so we need to
@@ -611,27 +649,35 @@ def _poor_mans_chamfer(shape, size, top=False):
 
 
 class Sector(bd.Shape):
-    """Sector of a circle with tip at location, between angle1 and angle2 in degrees, where 0 is the X axis and -90 is the negative Y axis."""
-    def __init__(self, radius, angle1, angle2, location=(0,0)):
+    """Sector of a circle with tip at location, between angle1 and angle2 in
+    degrees, where 0 is the X axis and -90 is the negative Y axis."""
+
+    def __init__(self, radius, angle1, angle2, location=(0, 0)):
         return (
-            bd.Plane('XY')
+            bd.Plane("XY")
             .ThreePointArc(radius, radius, angle1, angle2, startAtCurrent=False)
-            .lineTo(0,0)
+            .lineTo(0, 0)
             .close()
         ).located(Loc(location))
+
     # JernArc(start, startTangent, radius, angle) is altenrative
+
 
 # show_object(Sector(100, 0, 45), "sector")
 
 # case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-if params["carrycase"]:
-    carry = generate_carrycase(base_face, pcb_case_wall_height)
+# if params["carrycase"]:
+#     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
+_size_scale(base_face, 0.5)
 # # Export
 if "__file__" in locals():
     script_dir = Path(__file__).parent
     bd.export_stl(case, str(script_dir / "build/case.stl"))
+    bd.export_stl(
+        bd.mirror(case, about=bd.Plane.YZ), str(script_dir / "build/case_mirrored.stl")
+    )
     bd.export_stl(carry, str(script_dir / "build/carrycase.stl"))
 
 # bd.export_stl(x, str(script_dir / "build/test.stl"))
