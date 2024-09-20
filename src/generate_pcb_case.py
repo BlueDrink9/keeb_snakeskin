@@ -34,7 +34,7 @@ if __name__ not in ["__cq_main__", "temp"]:
 # require tolerance/stretching in that direction, but I'm not sure how much).
 
 default_params = {
-    "output_dir": script_dir / "build",
+    "output_dir": script_dir / "../build",
     "split": True,
     "carrycase": True,
     "base_z_thickness": 3,
@@ -45,7 +45,7 @@ default_params = {
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
-    "honeycomb_base": False,
+    "honeycomb_base": True,
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
     "carrycase_tolerance_xy": 0.8,
@@ -76,7 +76,7 @@ params["lip_position_angles"] = [-160, -30]
 magnet_height = 2
 magnet_radius = 4 / 2
 
-test_print = True
+test_print = False
 # For test prints, slice off the end
 if test_print:
     slice = Loc((-27, 0, 0)) * bd.Box(
@@ -87,28 +87,29 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
 def import_svg_as_face(path):
-    outline = bd.import_svg(script_dir / "build/outline.svg")
-
-    # outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
-
-    # Round trip from outline to wires to face to wires to connect the disconnected
-    # edges that an svg gets imported with.
-    outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+    # outline = bd.import_svg(path)
+    #
+    # # outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
+    # # show_object(outline, name="raw_import_outline")
+    # return outline
+    # # Round trip from outline to wires to face to wires to connect the disconnected
+    # # edges that an svg gets imported with.
+    # outline = bd.make_face(outline)
+    # base_face = bd.make_face(outline)
     # show_object(outline, name="raw_import_outline")
-    base_face = bd.make_face(outline)
-    base_face.move(Loc(-base_face.center()))
-    base_face = bd.mirror(base_face, about=bd.Plane.XZ)
-    # show_object(base_face, name="raw_import_base_face")
-
-    # base_face = import_svg(script_dir / "build/outline.svg")
-
-    # For testing
-    # base_face = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
-    # base_face = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
-
-
+    # base_face.move(Loc(-base_face.center()))
+    # base_face = bd.mirror(base_face, about=bd.Plane.XZ)
+    # # show_object(base_face, name="raw_import_base_face")
+    #
+    # # base_face = import_svg(path)
+    #
+    # # For testing
+    # # base_face = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
+    # # base_face = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
+    #
+    #
     # show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
-    return base_face
+    # return base_face
 
 
     """Import SVG as paths and convert to build123d face. Although build123d has a native SVG import, it doesn't create clean wire connections from kicad exports of some shapes (in my experience), causing some more advanced operations to fail (e.g. tapers).
@@ -150,15 +151,15 @@ def import_svg_as_face(path):
                     else:
                         log("Unknown path type for ", p)
                     # log(f"path_{i}\n{str(p)}  len={p.length}")
-                    # show_object(l, name=f"path_{i}")
+                    show_object(l, name=f"path_{i}")
                     line_start = l @ 1
 
-            # show_object(bd_l.line, name="line")
+            show_object(bd_l.line, name="line")
             make_face()
 
     face = bd_s.sketch.face()
     face.move(Loc(-face.center()))
-    # show_object(face, "imported face")
+    show_object(face, "imported face")
     return face
 
 
@@ -211,24 +212,34 @@ def generate_cases(svg_file, params=None):
     params = default_params
 
     base_face = import_svg_as_face(svg_file)
+    # return
 
     output_dir = Path(params["output_dir"])
 
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
-    # bd.export_stl(case, str(output_dir / "case.stl"))
-    # if params["split"]:
-    #     bd.export_stl(
-    #         bd.mirror(case, about=bd.Plane.YZ), str(output_dir / "case_mirrored.stl")
-    #     )
+    print("Generating PCB case...")
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case_output = str(output_dir / "case.stl")
+    print(f"Exporting PCB case as {case_output}...")
+    bd.export_stl(case, case_output)
+    if params["split"]:
+        case_output = str(output_dir / "case_mirrored.stl")
+        print(f"Exporting other half of the PCB case as {case_output}...")
+        bd.export_stl(
+            bd.mirror(case, about=bd.Plane.YZ), case_output
+        )
 
-    # if params["carrycase"]:
-    #     # carry = generate_carrycase(base_face, pcb_case_wall_height)
-    #     # Generate_carrycase on a different CPU core
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         future = executor.submit(generate_carrycase, base_face,
-    #                                  pcb_case_wall_height)
-    #         carry = future.result()
-    #     bd.export_stl(carry, str(output_dir / "carrycase.stl"))
+    if params["carrycase"]:
+        # carry = generate_carrycase(base_face, pcb_case_wall_height)
+        print("Generating carrycase...")
+        # Generate_carrycase on a different CPU core
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(generate_carrycase, base_face,
+                                     pcb_case_wall_height)
+            carry = future.result()
+
+        case_output = str(output_dir / "carrycase.stl")
+        print(f"Exporting other half of the PCB case as {case_output}...")
+        bd.export_stl(carry, case_output)
 
     return
 
@@ -675,14 +686,21 @@ def _poor_mans_chamfer(shape, size, top=False):
 if __name__ == "__main__":
     generate_cases(script_dir / "build/outline.svg")
 
-# case = generate_pcb_case(base_face, pcb_case_wall_height)
+if __name__ in ["temp", "__cq_main__"]:
+    p = script_dir / "build/outline.svg"
+    p = '/home/william/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts.svg'
+    base_face = import_svg_as_face(p)
+    # bf = bd.make_face(base_face).face()
+    # show_object(bf)
 
-# if params["carrycase"]:
-#     # carry = generate_carrycase(base_face, pcb_case_wall_height)
-#     # Generate_carrycase on a different CPU core
-#     with concurrent.futures.ThreadPoolExecutor() as executor:
-#         future = executor.submit(generate_carrycase, base_face,
-#                                  pcb_case_wall_height)
-#         carry = future.result()
-
-
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    #
+    # if params["carrycase"]:
+    #     # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    #     # Generate_carrycase on a different CPU core
+    #     with concurrent.futures.ThreadPoolExecutor() as executor:
+    #         future = executor.submit(generate_carrycase, base_face,
+    #                                 pcb_case_wall_height)
+    #         carry = future.result()
+    #
+    #

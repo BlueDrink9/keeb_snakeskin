@@ -24,23 +24,27 @@ def main(split=False):
         param_overrides = {}
     param_overrides.update({k: v for k, v in vars(args).items() if k in default_params})
 
-    if not args.dxf:
-        dxf = gerber_to_dxf(args.input_file)
+    if args.input_file.suffix == ".gm1":
+        svg = gerber_to_svg(args.input_file)
+    elif args.input_file.suffix == ".svg":
+        svg = args.input_file
     else:
-        dxf = args.input_file
+        # Exit with error.
+        sys.exit(f"Unknown file type: {args.input_file.suffix}")
 
-    generate_cases(dxf, params=param_overrides)
+
+    generate_cases(svg, params=param_overrides)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Generate case files from Gerber edge cuts or PCB outline DXF."
+        description="Generate case files from Gerber edge cuts or PCB outline SVG."
     )
 
     parser.add_argument(
         "input_file",
         type=Path,
-        help="Path to the input Gerber edge cuts file (.gm1) or (if --dxf is used) the DXF file.",
+        help="Path to the input Gerber edge cuts file (.gm1) or an SVG outline file.",
     )
     parser.add_argument(
         "-c",
@@ -75,15 +79,12 @@ def resolve_output_dir(output_path):
         return default_build_dir / output_path
 
 
-def gerber_to_dxf(input_file):
+def gerber_to_svg(input_file):
     # First convert gerber to svg
     gerber = GerberFile.from_file(input_file).parse()
     svg_file = default_build_dir / "outline.svg"
     gerber.render_svg(svg_file)
-    # Convert svg to dxf with inkscape
-    dxf_file = default_build_dir / "outline.dxf"
-    subprocess.run(["inkscape", str(svg_file), f"--export-filename={str(dxf_file)}"])
-    return dxf_file
+    return svg_file
 
 
 if __name__ == "__main__":
