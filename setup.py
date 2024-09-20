@@ -9,9 +9,7 @@ setup(
     install_requires=[
         'build123d > 0.7.0',
         'svgpathtools',
-        # 'pygerber',
-        # 'drawsvg',
-        # 'svg2dxf @ git+https://github.com/multigcs/svg2dxf.git',
+        'pygerber',
     ],
     entry_points={
         'console_scripts': [
