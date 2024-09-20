@@ -180,7 +180,7 @@ outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
 base_face = bd.make_face(outline)
 base_face.move(Loc(-base_face.center()))
 base_face = bd.mirror(base_face, about=bd.Plane.XZ)
-show_object(base_face, name="raw_import_base_face")
+# show_object(base_face, name="raw_import_base_face")
 
 # base_face = import_svg(script_dir / "build/outline.svg")
 
@@ -509,7 +509,7 @@ def _lip(base_face, carrycase=False):
         # A little extra tolerance for lip cutout so that it fits more
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
-    lip = bd.extrude(lip, params["lip_z_thickness"])
+    lip = bd.extrude(lip, lip_z_len)
     # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
@@ -601,7 +601,7 @@ class Sector(bd.Shape):
 if __name__ in ["__cq_main__", "temp"]:
     # For testing via cq-editor
     pass
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
 
     if params["carrycase"]:
         carry = generate_carrycase(base_face, pcb_case_wall_height)
