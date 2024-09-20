@@ -227,6 +227,9 @@ def generate_pcb_case(base_face, wall_height):
 
     case = wall + base
 
+    case = _poor_mans_chamfer(case, 0.5)
+    case = _poor_mans_chamfer(case, 0.5, top=True)
+
     # Create finger cutout
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
     top_inner_wire = topf.wires()[0]
@@ -246,8 +249,6 @@ def generate_pcb_case(base_face, wall_height):
         case -= _lip(base_face)
         # Cut out magnet holes
         case -= _magnet_cutout(base_face, params["magnet_position"])
-
-    case = _poor_mans_chamfer(case, 0.5)
 
     if test_print:
         case -= slice
@@ -593,13 +594,16 @@ def _poor_mans_chamfer(shape, size, top=False):
     if top:
         face = faces.last
     else:
-        face = -faces.first
+        face = faces.first
+    face = bd.make_face(face.outer_wire()).face()
+    if top:
+        face = -face
+    else:
+        face = face
     outer = bd.extrude(face, size)
     inner_f = bd.offset(face, -size)
     inner = bd.extrude(inner_f, size, taper=-44)
-    show_object(inner, name="chamfer inner")
     cutout = outer - inner
-    show_object(cutout, name="chamfer")
     return shape - cutout
 
 
