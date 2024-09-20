@@ -14,12 +14,14 @@ if "__file__" in globals():
 else:
     script_dir = Path(os.getcwd())
 
+if __name__ not in ["__cq_main__", "temp"]:
+    show_object = lambda *a, **kw: None
+    log = lambda x: print(x)
+
 # TODO:
 # * Change bottom tolerance to account for z space underneath pcb
 # * Try flipping the cutout to get a negative tolerance on the bottom.
-# * reduce overhangs. Chamfer carrycase blocker X nvm, this is going to be too
-# hard with current version. Ah, but what if I do it before subtracting center?
-# Can extrude with taper outwards, so maybe I can apply that.
+# * reduce overhangs. Angled lip?
 # * Stand, attachments for straps. Separate module?
 #
 # TODO: Testing:
@@ -395,7 +397,7 @@ def _size_scale(obj, size_change):
     """Scale an object by a size, such that the new size bounding box is be
     size_change smaller in the x, y and z axis."""
     import build123d as bd
-    obj = obj.copy()
+    obj = copy.copy(obj)
     center = obj.center()
     bb = obj.bounding_box()
     zchange = 0
@@ -598,20 +600,15 @@ class Sector(bd.Shape):
 
 # show_object(Sector(100, 0, 45), "sector")
 
-if __name__ in ["__cq_main__", "temp"]:
-    # For testing via cq-editor
-    pass
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-    if params["carrycase"]:
-        carry = generate_carrycase(base_face, pcb_case_wall_height)
+if params["carrycase"]:
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
 if "__file__" in locals():
-    show_object = lambda *a, **kw: None
-    log = lambda x: print(x)
     script_dir = Path(__file__).parent
     bd.export_stl(case, str(script_dir / "build/case.stl"))
-    bd.export_stl(carrycase, str(script_dir / "build/carrycase.stl"))
+    bd.export_stl(carry, str(script_dir / "build/carrycase.stl"))
 
 # bd.export_stl(x, str(script_dir / "build/test.stl"))
