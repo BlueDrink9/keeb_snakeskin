@@ -247,6 +247,8 @@ def generate_pcb_case(base_face, wall_height):
         # Cut out magnet holes
         case -= _magnet_cutout(base_face, params["magnet_position"])
 
+    case = _poor_mans_chamfer(case, 0.5)
+
     if test_print:
         case -= slice
 
@@ -585,6 +587,20 @@ def _create_honeycomb_tile(depth, face):
     return hs
 
 
+def _poor_mans_chamfer(shape, size, top=False):
+    """Chamfers the bottom or top outer edge of a shape by subtracting a tapered extrusion"""
+    faces = shape.faces().sort_by(sort_by=bd.Axis.Z)
+    if top:
+        face = faces.last
+    else:
+        face = -faces.first
+    outer = bd.extrude(face, size)
+    inner_f = bd.offset(face, -size)
+    inner = bd.extrude(inner_f, size, taper=-44)
+    show_object(inner, name="chamfer inner")
+    cutout = outer - inner
+    show_object(cutout, name="chamfer")
+    return shape - cutout
 
 
 class Sector(bd.Shape):
@@ -602,8 +618,8 @@ class Sector(bd.Shape):
 
 case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-if params["carrycase"]:
-    carry = generate_carrycase(base_face, pcb_case_wall_height)
+# if params["carrycase"]:
+#     carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
 if "__file__" in locals():
