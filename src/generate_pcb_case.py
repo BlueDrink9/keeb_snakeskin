@@ -1,12 +1,14 @@
+import concurrent.futures
 import copy
 import math
 import os
 from collections import defaultdict
 from pathlib import Path
+
 import build123d as bd
-from build123d import Align, Rot
-from build123d import *
 import svgpathtools as svg
+from build123d import *
+from build123d import Align, Rot
 
 Loc = bd.Location
 if "__file__" in globals():
@@ -15,7 +17,7 @@ else:
     script_dir = Path(os.getcwd())
 
 if __name__ not in ["__cq_main__", "temp"]:
-    show_object = lambda *a, **kw: None
+    show_object = lambda *_, **__: None
     log = lambda x: print(x)
 
 # TODO:
@@ -74,10 +76,10 @@ magnet_radius = 4 / 2
 
 polar_position_maps = defaultdict(dict)
 
-test_print = False
+test_print = True
 # For test prints, slice off the end
 if test_print:
-    slice = Loc((30, 0, 0)) * bd.Box(
+    slice = Loc((-27, 0, 0)) * bd.Box(
         300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER)
     )
 
@@ -229,12 +231,12 @@ def generate_pcb_case(base_face, wall_height):
         - base
     )
 
-    # if params["honeycomb_base"]:
-    #     # Create honeycomb by subtracting it from the top face of the base.
-    #     hc = _create_honeycomb_tile(
-    #         params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
-    #     )
-    #     base -= hc
+    if params["honeycomb_base"]:
+        # Create honeycomb by subtracting it from the top face of the base.
+        hc = _create_honeycomb_tile(
+            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+        )
+        base -= hc
 
     case = wall + base
 
@@ -665,10 +667,15 @@ class Sector(bd.Shape):
 
 # show_object(Sector(100, 0, 45), "sector")
 
-# case = generate_pcb_case(base_face, pcb_case_wall_height)
+case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-# if params["carrycase"]:
-#     carry = generate_carrycase(base_face, pcb_case_wall_height)
+if params["carrycase"]:
+    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # Generate_carrycase on a different CPU core
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(generate_carrycase, base_face,
+                                 pcb_case_wall_height)
+        carry = future.result()
 
 _size_scale(base_face, 0.5)
 # # Export
