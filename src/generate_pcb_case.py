@@ -319,6 +319,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     )
     # show_object(cutout_box, name="carry case cutout box")
 
+    # Have to chamfer before cutout because cutout breaks the face
+    case = _poor_mans_chamfer(case, 1)
+
     case -= cutout_box
 
     case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
@@ -620,10 +623,10 @@ class Sector(bd.Shape):
 
 # show_object(Sector(100, 0, 45), "sector")
 
-case = generate_pcb_case(base_face, pcb_case_wall_height)
+# case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-# if params["carrycase"]:
-#     carry = generate_carrycase(base_face, pcb_case_wall_height)
+if params["carrycase"]:
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
 
 # # Export
 if "__file__" in locals():
