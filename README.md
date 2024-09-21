@@ -2,11 +2,24 @@
 
 Generate 3D printable cases for custom keyboard PCBs.
 
-This case design generally uses a friction fit to get the PCB to stay in the case. You can use hot glue instead if your printer tolerances aren't great or you want a sturdier fit.
+This case design generally uses a friction fit to get the PCB to stay in the
+case. You can use hot glue instead if your printer tolerances are bad or
+you want a sturdier/more permanent fit.
 Cases have a removal cutout in one part of the wall for you to pull the case out
-after pushing in.
+after pushing it in.
 
 Inspired by and in collaboration with the [Compression keyboard](https://github.com/compressionKeyboards/compression4c) by Bennett Hermanoff. [More images here](https://compressionkeyboards.com/).
+
+![case render](img/maizeless_snakeskin_honeycomb.png)
+
+*Example case rendered from the
+[maizeless](https://github.com/BlueDrink9/maizeless) PCB, with honeycomb base.*
+
+![carrycase render](img/maizeless_snakeskin_carrycase.png)
+![carrycase with case render](img/maizeless_snakeskin_honeycomb_in_carrycase.png)
+
+*Carrycase with one case inside*. The carrycase is mirrored around the center, to
+allow for two halves of a split board to be carried together.
 
 ## Install
 
@@ -20,6 +33,16 @@ Overall:
 to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
 2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
 3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
+
+## Printing
+
+These designs are designed to be printed without supports where possible. There
+is only one severe (90 degree) overhang in the design, which is the first
+blocker of the carrycase. This should be the only part that needs supports.
+Setting your printer to only print overhangs over 70 degrees should be enough
+to automatically support only this part. If you aren't printing the carrycase,
+you shouldn't need supports unless your bridging performance on the magnets is
+bad.
 
 ### Input File
 
@@ -35,31 +58,31 @@ Other than the case design parameters below, you can also input the following
 arguments:
 - `-o`, `--output`: Output directory or file path (default: "build")
 - `-c`, `--config`: Path to the JSON configuration file
-- `--dxf`: Treat the input file as a DXF file (bypasses Gerber parsing, removes need for inkscape)
 
 ### Run
 
 The program takes in the edge cuts from your gerber files to generate an
 svg outline in the `build` folder, which is then used to render the basic shape for the case.
-This should be a `.gm1` file. For example:
+This could be an `svg` or  `.gm1` file. For example:
 
 ```python
 snakeskin -s -o maizeless ~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts.gm1
 ```
 
-The `-o` option specifies the output directory for your case files. If it is not an absolute path, it will be created as a subfolder or file within `build/`.
-`-s` indicates this is a split board and the program should output a mirrored pair of files, `case_left` and `case_right`.
-In this case the output would be `./build/maizeless/case_left.step` and `./build/maizeless/case_right.step`
-
-Alternatively, if you already have a `.dxf` outline of your pcb, you can bypass the svg conversion step (removing the need for inkscape) and specify it directly with
-`--dxf path/to/outline.dxf`
+The `-o` option specifies the output directory for your case files. If it is
+not an absolute path, it will be created as a subfolder or file within the
+current working directory.
+`-s` indicates this is a split board and the program should output a mirrored pair of files.
+In this case the output would be `./build/maizeless/case.step` and `./build/maizeless/case_mirrored.stl`
 
 ### Specifying parameters
 
 The following tables outline the possible variables you can specify for
 your case creation.
 To modify the paramters, pass a path to a `.json` file with
-`-c path/to/cfg.json`. This should have anything you want to override from
+`-c path/to/cfg.json`, or pass individual parameters as command line arguments.
+See `python snakeskin.py --help` for more information.
+The json should have anything you want to override from
 defaults specified as a top level key:value, for example:
 ```json
 {
@@ -106,7 +129,7 @@ magnets in the case from the magnets in the carrycase. How thick the case wall |
 | `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
 | `magnet_count` | 6 | Number of magnets per case (a split board and compression case will need 4* this amount to complete the build). |
 
-### More examples
+#### More usage examples
 
 Generate case files from an SVG to build/cool_board/:
 ```bash
