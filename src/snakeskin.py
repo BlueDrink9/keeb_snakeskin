@@ -12,7 +12,7 @@ script_dir = Path(__file__).parent
 default_build_dir = script_dir / "build"
 
 
-def main(split=False):
+def main():
     args = parse_args()
     args.output_dir = resolve_output_dir(args.output_dir)
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -32,7 +32,7 @@ def main(split=False):
         svg = args.input_file
     else:
         # Exit with error.
-        sys.exit(f"Unknown file type: {args.input_file.suffix}")
+        sys.exit(f"Unknown file type (please check the readme): {args.input_file.suffix}")
 
 
     generate_cases(svg, params=param_overrides)
@@ -52,12 +52,7 @@ def parse_args():
         "-c",
         "--config",
         type=Path,
-        help="Path to a JSON configuration file to override default parameters. Will be overridden by command line arguments.",
-    )
-    parser.add_argument(
-        "--dxf",
-        action="store_true",
-        help="Treat the input file as a DXF file (bypasses Gerber parsing, removes need for inkscape)",
+        help="Path to a JSON configuration file to override default parameters. Any parameters that are also provided as CLI args will take the CLI value.",
     )
 
     # Add all default params as arguments
