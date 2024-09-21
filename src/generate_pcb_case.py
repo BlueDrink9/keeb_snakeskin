@@ -268,14 +268,14 @@ def generate_cases(svg_file, user_params=None):
 
     print("Generating PCB case...")
     case = generate_pcb_case(base_face, pcb_case_wall_height)
-    case_output = str(output_dir / "case.stl")
+    case_output = str(output_dir / "case.step")
     print(f"Exporting PCB case as {case_output}...")
-    bd.export_stl(case, case_output)
+    bd.export_step(case, case_output)
 
     if params["split"]:
-        case_output = str(output_dir / "case_mirrored.stl")
+        case_output = str(output_dir / "case_mirrored.step")
         print(f"Exporting other half of the PCB case as {case_output}...")
-        bd.export_stl(
+        bd.export_step(
             bd.mirror(case, about=bd.Plane.YZ), case_output
         )
 
@@ -283,9 +283,9 @@ def generate_cases(svg_file, user_params=None):
         print("Generating carrycase...")
         carry = generate_carrycase(base_face, pcb_case_wall_height)
 
-        case_output = str(output_dir / "carrycase.stl")
+        case_output = str(output_dir / "carrycase.step")
         print(f"Exporting other half of the PCB case as {case_output}...")
-        bd.export_stl(carry, case_output)
+        bd.export_step(carry, case_output)
 
     return
 
@@ -484,7 +484,7 @@ def _friction_fit_cutout(base_face):
     case_bottom_offset = T * params["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + params["wall_xy_bottom_tolerance"]
     bottom_face = _size_scale(base_face, bottom_offset)
-    case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height)
+    case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
 
     # show_object(case_inner_cutout, name="case_inner_cutout")
     return case_inner_cutout

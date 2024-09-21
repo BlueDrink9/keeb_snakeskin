@@ -80,7 +80,7 @@ snakeskin -s -o maizeless ~/src/keyboard_design/maizeless/pcb/build/maizeless-Ed
 
 The `-o` option specifies the output directory for your case files. If it is
 not an absolute path, it will be created as a subfolder or file within the
-current working directory.
+`build` folder.
 `-s` indicates this is a split board and the program should output a mirrored pair of files.
 In this case the output would be `./build/maizeless/case.step` and `./build/maizeless/case_mirrored.stl`
 

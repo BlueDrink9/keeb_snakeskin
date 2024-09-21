@@ -9,13 +9,14 @@ from pygerber.gerberx3.api.v2 import GerberFile
 from generate_pcb_case import default_params, generate_cases
 
 script_dir = Path(__file__).parent
-default_build_dir = script_dir / "build"
+default_build_dir = default_params["output_dir"]
 
 
 def main():
     args = parse_args()
-    args.output_dir = resolve_output_dir(args.output_dir)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    if args.output_dir:
+        args.output_dir = resolve_output_dir(args.output_dir)
+        args.output_dir.mkdir(parents=True, exist_ok=True)
     default_build_dir.mkdir(parents=True, exist_ok=True)
 
     if args.config:
@@ -24,12 +25,15 @@ def main():
         param_overrides = json.loads(config.read_text())
     else:
         param_overrides = {}
-    param_overrides.update({k: v for k, v in vars(args).items() if k in default_params})
+    for k, v in vars(args).items():
+        if k in default_params and v is not None:
+            param_overrides[k] = v
 
-    if args.input_file.suffix == ".gm1":
-        svg = gerber_to_svg(args.input_file)
-    elif args.input_file.suffix == ".svg":
-        svg = args.input_file
+    input_file = Path(args.input_file).expanduser()
+    if input_file.suffix == ".gm1":
+        svg = gerber_to_svg(input_file)
+    elif input_file.suffix == ".svg":
+        svg = input_file
     else:
         # Exit with error.
         sys.exit(f"Unknown file type (please check the readme): {args.input_file.suffix}")
@@ -60,7 +64,7 @@ def parse_args():
         parser.add_argument(
             f"--{key}",
             type=type(value),
-            default=value,
+            # default=value,
             help=f"Override default value for {key}. Defaults to {value}.",
         )
 
