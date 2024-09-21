@@ -19,7 +19,9 @@ def main(split=False):
     default_build_dir.mkdir(parents=True, exist_ok=True)
 
     if args.config:
-        param_overrides = json.loads(args.config.read_text())
+        config = Path(args.config).expanduser()
+        print(f"Reading config from {str(config)}...")
+        param_overrides = json.loads(config.read_text())
     else:
         param_overrides = {}
     param_overrides.update({k: v for k, v in vars(args).items() if k in default_params})
