@@ -27,14 +27,6 @@ allow for two halves of a split board to be carried together.
 `pip install --user keeb_snakeskin` installs this package and dependencies, and
 should create a new executable `snakeskin` in your python scripts folder.
 
-## Usage
-
-Overall:
-1. In KiCad, export **just the edge cuts layer** as an SVG. Note that KiCad has two ways
-to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
-2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
-3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
-
 ## Printing
 
 These designs are designed to be printed without supports where possible. There
@@ -44,6 +36,22 @@ Setting your printer to only print overhangs over 70 degrees should be enough
 to automatically support only this part. If you aren't printing the carrycase,
 you shouldn't need supports unless your bridging performance on the magnets is
 bad.
+
+### Assembly
+
+The only assembly required is inserting magnets. Check out [the Compression
+video](https://www.youtube.com/watch?v=eRLCBHWX4eQ&t=905s) to get the general
+idea.
+Only the carrycase magnets should need glue, the case magnets should be held in
+with the magnet alone.
+
+## Usage
+
+Overall:
+1. In KiCad, export **just the edge cuts layer** as an SVG. Note that KiCad has two ways
+to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
+2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
+3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
 
 ### Input File
 
@@ -95,7 +103,7 @@ defaults specified as a top level key:value, for example:
 
 | Parameter name | default value | description |
 | -------------- | ------------- | ----------- |
-| `split`| If True, generate mirrored pair of files for a split board |
+| `split`| True | If True, generate mirrored pair of files for a split board |
 | `carrycase` | True | Whether the output designs should incorporate the compression-style carrycase. Will affect the main case as well. |
 | `honeycomb_base` | True | Make the base of the case a honeycombed/hexagon cage instead of solid |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
