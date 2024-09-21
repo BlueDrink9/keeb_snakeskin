@@ -94,6 +94,21 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
 def import_svg_as_face(path):
+    # step = bd.import_step(str(Path('~/src/keyboard_design/maizeless/pcb/maizeless.step').expanduser()))
+    # top = bd.project(step.faces().sort_by(Axis.Z)[-1], Plane.XY)
+    # # show_object(top, name="STEP top")
+    # base_face = bd.Face(top.face().outer_wire())
+    # base_face.move(Loc(-base_face.center()))
+    # base_face = -bd.mirror(base_face, about=bd.Plane.XZ).face()
+    # show_object(base_face, name="STEP _base_face")
+    #
+    # with BuildPart() as part:
+    #     offset(base_face, amount=-4)
+    #     extrude(amount=8, taper=-15)
+    # show_object(part, name="taper extrude test step")
+    # return base_face
+
+
     script, object_name = bd.import_svg_as_buildline_code(path)
     outline = bd.import_svg(path)
 
@@ -212,7 +227,7 @@ def import_svg_as_face(path):
     face = bd_s.sketch.face()
     face.move(Loc(-face.center()))
     # face = bd.make_face(face.outer_wire())
-    show_object(face, "imported face")
+    # show_object(face, "imported face")
     return face
 
 
@@ -314,9 +329,8 @@ def generate_pcb_case(base_face, wall_height):
     )
 
     wall -= inner_cutout
-    # wtest = bd.intersect(bd.Cube(100, 100, 100), wall)
-    wall = _poor_mans_chamfer(wall, 1)
-    wall = _poor_mans_chamfer(wall, 1, top=True)
+    # wall = _poor_mans_chamfer(wall, 1)
+    # wall = _poor_mans_chamfer(wall, 1, top=True)
     wall -= base
 
 
@@ -330,25 +344,26 @@ def generate_pcb_case(base_face, wall_height):
     case = wall + base
 
 
-    # Create finger cutout
-    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    top_inner_wire = topf.wires()[0]
-    polar_map = PolarWireMap(top_inner_wire, topf.center())
-    cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
-    cutout_box = _finger_cutout(
-        cutout_location,
-        params["wall_xy_thickness"],
-        params["cutout_width"],
-        pcb_case_wall_height,
-    )
-
-    case -= cutout_box
+    # # Create finger cutout
+    # topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    # top_inner_wire = topf.wires()[0]
+    # polar_map = PolarWireMap(top_inner_wire, topf.center())
+    # cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
+    # cutout_box = _finger_cutout(
+    #     cutout_location,
+    #     params["wall_xy_thickness"],
+    #     params["cutout_width"],
+    #     pcb_case_wall_height,
+    # )
+    #
+    # case -= cutout_box
 
     if params["carrycase"]:
         # Cut out a lip for the carrycase
+        # wtest = bd.intersect(bd.Cube(100, 100, 100), wall)
         case -= _lip(base_face)
         # Cut out magnet holes
-        case -= _magnet_cutout(base_face, params["magnet_position"])
+        # case -= _magnet_cutout(base_face, params["magnet_position"])
 
     if test_print:
         case -= slice
@@ -643,7 +658,7 @@ def _lip(base_face, carrycase=False):
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
     lip = bd.extrude(lip, lip_z_len)
-    # show_object(lip, name="lip", options={"alpha": 0.8})
+    show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
 
