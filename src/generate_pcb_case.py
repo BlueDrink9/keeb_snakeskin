@@ -19,6 +19,13 @@ else:
 if __name__ not in ["__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
     log = lambda x: print(x)
+    # show_object = lambda *_, **__: None
+
+    import ocp_vscode as ocp
+    from ocp_vscode import show
+    ocp.set_port(3939)
+    ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
+    show_object = lambda *args, **__: ocp.show(args)
 
 # TODO:
 # * Change bottom tolerance to account for z space underneath pcb
@@ -87,30 +94,71 @@ pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
 def import_svg_as_face(path):
-    # outline = bd.import_svg(path)
-    #
+    script, object_name = bd.import_svg_as_buildline_code(path)
+    outline = bd.import_svg(path)
+
     # # outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
-    # # show_object(outline, name="raw_import_outline")
-    # return outline
+    # show_object(outline, name="raw_import_outline")
+    # # return outline
     # # Round trip from outline to wires to face to wires to connect the disconnected
     # # edges that an svg gets imported with.
-    # outline = bd.make_face(outline)
-    # base_face = bd.make_face(outline)
-    # show_object(outline, name="raw_import_outline")
+    # # outline = bd.make_face(outline)
+    # # base_face = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+    # # log(bd.Shape.mesh(outline.wires(), tolerance=0.01))
+    # # outline = bd.Sketch([f for f in outline.edges() if f.length > 0.0001])
+    # # What if we make the face from the trace, then filter the wires by
+    # # length and fix degen edges?
+    # bb = bd.Compound(outline).bounding_box()
+    # # Offset bounding box to ensure it is larger than the outline.
+    # sheet = bd.Rectangle(bb.size.X * 3, bb.size.Y * 3, align=None).located(Loc(bb.center()))
+    # # Stamp out a slightly thickened outline that will hopefully cover up any gaps in the SVG paths/wires.
+    # stamp = bd.trace(outline, line_width=0.001)
+    # # stamp = bd.Sketch([f for f in stamp.faces() if f.area > 0.0001])
+    # log(stamp)
+    # # log([e.length for e in outline.edges()])
+    # show_object(stamp, name="stamp")
+    # # return
+    # base_face = sheet - stamp
+    # # Get the 2nd largest face, which should be the face created by the svg outline (since we've ensured the bounding box is at least area bigger.
+    # base_face = sorted(base_face, key=lambda x: x.area)[-2]
+    # show_object(base_face, name="sheet")
+    # edges = [e for e in base_face.edges() if e.length > 0.0001]
+    # # show(bd.make_face(edges).face())
+    # base_face = bd.make_face(edges).face()
+    # show_object(base_face, name="sheet")
+    # return
+    # # base_face = bd.make_face(base_face.outer_wire().fix_degenerate_edges(0.1)).face()
+    # off = 0.5
+    # # base_face = bd.offset(bd.offset(base_face, -off), off)
+    # # base_face = _safe_offset2d(_safe_offset2d(base_face, -off), off)
+    # base_face = bd.offset(base_face, -off).face()
+    # base_face = _safe_offset2d(base_face, 5*off).face()
+    # # log(len(base_face.faces()))
+    # show_object(base_face, name="raw_import_base_face")
+    # return base_face
     # base_face.move(Loc(-base_face.center()))
-    # base_face = bd.mirror(base_face, about=bd.Plane.XZ)
-    # # show_object(base_face, name="raw_import_base_face")
-    #
-    # # base_face = import_svg(path)
-    #
-    # # For testing
-    # # base_face = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
-    # # base_face = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
-    #
-    #
+    # # base_face = bd.mirror(base_face, about=bd.Plane.XZ)
+
+    # base_face = import_svg(path)
+
+    # For testing
+    # base_face = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
+    # base_face = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
+
+
     # show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
     # return base_face
 
+    # script, object_name = bd.import_svg_as_buildline_code(path)
+    # exec(script)
+    # with BuildSketch() as general_import:
+    #     exec("add("+object_name+".line)")
+    #     make_face()
+    # # exec("line = "+object_name+".line")
+    # # show_object(line, name="general_import_line")
+    # show_object(general_import.sketch.face(), name="general_import_face")
+    # log(script)
+    # return general_import.sketch.face()
 
     """Import SVG as paths and convert to build123d face. Although build123d has a native SVG import, it doesn't create clean wire connections from kicad exports of some shapes (in my experience), causing some more advanced operations to fail (e.g. tapers).
     This is how I used to do it, using b123d import:
@@ -128,30 +176,34 @@ def import_svg_as_face(path):
     # paths.sort(key=lambda x: x.start)
     paths = sort_paths(paths)
     lines = []
+    first_line = paths[0]
     with BuildPart() as bd_p:
         with BuildSketch() as bd_s:
             with BuildLine() as bd_l:
-                line_start = point(paths[0].start)
-                # Add first path to the end again, to ensure the loop is closed
-                paths.append(paths[0])
+                line_start = point(first_line.start)
                 for i, p in enumerate(paths):
                     # Filter out tiny edges that may cause issues with OCCT ops
-                    if p.length() < 0.3:
+                    if p.length() < 0.1:
                         continue
+                    line_end = point(p.end)
+                    # Forcefully reconnect the end to the start
+                    if i == len(paths) - 1:
+                        line_end = point(first_line.start)
                     if isinstance(p, svg.Line):
-                        l = bd.Line(line_start, point(p.end))
+                        l = bd.Line(line_start, line_end)
                     elif isinstance(p, svg.Arc):
                         # Seems all the arcs have same value for real + imag, so just use real
                         r = p.radius.real
-                        l = bd.RadiusArc(line_start, point(p.end), radius=r)
+                        l = bd.RadiusArc(line_start, line_end, radius=r)
                         # This approximates the arc with a spline. It's slow
                         # and doesn't seem to help anything.
                         # l = bd.RadiusArc(line_start, point(p.end), radius=r, mode=bd.Mode.PRIVATE)
                         # l = bd.RadiusArc((p.start.real, p.start.imag), (p.end.real, p.end.imag), radius=r)
                     else:
                         log("Unknown path type for ", p)
+                        raise ValueError
                     # log(f"path_{i}\n{str(p)}  len={p.length}")
-                    show_object(l, name=f"path_{i}")
+                    # show_object(l, name=f"path_{i}")
                     line_start = l @ 1
 
             show_object(bd_l.line, name="line")
@@ -159,6 +211,7 @@ def import_svg_as_face(path):
 
     face = bd_s.sketch.face()
     face.move(Loc(-face.center()))
+    # face = bd.make_face(face.outer_wire())
     show_object(face, "imported face")
     return face
 
@@ -258,21 +311,24 @@ def generate_pcb_case(base_face, wall_height):
     # show_object(inner_cutout, name="inner")
     wall = (
         bd.extrude(wall_outer, wall_height + params["base_z_thickness"])
-        - inner_cutout
-        - base
     )
 
-    if params["honeycomb_base"]:
-        # Create honeycomb by subtracting it from the top face of the base.
-        hc = _create_honeycomb_tile(
-            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
-        )
-        base -= hc
+    wall -= inner_cutout
+    # wtest = bd.intersect(bd.Cube(100, 100, 100), wall)
+    wall = _poor_mans_chamfer(wall, 1)
+    wall = _poor_mans_chamfer(wall, 1, top=True)
+    wall -= base
+
+
+    # if params["honeycomb_base"]:
+    #     # Create honeycomb by subtracting it from the top face of the base.
+    #     hc = _create_honeycomb_tile(
+    #         params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+    #     )
+    #     base -= hc
 
     case = wall + base
 
-    case = _poor_mans_chamfer(case, 0.5)
-    case = _poor_mans_chamfer(case, 0.5, top=True)
 
     # Create finger cutout
     topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
@@ -286,7 +342,7 @@ def generate_pcb_case(base_face, wall_height):
         pcb_case_wall_height,
     )
 
-    case = case - cutout_box
+    case -= cutout_box
 
     if params["carrycase"]:
         # Cut out a lip for the carrycase
@@ -435,7 +491,7 @@ def _friction_fit_cutout(base_face):
     case_bottom_offset = T * params["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + params["wall_xy_bottom_tolerance"]
     bottom_face = _size_scale(base_face, bottom_offset)
-    case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height)
 
     # show_object(case_inner_cutout, name="case_inner_cutout")
     return case_inner_cutout
@@ -678,17 +734,20 @@ def _poor_mans_chamfer(shape, size, top=False):
     inner_f = bd.offset(face, -size)
     inner = bd.extrude(inner_f, size, taper=-44)
     cutout = outer - inner
-    return shape - cutout
+    out = shape - cutout
+    return out
 
 
 # show_object(Sector(100, 0, 45), "sector")
 
-if __name__ == "__main__":
-    generate_cases(script_dir / "build/outline.svg")
-
-if __name__ in ["temp", "__cq_main__"]:
+if True:
+# if __name__ == "__main__":
+#     generate_cases(script_dir / "build/outline.svg")
+#
+# if __name__ in ["temp", "__cq_main__"]:
     p = script_dir / "build/outline.svg"
-    p = '/home/william/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts.svg'
+    p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
+    # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
     base_face = import_svg_as_face(p)
     # bf = bd.make_face(base_face).face()
     # show_object(bf)
