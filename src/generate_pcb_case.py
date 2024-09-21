@@ -79,6 +79,8 @@ params["magnet_position"] = 100
 params["honeycomb_base"] = True
 params["wall_z_height"] = 2.6
 params["lip_position_angles"] = [-160, -30]
+# params["lip_position_angles"] = [-81, -30]
+# params["lip_position_angles"] = [-160, -82]
 
 magnet_height = 2
 magnet_radius = 4 / 2
@@ -109,8 +111,8 @@ def import_svg_as_face(path):
     # return base_face
 
 
-    script, object_name = bd.import_svg_as_buildline_code(path)
-    outline = bd.import_svg(path)
+    # script, object_name = bd.import_svg_as_buildline_code(path)
+    # outline = bd.import_svg(path)
 
     # # outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
     # show_object(outline, name="raw_import_outline")
@@ -204,16 +206,17 @@ def import_svg_as_face(path):
                     # Forcefully reconnect the end to the start
                     if i == len(paths) - 1:
                         line_end = point(first_line.start)
+                    # else:
+                    #     if bd.Vertex(line_end).distance(bd.Vertex(line_start)) < 0.7:
+                            # Skip this path if it's really short, just go
+                            # straight to the next one.
+                            # continue
                     if isinstance(p, svg.Line):
                         l = bd.Line(line_start, line_end)
                     elif isinstance(p, svg.Arc):
-                        # Seems all the arcs have same value for real + imag, so just use real
+                        # Seems all the arcs have same value for real + imag radius, so just use real
                         r = p.radius.real
                         l = bd.RadiusArc(line_start, line_end, radius=r)
-                        # This approximates the arc with a spline. It's slow
-                        # and doesn't seem to help anything.
-                        # l = bd.RadiusArc(line_start, point(p.end), radius=r, mode=bd.Mode.PRIVATE)
-                        # l = bd.RadiusArc((p.start.real, p.start.imag), (p.end.real, p.end.imag), radius=r)
                     else:
                         log("Unknown path type for ", p)
                         raise ValueError
@@ -221,12 +224,15 @@ def import_svg_as_face(path):
                     # show_object(l, name=f"path_{i}")
                     line_start = l @ 1
 
-            show_object(bd_l.line, name="line")
+            # show_object(bd_l.line, name="line")
             make_face()
 
     face = bd_s.sketch.face()
     face.move(Loc(-face.center()))
-    # face = bd.make_face(face.outer_wire())
+    # Going through a round of offset out then back in rounds off
+    # internally projecting corners just a little, and seems to help reduce the creation of invalid shapes. This won't prevent a case from fitting in, just place tiny gaps in some small concave (from the perspective of the gap) corners.
+    off = 1.0
+    face = bd.offset(bd.offset(face, off), -off)
     # show_object(face, "imported face")
     return face
 
@@ -329,8 +335,8 @@ def generate_pcb_case(base_face, wall_height):
     )
 
     wall -= inner_cutout
-    # wall = _poor_mans_chamfer(wall, 1)
-    # wall = _poor_mans_chamfer(wall, 1, top=True)
+    wall = _poor_mans_chamfer(wall, 1)
+    wall = _poor_mans_chamfer(wall, 1, top=True)
     wall -= base
 
 
@@ -344,26 +350,25 @@ def generate_pcb_case(base_face, wall_height):
     case = wall + base
 
 
-    # # Create finger cutout
-    # topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    # top_inner_wire = topf.wires()[0]
-    # polar_map = PolarWireMap(top_inner_wire, topf.center())
-    # cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
-    # cutout_box = _finger_cutout(
-    #     cutout_location,
-    #     params["wall_xy_thickness"],
-    #     params["cutout_width"],
-    #     pcb_case_wall_height,
-    # )
-    #
-    # case -= cutout_box
+    # Create finger cutout
+    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    top_inner_wire = topf.wires()[0]
+    polar_map = PolarWireMap(top_inner_wire, topf.center())
+    cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
+    cutout_box = _finger_cutout(
+        cutout_location,
+        params["wall_xy_thickness"],
+        params["cutout_width"],
+        pcb_case_wall_height,
+    )
+
+    case -= cutout_box
 
     if params["carrycase"]:
         # Cut out a lip for the carrycase
-        # wtest = bd.intersect(bd.Cube(100, 100, 100), wall)
         case -= _lip(base_face)
         # Cut out magnet holes
-        # case -= _magnet_cutout(base_face, params["magnet_position"])
+        case -= _magnet_cutout(base_face, params["magnet_position"])
 
     if test_print:
         case -= slice
@@ -642,7 +647,8 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 
 def _lip(base_face, carrycase=False):
     outer_face = bd.offset(base_face, params["wall_xy_thickness"])
-    lip = bd.offset(outer_face, params["carrycase_tolerance_xy"]) - bd.offset(
+    lip = bd.offset(outer_face, params["carrycase_tolerance_xy"])
+    lip -= bd.offset(
         outer_face, -params["lip_xy_len"]
     )
     lip = lip.intersect(
@@ -658,7 +664,7 @@ def _lip(base_face, carrycase=False):
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
     lip = bd.extrude(lip, lip_z_len)
-    show_object(lip, name="lip", options={"alpha": 0.8})
+    # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
 
