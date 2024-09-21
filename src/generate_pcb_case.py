@@ -10,6 +10,8 @@ import svgpathtools as svg
 from build123d import *
 from build123d import Align, Rot
 
+test_print = True
+
 Loc = bd.Location
 if "__file__" in globals():
     script_dir = Path(__file__).parent
@@ -21,24 +23,15 @@ if __name__ not in ["__cq_main__", "temp"]:
     log = lambda x: print(x)
     # show_object = lambda *_, **__: None
 
-    import ocp_vscode as ocp
-    from ocp_vscode import show
-    ocp.set_port(3939)
-    ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
-    show_object = lambda *args, **__: ocp.show(args)
+    # import ocp_vscode as ocp
+    # from ocp_vscode import show
+    # ocp.set_port(3939)
+    # ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
+    # show_object = lambda *args, **__: ocp.show(args)
 
 # TODO:
-# * Change bottom tolerance to account for z space underneath pcb
-# * Try flipping the cutout to get a negative tolerance on the bottom.
 # * reduce overhangs. Angled lip?
 # * Stand, attachments for straps. Separate module?
-#
-# TODO: Testing:
-# * Unmirror the carrycase
-# * Cut to just the square end
-# * test case fit (confident here)
-# * test carrycase entry and exit (having to slip it in on an angle will
-# require tolerance/stretching in that direction, but I'm not sure how much).
 
 default_params = {
     "output_dir": script_dir / "../build",
@@ -85,7 +78,6 @@ params["lip_position_angles"] = [-160, -30]
 magnet_height = 2
 magnet_radius = 4 / 2
 
-test_print = False
 # For test prints, slice off the end
 if test_print:
     slice = Loc((-27, 0, 0)) * bd.Box(
@@ -290,6 +282,15 @@ def generate_cases(svg_file, params=None):
 
     output_dir = Path(params["output_dir"])
 
+    if params["carrycase"]:
+        print("Generating carrycase...")
+        carry = generate_carrycase(base_face, pcb_case_wall_height)
+
+        case_output = str(output_dir / "carrycase.stl")
+        print(f"Exporting other half of the PCB case as {case_output}...")
+        bd.export_stl(carry, case_output)
+
+
     print("Generating PCB case...")
     case = generate_pcb_case(base_face, pcb_case_wall_height)
     case_output = str(output_dir / "case.stl")
@@ -301,19 +302,6 @@ def generate_cases(svg_file, params=None):
         bd.export_stl(
             bd.mirror(case, about=bd.Plane.YZ), case_output
         )
-
-    if params["carrycase"]:
-        # carry = generate_carrycase(base_face, pcb_case_wall_height)
-        print("Generating carrycase...")
-        # Generate_carrycase on a different CPU core
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(generate_carrycase, base_face,
-                                     pcb_case_wall_height)
-            carry = future.result()
-
-        case_output = str(output_dir / "carrycase.stl")
-        print(f"Exporting other half of the PCB case as {case_output}...")
-        bd.export_stl(carry, case_output)
 
     return
 
@@ -335,19 +323,20 @@ def generate_pcb_case(base_face, wall_height):
     )
 
     wall -= inner_cutout
-    wall = _poor_mans_chamfer(wall, 1)
     wall = _poor_mans_chamfer(wall, 1, top=True)
     wall -= base
 
 
-    # if params["honeycomb_base"]:
-    #     # Create honeycomb by subtracting it from the top face of the base.
-    #     hc = _create_honeycomb_tile(
-    #         params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
-    #     )
-    #     base -= hc
+    if params["honeycomb_base"]:
+        # Create honeycomb by subtracting it from the top face of the base.
+        hc = _create_honeycomb_tile(
+            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+        )
+        base -= hc
 
     case = wall + base
+
+    case = _poor_mans_chamfer(case, 1)
 
 
     # Create finger cutout
@@ -648,9 +637,6 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 def _lip(base_face, carrycase=False):
     outer_face = bd.offset(base_face, params["wall_xy_thickness"])
     lip = bd.offset(outer_face, params["carrycase_tolerance_xy"])
-    lip -= bd.offset(
-        outer_face, -params["lip_xy_len"]
-    )
     lip = lip.intersect(
         __arc_sector_ray(
             base_face,
@@ -664,6 +650,10 @@ def _lip(base_face, carrycase=False):
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
     lip = bd.extrude(lip, lip_z_len)
+    inner = bd.offset(
+            outer_face, -params["lip_xy_len"]
+        )
+    lip -= bd.extrude(inner, lip_z_len, taper=-45)
     # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
@@ -773,14 +763,14 @@ if True:
     # bf = bd.make_face(base_face).face()
     # show_object(bf)
 
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
-    #
-    # if params["carrycase"]:
-    #     # carry = generate_carrycase(base_face, pcb_case_wall_height)
-    #     # Generate_carrycase on a different CPU core
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         future = executor.submit(generate_carrycase, base_face,
-    #                                 pcb_case_wall_height)
-    #         carry = future.result()
-    #
-    #
+    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # Generate_carrycase on a different CPU core
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(generate_carrycase, base_face,
+                                pcb_case_wall_height)
+
+        case = generate_pcb_case(base_face, pcb_case_wall_height)
+        bd.export_stl(case, str(script_dir / "build/case.stl"))
+
+        carry = future.result()
+        bd.export_stl(carry, str(script_dir / "build/carrycase.stl"))
