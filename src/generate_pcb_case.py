@@ -278,9 +278,21 @@ def generate_cases(svg_file, params=None):
     params = default_params
 
     base_face = import_svg_as_face(svg_file)
-    # return
 
     output_dir = Path(params["output_dir"])
+
+    print("Generating PCB case...")
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case_output = str(output_dir / "case.stl")
+    print(f"Exporting PCB case as {case_output}...")
+    bd.export_stl(case, case_output)
+
+    if params["split"]:
+        case_output = str(output_dir / "case_mirrored.stl")
+        print(f"Exporting other half of the PCB case as {case_output}...")
+        bd.export_stl(
+            bd.mirror(case, about=bd.Plane.YZ), case_output
+        )
 
     if params["carrycase"]:
         print("Generating carrycase...")
@@ -289,19 +301,6 @@ def generate_cases(svg_file, params=None):
         case_output = str(output_dir / "carrycase.stl")
         print(f"Exporting other half of the PCB case as {case_output}...")
         bd.export_stl(carry, case_output)
-
-
-    print("Generating PCB case...")
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
-    case_output = str(output_dir / "case.stl")
-    print(f"Exporting PCB case as {case_output}...")
-    bd.export_stl(case, case_output)
-    if params["split"]:
-        case_output = str(output_dir / "case_mirrored.stl")
-        print(f"Exporting other half of the PCB case as {case_output}...")
-        bd.export_stl(
-            bd.mirror(case, about=bd.Plane.YZ), case_output
-        )
 
     return
 
@@ -753,24 +752,23 @@ def _poor_mans_chamfer(shape, size, top=False):
 
 if True:
 # if __name__ == "__main__":
-#     generate_cases(script_dir / "build/outline.svg")
+    generate_cases('/home/william/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg')
+
+# #
+# # if __name__ in ["temp", "__cq_main__"]:
+#     p = script_dir / "build/outline.svg"
+#     p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
+#     # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
+#     base_face = import_svg_as_face(p)
+#     # bf = bd.make_face(base_face).face()
+#     # show_object(bf)
 #
-# if __name__ in ["temp", "__cq_main__"]:
-    p = script_dir / "build/outline.svg"
-    p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
-    # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
-    base_face = import_svg_as_face(p)
-    # bf = bd.make_face(base_face).face()
-    # show_object(bf)
-
-    # carry = generate_carrycase(base_face, pcb_case_wall_height)
-    # Generate_carrycase on a different CPU core
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(generate_carrycase, base_face,
-                                pcb_case_wall_height)
-
-        case = generate_pcb_case(base_face, pcb_case_wall_height)
-        bd.export_stl(case, str(script_dir / "build/case.stl"))
-
-        carry = future.result()
-        bd.export_stl(carry, str(script_dir / "build/carrycase.stl"))
+#     # carry = generate_carrycase(base_face, pcb_case_wall_height)
+#     # Generate_carrycase on a different CPU core
+#     with concurrent.futures.ThreadPoolExecutor() as executor:
+#         future = executor.submit(generate_carrycase, base_face,
+#                                 pcb_case_wall_height)
+#
+#         case = generate_pcb_case(base_face, pcb_case_wall_height)
+#
+#         carry = future.result()

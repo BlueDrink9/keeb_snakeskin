@@ -16,7 +16,8 @@ should create a new executable `snakeskin` in your python scripts folder.
 ## Usage
 
 Overall:
-1. In KiCad, export the edge cuts layer as an SVG.
+1. In KiCad, export **just the edge cuts layer** as an SVG. Note that KiCad has two ways
+to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
 2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
 3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
 
@@ -103,22 +104,20 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the
 magnets in the case from the magnets in the carrycase. How thick the case wall |
 | `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
-| `magnet_count` | 6 | Number of magnets per case (a split board and
-compression case will need 4* this amount to complete the build). |
+| `magnet_count` | 6 | Number of magnets per case (a split board and compression case will need 4* this amount to complete the build). |
 
 ### More examples
 
-Generate case files from a Gerber file in build/cool_board/:
+Generate case files from an SVG to build/cool_board/:
 ```bash
-snakeskin cool_board.gbr -o cool_board
+snakeskin cool_board.svg -o build/cool_board
 ```
 
-Generate case files from a DXF file, outputting to the specified dir:
+Generate case files from a Gerber file in build/:
 ```bash
-snakeskin cool_board.dxf --dxf -o ~/Downloads/cool_board
+snakeskin cool_board.gm1 -o build/
 ```
-
 Generate case files with custom parameters:
 ```bash
-snakeskin input.gbr -o output_dir -c params.json
+snakeskin board_outline.svg -o output_dir -c params.json
 ```
