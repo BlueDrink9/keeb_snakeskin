@@ -1,6 +1,7 @@
 # Keyboard Snakeskin
 
-Generate 3D printable cases for custom keyboard PCBs.
+Automatically generate a 3D printable case and magnetic carrycase for your custom split keyboard PCBs, from just the
+outline. Also generates cases for other PCBs.
 
 This case design generally uses a friction fit to get the PCB to stay in the
 case. You can use hot glue instead if your printer tolerances are bad or
