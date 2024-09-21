@@ -10,7 +10,7 @@ import svgpathtools as svg
 from build123d import *
 from build123d import Align, Rot
 
-test_print = True
+test_print = False
 
 Loc = bd.Location
 if "__file__" in globals():
@@ -30,8 +30,7 @@ if __name__ not in ["__cq_main__", "temp"]:
     # show_object = lambda *args, **__: ocp.show(args)
 
 # TODO:
-# * reduce overhangs. Angled lip?
-# * Stand, attachments for straps. Separate module?
+# * Stand, attachments for straps. Separate module/plugin?
 
 default_params = {
     "output_dir": script_dir / "../build",
@@ -62,18 +61,7 @@ default_params = {
     "magnet_spacing": 12,
     "magnet_count": 6,
 }
-params = default_params  # TODO: merge this with user params
-
-# TODO: Move these to my personal maizeless build script
-params["cutout_position"] = -34
-params["carrycase_cutout_position"] = 105
-params["z_space_under_pcb"] = 2.4
-params["magnet_position"] = 100
-params["honeycomb_base"] = True
-params["wall_z_height"] = 2.6
-params["lip_position_angles"] = [-160, -30]
-# params["lip_position_angles"] = [-81, -30]
-# params["lip_position_angles"] = [-160, -82]
+params = default_params
 
 magnet_height = 2
 magnet_radius = 4 / 2
@@ -83,8 +71,6 @@ if test_print:
     slice = Loc((-27, 0, 0)) * bd.Box(
         300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER)
     )
-
-pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
 def import_svg_as_face(path):
@@ -229,15 +215,13 @@ def import_svg_as_face(path):
     return face
 
 
-# Function to calculate Euclidean distance between two points
-def euclidean_distance(p1, p2):
-    return math.sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
-
-
 def sort_paths(lines):
     """Return list of paths sorted and flipped so that they are connected end to end as the list iterates."""
     if not lines:
         return []
+
+    def euclidean_distance(p1, p2):
+        return math.sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
 
     # Start with the first line
     sorted_lines = [lines.pop(0)]
@@ -271,11 +255,12 @@ def sort_paths(lines):
     return sorted_lines
 
 
-def generate_cases(svg_file, params=None):
-    if not params:
-        params = {}
-    default_params.update(params)
-    params = default_params
+def generate_cases(svg_file, user_params=None):
+    if not user_params:
+        user_params = {}
+    params.update(user_params)
+
+    pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
     base_face = import_svg_as_face(svg_file)
 
@@ -305,7 +290,7 @@ def generate_cases(svg_file, params=None):
     return
 
 
-def generate_pcb_case(base_face, wall_height):
+def generate_pcb_case(base_face, pcb_case_wall_height):
     base = bd.extrude(base_face, params["base_z_thickness"])
 
     wall_outer = bd.offset(
@@ -318,7 +303,7 @@ def generate_pcb_case(base_face, wall_height):
     )
     # show_object(inner_cutout, name="inner")
     wall = (
-        bd.extrude(wall_outer, wall_height + params["base_z_thickness"])
+        bd.extrude(wall_outer, pcb_case_wall_height + params["base_z_thickness"])
     )
 
     wall -= inner_cutout
@@ -748,27 +733,36 @@ def _poor_mans_chamfer(shape, size, top=False):
     return out
 
 
-# show_object(Sector(100, 0, 45), "sector")
 
-if True:
-# if __name__ == "__main__":
-    generate_cases('/home/william/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg')
+if __name__ in ["temp", "__cq_main__", "__main__"]:
+    p = script_dir / "build/outline.svg"
+    p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
+    # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
+    # TODO: Move these to my personal maizeless build script
+    params = default_params
+    params["cutout_position"] = -34
+    params["carrycase_cutout_position"] = 105
+    params["z_space_under_pcb"] = 2.4
+    params["magnet_position"] = 100
+    params["honeycomb_base"] = True
+    params["wall_z_height"] = 2.6
+    params["lip_position_angles"] = [-160, -30]
+    pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
-# #
-# # if __name__ in ["temp", "__cq_main__"]:
-#     p = script_dir / "build/outline.svg"
-#     p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
-#     # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
-#     base_face = import_svg_as_face(p)
-#     # bf = bd.make_face(base_face).face()
-#     # show_object(bf)
-#
-#     # carry = generate_carrycase(base_face, pcb_case_wall_height)
-#     # Generate_carrycase on a different CPU core
-#     with concurrent.futures.ThreadPoolExecutor() as executor:
-#         future = executor.submit(generate_carrycase, base_face,
-#                                 pcb_case_wall_height)
-#
-#         case = generate_pcb_case(base_face, pcb_case_wall_height)
-#
-#         carry = future.result()
+
+    if __name__ == "__main__":
+        generate_cases(p, params=params)
+    else:
+        base_face = import_svg_as_face(p)
+        # bf = bd.make_face(base_face).face()
+        # show_object(bf)
+
+        # carry = generate_carrycase(base_face, pcb_case_wall_height)
+        # Generate_carrycase on a different CPU core
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(generate_carrycase, base_face,
+                                    pcb_case_wall_height)
+
+            case = generate_pcb_case(base_face, pcb_case_wall_height)
+
+            carry = future.result()

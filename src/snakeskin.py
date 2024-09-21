@@ -35,7 +35,7 @@ def main():
         sys.exit(f"Unknown file type (please check the readme): {args.input_file.suffix}")
 
 
-    generate_cases(svg, params=param_overrides)
+    generate_cases(svg, user_params=param_overrides)
 
 
 def parse_args():
