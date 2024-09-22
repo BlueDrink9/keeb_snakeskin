@@ -61,8 +61,8 @@ default_params = {
     "carrycase_z_gap_between_cases": 9 + 1,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
-    "lip_z_thickness": 2,
-    "lip_xy_len": 1.5,
+    "lip_z_thickness": 1.2,
+    "lip_xy_len": 1.3,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
     "magnet_separation_distance": 1,
@@ -622,47 +622,6 @@ def __arc_sector_ray(obj, angle1, angle2):
     return triangle
 
 
-class PolarWireMap:
-    """Maps between polar locations of a wire relative to a central origin,
-    where the resulting map is a dict of angle to location for
-    use with wire ^ location (`wire.at_location`). Angle is calculated
-    from the provide origin (intended to be the center of the closed
-    wire)."""
-
-    def __init__(self, wire, origin):
-        self.wire, self.origin = wire, origin
-        self.map_ = {}
-        self.__map_polar_locations()
-
-    def get_polar_location(self, angle):
-        """return the wire's intersection location at `angle`."""
-        angle = _find_nearest_key(self.map_, angle)
-        at = self.map_[angle]
-        return self.wire ^ at, at
-
-    def __map_polar_locations(self):
-        """Populate map with the polar location of
-        a wire, where the resulting map is a dict of angle to location for
-        use with wire ^ location (`wire.at_location`). Angle is calculated
-        from the provide origin (intended to be the center of the closed
-        wire)."""
-        n_angles = 360
-        at_position = 0
-        iter = 1 / n_angles
-        while at_position <= 1:
-            location = self.wire ^ at_position
-            at_position += iter
-            ax1 = bd.Axis.X
-            ax2 = bd.Wire(bd.Line(self.origin, location.position)).edge()
-            ax2 = bd.Axis(edge=ax2)
-            angle = round(ax1.angle_between(ax2))
-            if ax2.direction.Y < 0:
-                # Angle between gives up to 180 as a positive value, so we need to
-                # flip it for -ve angles.
-                angle = -angle
-            self.map_[angle] = at_position
-
-
 def _find_nearest_key(d, target_int):
     """Find the nearest existing key in a dict to a target integer"""
     nearest = min(d, key=lambda x: abs(x - target_int))
@@ -713,6 +672,47 @@ def _export(shape, path, name):
         bd.export_step(shape, pathstr)
     else:
         print(f"Invalid export suffix: '{path.suffix}' Must be .stl or .step")
+
+
+class PolarWireMap:
+    """Maps between polar locations of a wire relative to a central origin,
+    where the resulting map is a dict of angle to location for
+    use with wire ^ location (`wire.at_location`). Angle is calculated
+    from the provide origin (intended to be the center of the closed
+    wire)."""
+
+    def __init__(self, wire, origin):
+        self.wire, self.origin = wire, origin
+        self.map_ = {}
+        self.__map_polar_locations()
+
+    def get_polar_location(self, angle):
+        """return the wire's intersection location at `angle`."""
+        angle = _find_nearest_key(self.map_, angle)
+        at = self.map_[angle]
+        return self.wire ^ at, at
+
+    def __map_polar_locations(self):
+        """Populate map with the polar location of
+        a wire, where the resulting map is a dict of angle to location for
+        use with wire ^ location (`wire.at_location`). Angle is calculated
+        from the provide origin (intended to be the center of the closed
+        wire)."""
+        n_angles = 360
+        at_position = 0
+        iter = 1 / n_angles
+        while at_position <= 1:
+            location = self.wire ^ at_position
+            at_position += iter
+            ax1 = bd.Axis.X
+            ax2 = bd.Wire(bd.Line(self.origin, location.position)).edge()
+            ax2 = bd.Axis(edge=ax2)
+            angle = round(ax1.angle_between(ax2))
+            if ax2.direction.Y < 0:
+                # Angle between gives up to 180 as a positive value, so we need to
+                # flip it for -ve angles.
+                angle = -angle
+            self.map_[angle] = at_position
 
 
 if __name__ in ["temp", "__cq_main__"]:
