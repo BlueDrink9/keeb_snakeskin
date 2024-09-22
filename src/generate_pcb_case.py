@@ -483,8 +483,12 @@ def _friction_fit_cutout(base_face):
     # # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
     case_bottom_offset = T * params["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + params["wall_xy_bottom_tolerance"]
-    bottom_face = _size_scale(base_face, bottom_offset)
+    # bottom_face = _size_scale(base_face, bottom_offset)
+    bottom_face = bd.offset(base_face, bottom_offset).face()
     case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+
+    # pcb_face = base_face.face().thicken(0.01).moved(Loc((0, 0, params["z_space_under_pcb"])))
+    # case_inner_cutout += pcb_face
 
     # show_object(case_inner_cutout, name="case_inner_cutout")
     return case_inner_cutout
@@ -760,19 +764,16 @@ if __name__ in ["temp", "__cq_main__"]:
     pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
-    if __name__ == "__main__":
-        generate_cases(p, params=params)
-    else:
-        base_face = import_svg_as_face(p)
-        # bf = bd.make_face(base_face).face()
-        # show_object(bf)
+    base_face = import_svg_as_face(p)
+    # bf = bd.make_face(base_face).face()
+    # show_object(bf)
 
-        # carry = generate_carrycase(base_face, pcb_case_wall_height)
-        # Generate_carrycase on a different CPU core
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(generate_carrycase, base_face,
-                                    pcb_case_wall_height)
+    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # Generate_carrycase on a different CPU core
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(generate_carrycase, base_face,
+                                pcb_case_wall_height)
 
-            case = generate_pcb_case(base_face, pcb_case_wall_height)
+        case = generate_pcb_case(base_face, pcb_case_wall_height)
 
-            carry = future.result()
+        carry = future.result()
