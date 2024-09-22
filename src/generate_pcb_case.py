@@ -9,10 +9,15 @@ import build123d as bd
 import svgpathtools as svg
 from build123d import *
 from build123d import Align, Rot
-
-test_print = False
-
 Loc = bd.Location
+
+test_print = True
+# For test prints, slice off the end. Tweak this by hand to get what you want.
+if test_print:
+    slice = Loc((-27, 0, 0)) * bd.Box(
+        300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER)
+    )
+
 if "__file__" in globals():
     script_dir = Path(__file__).parent
 else:
@@ -63,16 +68,11 @@ default_params = {
     "magnet_count": 6,
 }
 params = default_params
+if test_print:
+    params["base_z_thickness"] = 1.5
 
 magnet_height = 2
 magnet_radius = 4 / 2
-
-# For test prints, slice off the end
-if test_print:
-    slice = Loc((-27, 0, 0)) * bd.Box(
-        300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER)
-    )
-
 
 def import_svg_as_face(path):
     # step = bd.import_step(str(Path('~/src/keyboard_design/maizeless/pcb/maizeless.step').expanduser()))
@@ -271,21 +271,18 @@ def generate_cases(svg_file, user_params=None):
     print("Generating PCB case...")
     case = generate_pcb_case(base_face, pcb_case_wall_height)
     case_output = output_path("case")
-    print(f"Exporting PCB case as {case_output}...")
-    _export(case, case_output)
+    _export(case, case_output, "PCB case")
 
     if params["split"]:
         case_output = output_path("case_mirrored")
-        print(f"Exporting other half of the PCB case as {case_output}...")
-        _export(bd.mirror(case, about=bd.Plane.YZ), case_output)
+        _export(bd.mirror(case, about=bd.Plane.YZ), case_output, "mirrored half of the PCB case")
 
     if params["carrycase"]:
         print("Generating carrycase...")
         carry = generate_carrycase(base_face, pcb_case_wall_height)
 
         case_output = output_path("carrycase")
-        print(f"Exporting other half of the PCB case as {case_output}...")
-        _export(carry, case_output)
+        _export(carry, case_output, "carry case")
 
     return
 
@@ -698,8 +695,12 @@ def _poor_mans_chamfer(shape, size, top=False):
     return out
 
 
-def _export(shape, path):
+def _export(shape, path, name):
     path = Path(path).expanduser()
+    if test_print:
+        git_head_hash = os.popen("git rev-parse HEAD").read().strip()[:6]
+        path = path.with_stem(path.stem + "_test_" + git_head_hash)
+    print(f"Exporting {name} as {path}...")
     pathstr = str(path)
     if path.suffix == ".stl":
         bd.export_stl(shape, pathstr)
