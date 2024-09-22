@@ -468,11 +468,12 @@ def _friction_fit_cutout(base_face):
     adj = params["wall_z_height"]
     taper = math.degrees(math.atan(opp / adj))
 
+    # ## Taper only from pcb up
     # # We seem to be able to get away with small tapers/extrusions up smaller
     # # wall heights.
     # # So let's try having an untapered wall below the pcb, and only tapering
     # # where the bottom tolerance will come into play.
-    # # bottom_face = _safe_offset2d(base_face.face(), params["wall_xy_bottom_tolerance"])
+    # bottom_face = _safe_offset2d(base_face.face(), params["wall_xy_bottom_tolerance"])
     # under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
     # face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
     # tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
@@ -486,8 +487,9 @@ def _friction_fit_cutout(base_face):
     bottom_face = bd.offset(base_face, bottom_offset).face()
     case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
 
+    # Check tightness where pcb should sit
     # pcb_face = base_face.face().thicken(0.01).moved(Loc((0, 0, params["z_space_under_pcb"])))
-    # case_inner_cutout += pcb_face
+    # case_inner_cutout -= pcb_face
 
     # show_object(case_inner_cutout, name="case_inner_cutout")
     return case_inner_cutout
