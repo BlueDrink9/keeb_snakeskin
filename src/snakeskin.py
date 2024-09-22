@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+import tempfile
 
 from pygerber.gerberx3.api.v2 import GerberFile
 
@@ -34,10 +35,11 @@ def main():
         svg = gerber_to_svg(input_file)
     elif input_file.suffix == ".svg":
         svg = input_file
+    elif input_file.suffix == ".kicad_pcb":
+        svg = pcb_to_svg(input_file)
     else:
         # Exit with error.
         sys.exit(f"Unknown file type (please check the readme): {args.input_file.suffix}")
-
 
     generate_cases(svg, user_params=param_overrides)
 
@@ -86,6 +88,52 @@ def gerber_to_svg(input_file):
     svg_file = default_build_dir / "outline.svg"
     gerber.render_svg(svg_file)
     return svg_file
+
+
+def pcb_to_svg(input_file):
+    """Run kicad-cli to convert the input pcb to svg, and check it ran correctly"""
+    # For some reason kicad-cli (or maybe just the flatpak version) can't write
+    # to tmp files.
+    output_path = default_build_dir / "outline.svg"
+
+    # Define the kicad-cli command
+    command = [
+        "kicad-cli",
+        "pcb",
+        "export",
+        "svg",
+        "--exclude-drawing-sheet",
+        "--drill-shape-opt",
+        "1",
+        "--layers",
+        "Edge.Cuts",
+        "--output",
+        str(output_path),
+        str(input_file),
+    ]
+    try:
+        print("Running kicad-cli to convert .kicad_pcb file into svg")
+        print(output_path)
+        subprocess.run(command, check=True, text=True)
+        # print(list(tmpdir.walk()))
+        return output_path
+    except FileNotFoundError:
+        print(
+            "Error: The 'kicad-cli' command was not found. Please ensure KiCad is installed and the executable is in your PATH."
+        )
+        sys.exit(1)
+    except OSError as e:
+        if e.errno == 8:  # Exec format error
+            print(
+                "Error: Unable to execute 'kicad-cli'. This may be due to an architecture mismatch or a corrupted executable."
+            )
+        else:
+            print(f"Error: An unexpected OS error occurred: {e}")
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print("An error occurred while running kicad-cli:", e)
+        print("Error output:", e.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

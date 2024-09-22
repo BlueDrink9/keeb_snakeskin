@@ -27,7 +27,34 @@ allow for two halves of a split board to be carried together.
 `pip install --user keeb_snakeskin` installs this package and dependencies, and
 should create a new executable `snakeskin` in your python scripts folder.
 
-## Printing
+## Usage
+
+Overall:
+1. In KiCad, export **just the edge cuts layer** as an SVG.
+2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
+3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
+
+### Input File
+
+#### Getting the starting svg
+
+In kicad, export just the edge.cuts layer as plot format `svg` (board only, not page).
+Note that KiCad has two ways to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
+Ensure coordinate output is mm if relevant, and all the 'plot' general options are unchecked.
+
+You can do this with the cli via
+`kicad-cli pcb export svg  --exclude-drawing-sheet --drill-shape-opt 1 --layers Edge.Cuts --output build/outline.svg ~/src/maizeless/pcb/maizeless.kicad_pcb`.
+If you have kicad-cli on your `$PATH`, you can directly pass the `.kicad_pcb`
+file to `snakeskin.py` and this export will be done for you.
+
+### Extra Options
+
+Other than the case design parameters below, you can also input the following
+arguments:
+- `-o`, `--output`: Output directory or file path (default: "build")
+- `-c`, `--config`: Path to the JSON configuration file
+
+### Printing
 
 These designs are designed to be printed without supports where possible. There
 is only one severe (90 degree) overhang in the design, which is the first
@@ -45,34 +72,13 @@ idea.
 Only the carrycase magnets should need glue, the case magnets should be held in
 with the magnet alone.
 
-## Usage
-
-Overall:
-1. In KiCad, export **just the edge cuts layer** as an SVG. Note that KiCad has two ways
-to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
-2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
-3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
-
-### Input File
-
-#### Getting the starting svg
-
-In kicad, export just the edge.cuts layer as plot format `svg` (board only, not page).
-Ensure coordinate output is mm, and all the 'plot' general options are
-unchecked.
-
-### Extra Options
-
-Other than the case design parameters below, you can also input the following
-arguments:
-- `-o`, `--output`: Output directory or file path (default: "build")
-- `-c`, `--config`: Path to the JSON configuration file
 
 ### Run
 
 The program takes in the edge cuts from your gerber files to generate an
 svg outline in the `build` folder, which is then used to render the basic shape for the case.
-This could be an `svg` or  `.gm1` file. For example:
+This could be an `svg` or  `.gm1` file, or a `.kicad_pcb` file if `kicad-cli`
+is available (on your `$PATH`). For example:
 
 ```python
 snakeskin -s -o maizeless ~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts.gm1

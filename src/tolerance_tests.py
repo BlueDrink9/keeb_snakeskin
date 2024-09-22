@@ -1,7 +1,7 @@
 from build123d import *
 from generate_pcb_case import default_params
 def xp(f, name):
-    export_stl(f.face().thicken(0.5), "build/" + name + ".stl")
+    export_stl(f.face().thicken(1.6), "build/" + name + ".stl")
 
 case_w = 56.8
 case_h = 8
@@ -42,8 +42,8 @@ cc = cc - lip
 lip = lip.located(Location(lip_loc - Vector(0, lip_h, 0)))
 cc = cc + lip
 case = case - cc
-show_object(case, name="case_2")
-show_object(cc, name="cc_2")
+# show_object(case, name="case_2")
+# show_object(cc, name="cc_2")
 test_name = "tol_test_lip_inside"
 xp(case, test_name + "_case")
 xp(cc, test_name + "_cc")
