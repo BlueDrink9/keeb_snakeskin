@@ -594,13 +594,15 @@ def _lip(base_face, carrycase=False):
         )
     )
     lip_z_len = params["lip_z_thickness"]
+    lip_xy_len = params["lip_xy_len"]
     if not carrycase:
         # A little extra tolerance for lip cutout so that it fits more
         # smoothly, even with a bit of residual support plastic or warping.
         lip_z_len += 0.3
+        lip_xy_len += 0.3
     lip = bd.extrude(lip, lip_z_len)
     inner = bd.offset(
-            outer_face, -params["lip_xy_len"]
+            outer_face, -lip_xy_len
         )
     lip -= bd.extrude(inner, lip_z_len, taper=-45)
     # show_object(lip, name="lip", options={"alpha": 0.8})
