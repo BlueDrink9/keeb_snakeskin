@@ -67,7 +67,7 @@ default_params = {
     "magnet_position": -90.0,
     "magnet_separation_distance": 1,
     "magnet_spacing": 12,
-    "magnet_count": 6,
+    "magnet_count": 7,
 }
 params = default_params
 if test_print:
@@ -532,17 +532,6 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     # Adding a bit of extra space around the radius, so that we can print
     # magnet holes without supports and account for the resulting droop.
     magnet_radius_y = magnet_radius + 0.2
-    # Get second largest face parallel to XY plane - i.e., the inner case face
-    # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
-    inner_wire = main_face.wires()[0]
-    # show_object(inner_wire, name="inner_wire")
-    polar_map = PolarWireMap(inner_wire, main_face.center())
-    _, center_percent = polar_map.get_polar_location(angle)
-    center_at_mm = center_percent * inner_wire.length
-    span = params["magnet_count"] * params["magnet_spacing"]
-    start = center_at_mm - span / 2
-    end = center_at_mm + span / 2
-
     hole = bd.Plane.XY * bd.Ellipse(
         x_radius=magnet_radius,
         y_radius=magnet_radius_y,
@@ -562,10 +551,19 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         # Extend into the case too to ensure no overlap, e.g. due to taper
         template += bd.extrude(hole, -(magnet_height))
 
+    # Get second largest face parallel to XY plane - i.e., the inner case face
+    # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
+    inner_wire = main_face.wires()[0]
+    # show_object(inner_wire, name="inner_wire")
+    polar_map = PolarWireMap(inner_wire, main_face.center())
+    _, center_percent = polar_map.get_polar_location(angle)
+    center_at_mm = center_percent * inner_wire.length
+    span = (params["magnet_count"] - 1) * params["magnet_spacing"]
+    start = center_at_mm - span / 2
+
     cutouts = []
-    position = start - params["magnet_spacing"]
-    while position <= end:
-        position += params["magnet_spacing"]
+    position = start
+    for _ in range(params["magnet_count"]):
         cutout = copy.copy(template)
         location = inner_wire.location_at(
             position, position_mode=bd.PositionMode.LENGTH
@@ -578,21 +576,14 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         cutout.position += (0, 0, magnet_radius_y + params["base_z_thickness"] + 0.01)
         cutouts.append(cutout)
         # show_object(cutout, f"magnet_cutout_{position}")
+        position += params["magnet_spacing"]
 
     # show_object(cutouts, name=f"magnet_cutouts_{carrycase}", options={"alpha": 0.8})
     return cutouts
 
 
 def _lip(base_face, carrycase=False):
-    outer_face = bd.offset(base_face, params["wall_xy_thickness"])
-    lip = bd.offset(outer_face, params["carrycase_tolerance_xy"])
-    lip = lip.intersect(
-        __arc_sector_ray(
-            base_face,
-            params["lip_position_angles"][0],
-            params["lip_position_angles"][1],
-        )
-    )
+    return bd.Box(0.1,0.1,0.1)
     lip_z_len = params["lip_z_thickness"]
     lip_xy_len = params["lip_xy_len"]
     if not carrycase:
