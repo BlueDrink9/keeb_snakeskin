@@ -48,7 +48,7 @@ default_params = {
     "honeycomb_base": True,
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
-    "carrycase_tolerance_xy": 0.8,
+    "carrycase_tolerance_xy": 0.4,
     "carrycase_tolerance_z": 0.5,
     "carrycase_wall_xy_thickness": 4,
     "carrycase_z_gap_between_cases": 9 + 1,
