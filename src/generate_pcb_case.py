@@ -36,6 +36,7 @@ default_params = {
     "output_dir": script_dir / "../build",
     "split": True,
     "carrycase": True,
+    "output_filetype": ".step",
     "base_z_thickness": 3,
     "wall_xy_thickness": 3,
     "wall_z_height": 4.0,
@@ -264,28 +265,27 @@ def generate_cases(svg_file, user_params=None):
 
     base_face = import_svg_as_face(svg_file)
 
-    output_dir = Path(params["output_dir"])
+    def output_path(name):
+        return str(Path(params["output_dir"] / name).with_suffix(params["output_filetype"]))
 
     print("Generating PCB case...")
     case = generate_pcb_case(base_face, pcb_case_wall_height)
-    case_output = str(output_dir / "case.step")
+    case_output = output_path("case")
     print(f"Exporting PCB case as {case_output}...")
-    bd.export_step(case, case_output)
+    _export(case, case_output)
 
     if params["split"]:
-        case_output = str(output_dir / "case_mirrored.step")
+        case_output = output_path("case_mirrored")
         print(f"Exporting other half of the PCB case as {case_output}...")
-        bd.export_step(
-            bd.mirror(case, about=bd.Plane.YZ), case_output
-        )
+        _export(bd.mirror(case, about=bd.Plane.YZ), case_output)
 
     if params["carrycase"]:
         print("Generating carrycase...")
         carry = generate_carrycase(base_face, pcb_case_wall_height)
 
-        case_output = str(output_dir / "carrycase.step")
+        case_output = output_path("carrycase")
         print(f"Exporting other half of the PCB case as {case_output}...")
-        bd.export_step(carry, case_output)
+        _export(carry, case_output)
 
     return
 
@@ -733,8 +733,18 @@ def _poor_mans_chamfer(shape, size, top=False):
     return out
 
 
+def _export(shape, path):
+    path = Path(path).expanduser()
+    pathstr = str(path)
+    if path.suffix == ".stl":
+        bd.export_stl(shape, pathstr)
+    elif path.suffix == ".step":
+        bd.export_step(shape, pathstr)
+    else:
+        print(f"Invalid export suffix: '{path.suffix}' Must be .stl or .step")
 
-if __name__ in ["temp", "__cq_main__", "__main__"]:
+
+if __name__ in ["temp", "__cq_main__"]:
     p = script_dir / "build/outline.svg"
     p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
     # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
