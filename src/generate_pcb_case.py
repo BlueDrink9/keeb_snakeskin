@@ -483,7 +483,6 @@ def _friction_fit_cutout(base_face):
     # # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
     case_bottom_offset = T * params["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + params["wall_xy_bottom_tolerance"]
-    # bottom_face = _size_scale(base_face, bottom_offset)
     bottom_face = bd.offset(base_face, bottom_offset).face()
     case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
 
@@ -507,46 +506,6 @@ def _safe_offset2d(face: Face, offset: float):
     for inner in inners:
         new_face -= Face(inner)
     return new_face
-
-
-def _size_scale(obj, size_change):
-    """Scale an object by a size, such that the new size bounding box is be
-    size_change smaller in the x, y and z axis."""
-    import build123d as bd
-
-    obj = copy.copy(obj)
-    center = obj.center()
-    bb = obj.bounding_box()
-    zchange = 0
-    if bb.size.Z > 0:
-        zchange = size_change / bb.size.Z
-    factor = (1 + (size_change / bb.size.X), 1 + (size_change / bb.size.Y), 1 + zchange)
-    # log(factor)
-    # log(obj)
-    # Scaling by a vector changes the object too much, messes things up.
-    # We'll have to scale by a scalar. Picking the smallest of the factors to
-    # minimise change on the tightest axis.
-    # plane = bd.Plane(obj.face())
-    # show_object(plane, name="plane")
-    # obj = bd.scale(obj, by=factor).face()
-    # obj = bd.project(obj, workplane=bd.Plane.XY).face()
-    obj = bd.scale(obj, by=min(factor)).face()
-    # log(dir(obj))
-    # log(obj)
-    # show_object(obj, name="scaled")
-    # return None
-    # log(obj)
-    # extruded = bd.extrude(obj, amount=2, taper=-19, dir=(0,0,1))
-
-    obj.move(Loc(center - obj.center()))
-
-    # bb = obj.bounding_box()
-    # xlen_new = bb.max.X - bb.min.X
-    # ylen_new = bb.max.Y - bb.min.Y
-    # print(xlen, xlen_new, xlen_new - xlen)
-    # print(ylen, ylen_new, ylen_new - ylen)
-
-    return obj
 
 
 def _finger_cutout(location, thickness, width, height):
