@@ -1,13 +1,13 @@
 from build123d import *
 from generate_pcb_case import default_params
 def xp(f, name):
-    export_stl(f.face().thicken(1.6), "build/" + name + ".stl")
+    export_stl(f.face().thicken(4), "build/" + name + ".stl")
 
 case_w = 56.8
 case_h = 8
 case = Rectangle(case_w, case_h)
 
-cc_wall = 2
+cc_wall = 4
 tol = 2*default_params["carrycase_tolerance_xy"]
 cc_w = case_w + tol + cc_wall
 cc_h = 8

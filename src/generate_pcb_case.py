@@ -41,6 +41,7 @@ default_params = {
     "output_dir": script_dir / "../build",
     "split": True,
     "carrycase": True,
+    "flush_carrycase_lip": True,
     "output_filetype": ".step",
     "base_z_thickness": 3,
     "wall_xy_thickness": 3,
@@ -53,6 +54,7 @@ default_params = {
     "honeycomb_base": True,
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
+    "chamfer_len": 1,
     "carrycase_tolerance_xy": 0.4,
     "carrycase_tolerance_z": 0.5,
     "carrycase_wall_xy_thickness": 4,
@@ -304,7 +306,7 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
     )
 
     wall -= inner_cutout
-    wall = _poor_mans_chamfer(wall, 1, top=True)
+    wall = _poor_mans_chamfer(wall, params["chamfer_len"], top=True)
     wall -= base
 
 
@@ -317,7 +319,7 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
 
     case = wall + base
 
-    case = _poor_mans_chamfer(case, 1)
+    case = _poor_mans_chamfer(case, params["chamfer_len"])
 
 
     # Create finger cutout
@@ -335,8 +337,9 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
     case -= cutout_box
 
     if params["carrycase"]:
-        # Cut out a lip for the carrycase
-        case -= _lip(base_face)
+        if params["flush_carrycase_lip"]:
+            # Cut out a lip for the carrycase
+            case -= _lip(base_face)
         # Cut out magnet holes
         case -= _magnet_cutout(base_face, params["magnet_position"])
 
@@ -404,9 +407,6 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     case = wall + blocker
 
-    # Add lip to hold board in
-    case += _lip(base_face, carrycase=True)
-
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
@@ -423,7 +423,10 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # show_object(cutout_box, name="carry case cutout box")
 
     # Have to chamfer before cutout because cutout breaks the face
-    case = _poor_mans_chamfer(case, 1)
+    case = _poor_mans_chamfer(case, params["chamfer_len"])
+
+    # Add lip to hold board in. Do after chamfer or chamfer breaks.
+    case += _lip(base_face, carrycase=True)
 
     case -= cutout_box
 
