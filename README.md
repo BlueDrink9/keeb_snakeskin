@@ -90,18 +90,12 @@ The following tables outline the possible variables you can specify for
 your case creation.
 To modify the paramters, pass a path to a `.json` file with
 `-c path/to/cfg.json`, or pass individual parameters as command line arguments.
-See `python snakeskin.py --help` for more information.
+See `python snakeskin.py --help` for more information and for defaults.
 The json should have anything you want to override from
-defaults specified as a top level key:value, for example:
-```json
-{
-    "base_z": 4,
-    "wall_xy_thickness": 2.5,
-    "cutout_width": 6
-}
-```
+defaults specified as a top level key:value. See `./preset_configs/` for
+examples.
 
-| Parameter name | default value | description |
+| Parameter name | Example value + unit| Description |
 | -------------- | ------------- | ----------- |
 | `split`| True | If True, generate mirrored pair of files for a split board |
 | `carrycase` | True | Whether the output designs should incorporate the compression-style carrycase. Will affect the main case as well. |
