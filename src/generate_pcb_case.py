@@ -7,7 +7,7 @@ import svgpathtools as svg
 from build123d import *
 Loc = Location
 
-test_print = False
+test_print = True
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-55, 0, 0)) * Box(
@@ -67,8 +67,6 @@ default_params = {
     "magnet_count": 8,
 }
 params = default_params
-if test_print:
-    params["base_z_thickness"] = 1.5
 
 magnet_height = 2
 magnet_radius = 4 / 2
@@ -756,6 +754,10 @@ class PolarWireMap:
                 angle = -angle
             self.map_[angle] = at_position
 
+if test_print:
+    params["base_z_thickness"] = 1.5
+    params["magnet_position"] = -180 + 22
+    params["magnet_count"] = 1
 
 if __name__ in ["temp", "__cq_main__", "__main__"]:
     p = script_dir / "build/outline.svg"
@@ -767,6 +769,12 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     param_overrides = json.loads(config.read_text())
     params = default_params
     params.update(param_overrides)
+
+    if test_print:
+        params["base_z_thickness"] = 1.5
+        params["magnet_position"] = -180 + 22
+        params["magnet_count"] = 1
+
     pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
@@ -776,4 +784,4 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # show_object(bf)
 
     carry = generate_carrycase(base_face, pcb_case_wall_height)
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
