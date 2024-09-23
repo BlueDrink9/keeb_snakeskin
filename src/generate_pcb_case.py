@@ -61,7 +61,7 @@ default_params = {
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
     "lip_len": 1.3,
-    "lip_position_angles": [160, 30],
+    "lip_position_angles": [32, 158],
     "magnet_position": -90.0,
     "magnet_separation_distance": 0.8,
     "magnet_spacing": 12,
@@ -543,7 +543,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     hole = bd.Plane.XY * bd.Ellipse(
         x_radius=magnet_radius,
         y_radius=magnet_radius_y,
-    )
+    ).face()
 
     if carrycase:
         distance = (
@@ -614,32 +614,33 @@ def _lip(base_face, carrycase=False):
     case_outer_face = bd.offset(base_face, params["wall_xy_thickness"])
     cutout_face = bd.offset(base_face, params["wall_xy_thickness"] - lip_xy_len)
     lip = outer_face - cutout_face
-    lip = lip.intersect(
-        __arc_sector_ray(
-            base_face,
-            params["lip_position_angles"][0],
-            params["lip_position_angles"][1],
+
+    # Intersect lip with sector/triangle between the two angles.
+    bounds = case_outer_face.bounding_box()
+    bound_max = max(bounds.size.X, bounds.size.Y) * 2
+    boundary_lines = [
+        bd.PolarLine(
+            base_face.center(),
+            bound_max,
+            params["lip_position_angles"][0]
+        ),
+        bd.PolarLine(
+            base_face.center(),
+            bound_max,
+            params["lip_position_angles"][1]
         )
+    ]
+    lip_boundary = bd.make_face(
+        [*boundary_lines, bd.Line(boundary_lines[0] @ 1, boundary_lines[1] @ 1)]
     )
+    lip = lip.intersect(lip_boundary)
+
     lip = bd.extrude(lip.face(), lip_z_len)
     # Poor man's chamfer of inner edge of lip
-    chamfer_cutout = bd.extrude(cutout_face, lip_z_len, taper=-45)
+    chamfer_cutout = bd.extrude(cutout_face.face(), lip_z_len, taper=-45)
     lip -= chamfer_cutout
     # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
-
-
-def __arc_sector_ray(obj, angle1, angle2):
-    triangle = bd.Triangle(
-        A=abs(angle1 - angle2),
-        b=500,
-        c=500,
-        align=(Align.CENTER, Align.MAX),
-    )
-    rotation_angle = (angle1 + angle2) / 2
-    location = Loc(obj.center()) * Rot(Z=90) * Rot(Z=rotation_angle)
-    triangle.location = location
-    return triangle
 
 
 def _find_nearest_key(d, target_int):
