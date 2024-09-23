@@ -1,4 +1,3 @@
-import concurrent.futures
 import copy
 import math
 import os
@@ -61,8 +60,7 @@ default_params = {
     "carrycase_z_gap_between_cases": 9 + 1,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
-    "lip_z_thickness": 1.2,
-    "lip_xy_len": 1.3,
+    "lip_len": 1.3,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
     "magnet_separation_distance": 0.8,
@@ -378,10 +376,8 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Add lip to hold board in. Do after chamfer or chamfer breaks.
     case += _lip(base_face, carrycase=True)
 
-    show_object(case, name="case")
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
-    show_object(botf, name="botf")
     bottom_inner_wire = botf.wires()[0]
     polar_map = PolarWireMap(bottom_inner_wire, botf.center())
     cutout_location, _ = polar_map.get_polar_location(
@@ -393,7 +389,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         params["carrycase_cutout_xy_width"],
         pcb_case_wall_height - magnet_height - 0.3,
     )
-    show_object(cutout_box, name="carry case cutout box")
+    # show_object(cutout_box, name="carry case cutout box")
 
     case -= cutout_box
 
@@ -594,19 +590,41 @@ def _magnet_cutout(main_face, angle, carrycase=False):
 
 
 def _lip(base_face, carrycase=False):
-    return bd.Box(0.1,0.1,0.1)
-    lip_z_len = params["lip_z_thickness"]
-    lip_xy_len = params["lip_xy_len"]
+    # Use same z len as total lip xy len so that chamfer is complete.
+    lip_xy_len = params["lip_len"]
+    lip_z_len = params["lip_len"] + params["carrycase_tolerance_xy"]
     if not carrycase:
         # A little extra tolerance for lip cutout so that it fits more
         # smoothly, even with a bit of residual support plastic or warping.
-        lip_z_len += 0.3
         lip_xy_len += 0.3
-    lip = bd.extrude(lip, lip_z_len)
-    inner = bd.offset(
-            outer_face, -lip_xy_len
+        lip_z_len += 0.3
+    # Inner face of carrycase
+    inner_face = bd.offset(
+        base_face,
+        params["wall_xy_thickness"]
+        + params["carrycase_tolerance_xy"]
+    )
+    # Outer is the full carrycase outer face
+    outer_face = bd.offset(
+        inner_face,
+        params["carrycase_wall_xy_thickness"]
+        # minus chamfer to avoid interfering/drawing over it.
+        - params["chamfer_len"],
+    )
+    case_outer_face = bd.offset(base_face, params["wall_xy_thickness"])
+    cutout_face = bd.offset(base_face, params["wall_xy_thickness"] - lip_xy_len)
+    lip = outer_face - cutout_face
+    lip = lip.intersect(
+        __arc_sector_ray(
+            base_face,
+            params["lip_position_angles"][0],
+            params["lip_position_angles"][1],
         )
-    lip -= bd.extrude(inner, lip_z_len, taper=-45)
+    )
+    lip = bd.extrude(lip.face(), lip_z_len)
+    # Poor man's chamfer of inner edge of lip
+    chamfer_cutout = bd.extrude(cutout_face, lip_z_len, taper=-45)
+    lip -= chamfer_cutout
     # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 
