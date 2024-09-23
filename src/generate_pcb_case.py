@@ -278,7 +278,7 @@ def generate_cases(svg_file, user_params=None):
     case_output = output_path("case")
     _export(case, case_output, "PCB case")
 
-    if params["split"]:
+    if params["split"] and not test_print:
         case_output = output_path("case_mirrored")
         _export(bd.mirror(case, about=bd.Plane.YZ), case_output, "mirrored half of the PCB case")
 
