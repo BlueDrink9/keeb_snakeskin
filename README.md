@@ -47,6 +47,13 @@ You can do this with the cli via
 If you have kicad-cli on your `$PATH`, you can directly pass the `.kicad_pcb`
 file to `snakeskin.py` and this export will be done for you.
 
+If you only have a [keyboard-layout-editor](https://keyboard-layout-editor.com/) file, you can
+generate an input SVG or KiCad PCB first with tools like
+* https://github.com/fcoury/kbpcb
+* https://kb.xyz.is/
+* https://github.com/adamws/keyboard-tools
+
+
 ### Extra Options
 
 Other than the case design parameters below, you can also input the following
