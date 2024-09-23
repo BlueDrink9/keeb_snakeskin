@@ -9,7 +9,7 @@ from build123d import *
 from build123d import Align, Rot
 Loc = bd.Location
 
-test_print = False
+test_print = True
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-55, 0, 0)) * bd.Box(
@@ -27,11 +27,12 @@ if __name__ not in ["__cq_main__", "temp"]:
     log = lambda x: print(x)
     # show_object = lambda *_, **__: None
 
-    import ocp_vscode as ocp
-    from ocp_vscode import show
-    ocp.set_port(3939)
-    ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
-    show_object = lambda *args, **__: ocp.show(args)
+    if __name__ == "__main__":
+        import ocp_vscode as ocp
+        from ocp_vscode import show
+        ocp.set_port(3939)
+        ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
+        show_object = lambda *args, **__: ocp.show(args)
 
 # TODO:
 # * Stand, attachments for straps. Separate module/plugin?
@@ -43,10 +44,10 @@ default_params = {
     "flush_carrycase_lip": False,
     "output_filetype": ".stl",
     "base_z_thickness": 3,
-    "wall_xy_thickness": 3,
+    "wall_xy_thickness": 2.5,
     "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
-    "wall_xy_bottom_tolerance": -0.3,
+    "wall_xy_bottom_tolerance": -0.2,
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
@@ -63,7 +64,7 @@ default_params = {
     "lip_len": 1.3,
     "lip_position_angles": [32, 158],
     "magnet_position": -90.0,
-    "magnet_separation_distance": 0.8,
+    "magnet_separation_distance": 1.0,
     "magnet_spacing": 12,
     "magnet_count": 8,
 }
