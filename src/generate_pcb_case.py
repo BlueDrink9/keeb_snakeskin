@@ -1,7 +1,6 @@
 import copy
 import math
 import os
-from collections import defaultdict
 from pathlib import Path
 
 import build123d as bd
@@ -22,6 +21,7 @@ if "__file__" in globals():
 else:
     script_dir = Path(os.getcwd())
 
+# For debugging/viewing in cq-editor or vscode's ocp_vscode plugin.
 if __name__ not in ["__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
     log = lambda x: print(x)
@@ -373,9 +373,6 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Have to chamfer before cutout because cutout breaks the face
     case = _poor_mans_chamfer(case, params["chamfer_len"])
 
-    # Add lip to hold board in. Do after chamfer or chamfer breaks.
-    case += _lip(base_face, carrycase=True)
-
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
@@ -392,6 +389,11 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # show_object(cutout_box, name="carry case cutout box")
 
     case -= cutout_box
+
+    # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
+    # flush, changes the top face so do after finger cutout.
+    case += _lip(base_face, carrycase=True)
+
 
     case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
 
@@ -636,9 +638,16 @@ def _lip(base_face, carrycase=False):
     lip = lip.intersect(lip_boundary)
 
     lip = bd.extrude(lip.face(), lip_z_len)
-    # Poor man's chamfer of inner edge of lip
-    chamfer_cutout = bd.extrude(cutout_face.face(), lip_z_len, taper=-45)
-    lip -= chamfer_cutout
+
+    if params["flush_carrycase_lip"]:
+        # Poor man's chamfer of inner edge of lip
+        # No point doing it with non-flush lip, because it would reduce the
+        # catching surface.
+        chamfer_cutout = bd.extrude(cutout_face.face(), lip_z_len, taper=-45)
+        lip -= chamfer_cutout
+    else:
+        lip.move(Loc((0, 0, -lip_z_len)))
+
     # show_object(lip, name="lip", options={"alpha": 0.8})
     return lip
 

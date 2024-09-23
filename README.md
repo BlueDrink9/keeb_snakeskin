@@ -64,6 +64,10 @@ to automatically support only this part. If you aren't printing the carrycase,
 you shouldn't need supports unless your bridging performance on the magnets is
 bad.
 
+If `flush_carrycase_lip` is `False`, you will need short supports all around the bottom of the
+carrycase, and its top lip. Again, setting overhangs to 70 degrees should
+allocate supports appropriately.
+
 ### Assembly
 
 The only assembly required is inserting magnets. Check out [the Compression
@@ -107,6 +111,7 @@ examples.
 | `carrycase` | True | Whether the output designs should incorporate the compression-style carrycase. Will affect the main case as well. |
 | `honeycomb_base` | True | Make the base of the case a honeycombed/hexagon cage instead of solid |
 | `output_filetype` | `.step` | `.step` or `.stl`. What filetype the case will be exported as. |
+| `flush_carrycase_lip` | True | Two options for holding the pcb case into the carrycase: a lip that extends into the carrycase center, with a matching cutout in the pcb case; or, a lip that sits a bit above and below the carrycase. If false, the pcb case will have a flat bottom and your tolerances between the case and carrycase can be tighter, giving a better fit when in the case. However, it will require more supports when printing. |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
 | `wall_xy_thickness` | 3 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case.  Top and bottom wall tolerance will also affect the thickness that actually gets printed. Recommend 2 + `magnet_separation_distance` if you're using the carrycase, so the magnets don't rattle. If it's larger, you'll have to glue the magnets into the case as well as the carrycase. |
 | `wall_z_height` | 4.0 mm | Z height of the wall **from the bottom of the PCB** (total case wall height will include z_space_under_pcb). The default includes room for magnets for the carrycase. If you aren't adding a carrycase, 1.6 is a good height for a standard PCB thickness if you just want to cover the pcb. |
@@ -130,14 +135,13 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case |
 | `carrycase_cutout_position` | -90 | Location  along the walls of the carrycase for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. Should be opposite the lip, on the same side as the magnets. |
 | `carrycase_cutout_xy_width` | 15 mm | Width of the finger cutout for removing the boards from the case. May cut out more if the area isn't a straight line. |
-| `lip_z_thickness` | 2 mm | Thickness of the lip cut out of the case that holds the non-magnet end to the carrycase |
-| `lip_xy_len` | 1.5 mm | Length of the lip. |
+| `lip_len` | 1.5 mm | Length of the lip (not including carrycase tolerance, i.e. this is the xy length that protrudes over the case). |
 | `lip_position_angles` | [160, 30] | A list of two angles, [start_angle, end_angle], that defines the position of the lip on the case. Measured in degrees from the positive X-axis. Positive angles are measured counterclockwise, with 0 degrees being the positive X-axis and 90 degrees being the positive Y-axis, -90 is the direction of the negative Y axis.The difference between the start and end angles must be less than 180 degrees. It is recommended to set the angles to cover a long, straight section of the case. This must be opposite to the location of the finger cutout on the carry case and the magnets. |
 | `magnet_position` | -90 | Location  along the walls of the carrycase and case where the magnets will be centered, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. |
 | `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the
 magnets in the case from the magnets in the carrycase. How thick the case wall |
 | `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
-| `magnet_count` | 6 | Number of magnets per case (a split board and compression case will need 4* this amount to complete the build). |
+| `magnet_count` | 8 | Number of magnets per case (a split board and compression case will need 4× this amount to complete the build). |
 
 #### More usage examples
 
