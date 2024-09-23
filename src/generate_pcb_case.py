@@ -369,27 +369,71 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     wall = bd.extrude(wall_outline, wall_height)
     # cutout = bd.extrude(cutout_outline, wall_height)
 
-    # Part that blocks the pcb case from going all the way through
-    # Blocker is made of 3 parts:
-    # 1. a flat layer offset blocker_thickness_xy, extruded  2 * blocker_thickness_z
-    # from the base face,
-    # 2. a subtracted layer starting at blocker_thickness_z that that tapers out
-    # to the carrycase wall, to create a printable overhang,
-    # 3. a subtracted layer extruded blocker_thickness from base_face.
+    blocker = _carrycase_blocker(base_face, wall_height)
+    case = wall + blocker
+
+    # Have to chamfer before cutout because cutout breaks the face
+    case = _poor_mans_chamfer(case, params["chamfer_len"])
+
+    # Add lip to hold board in. Do after chamfer or chamfer breaks.
+    case += _lip(base_face, carrycase=True)
+
+    show_object(case, name="case")
+    # Create finger cutout for removing boards
+    botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
+    show_object(botf, name="botf")
+    bottom_inner_wire = botf.wires()[0]
+    polar_map = PolarWireMap(bottom_inner_wire, botf.center())
+    cutout_location, _ = polar_map.get_polar_location(
+        params["carrycase_cutout_position"]
+    )
+    cutout_box = _finger_cutout(
+        cutout_location,
+        params["carrycase_wall_xy_thickness"],
+        params["carrycase_cutout_xy_width"],
+        pcb_case_wall_height - magnet_height - 0.3,
+    )
+    show_object(cutout_box, name="carry case cutout box")
+
+    case -= cutout_box
+
+    case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
+
+    if test_print:
+        case -= slice
+
+    # Mirror on top face to create both sides
+    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    if not test_print:
+        case += bd.mirror(case, about=bd.Plane(topf))
+    show_object(case, name="carry case", options={"color": (0, 0, 255)})
+    return case
+
+
+def _carrycase_blocker(base_face, wall_height):
+    """
+    Part that blocks the pcb case from going all the way through.
+    Blocker is made of 3 parts:
+    1. a flat layer offset blocker_thickness_xy, extruded  2 * blocker_thickness_z
+    from the base face,
+    2. a subtracted layer starting at blocker_thickness_z that that tapers out
+    to the carrycase wall, to create a printable overhang,
+    3. a subtracted layer extruded blocker_thickness from base_face.
+    """
     blocker_thickness_xy = (
         params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
     )
     blocker_thickness_z = 2
-    taper = 50
+    taper = 44
     overhang_thickness_z = (blocker_thickness_xy - 0.1) / math.tan(math.radians(taper))
+    overhang = bd.extrude(
+        base_face,
+        overhang_thickness_z,
+        taper=-taper,
+    ).moved(Loc((0, 0, blocker_thickness_z)))
     blocker_hull = bd.extrude(
         bd.offset(base_face, blocker_thickness_xy),
         amount=blocker_thickness_z + overhang_thickness_z,
-    )
-    overhang = bd.extrude(
-        base_face.moved(Loc((0, 0, blocker_thickness_z))),
-        overhang_thickness_z,
-        taper=-taper,
     )
     blocker_inner_cutout = bd.extrude(base_face, amount=blocker_thickness_z)
     blocker = blocker_hull - overhang - blocker_inner_cutout
@@ -408,43 +452,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         )
     )
     # show_object(blocker, name="blocker")
-
-    case = wall + blocker
-
-    # Create finger cutout for removing boards
-    botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
-    bottom_inner_wire = botf.wires()[0]
-    polar_map = PolarWireMap(bottom_inner_wire, botf.center())
-    cutout_location, _ = polar_map.get_polar_location(
-        params["carrycase_cutout_position"]
-    )
-    cutout_box = _finger_cutout(
-        cutout_location,
-        params["carrycase_wall_xy_thickness"],
-        params["carrycase_cutout_xy_width"],
-        pcb_case_wall_height - magnet_height - 0.3,
-    )
-    # show_object(cutout_box, name="carry case cutout box")
-
-    # Have to chamfer before cutout because cutout breaks the face
-    case = _poor_mans_chamfer(case, params["chamfer_len"])
-
-    # Add lip to hold board in. Do after chamfer or chamfer breaks.
-    case += _lip(base_face, carrycase=True)
-
-    case -= cutout_box
-
-    case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
-
-    if test_print:
-        case -= slice
-
-    # Mirror on top face to create both sides
-    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
-    if not test_print:
-        case += bd.mirror(case, about=bd.Plane(topf))
-    show_object(case, name="carry case", options={"color": (0, 0, 255)})
-    return case
+    return blocker
 
 
 def _friction_fit_cutout(base_face):
@@ -575,8 +583,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         cutout.orientation = location.orientation
         cutout = cutout.rotate(bd.Axis.Z, -90)
         cutout.position = location.position
-        # Add 0.01 to avoid overlap issue cutting into base slightly. Float
-        # error??
+        # Add 0.01 to avoid overlap issue cutting into base slightly. Float error?
         cutout.position += (0, 0, magnet_radius_y + params["base_z_thickness"] + 0.01)
         cutouts.append(cutout)
         # show_object(cutout, f"magnet_cutout_{position}")
@@ -609,7 +616,7 @@ def __arc_sector_ray(obj, angle1, angle2):
         A=abs(angle1 - angle2),
         b=500,
         c=500,
-        align=[Align.CENTER, Align.MAX],
+        align=(Align.CENTER, Align.MAX),
     )
     rotation_angle = (angle1 + angle2) / 2
     location = Loc(obj.center()) * Rot(Z=90) * Rot(Z=rotation_angle)
@@ -627,10 +634,10 @@ def _create_honeycomb_tile(depth, face):
     radius = params["honeycomb_radius"]
     cell_thickness = params["honeycomb_thickness"]
     d_between_centers = radius + cell_thickness
-    locs = HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
+    locs = bd.HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
     h = bd.RegularPolygon(radius, 6)
     h = bd.extrude(h, -depth)
-    hs = Plane(face) * locs * h
+    hs = bd.Plane(face) * locs * h
     return hs
 
 
@@ -647,7 +654,7 @@ def _poor_mans_chamfer(shape, size, top=False):
     else:
         face = face
     outer = bd.extrude(face, size)
-    inner_f = bd.offset(face, -size)
+    inner_f = bd.offset(face, -size).face()
     inner = bd.extrude(inner_f, size, taper=-44)
     cutout = outer - inner
     out = shape - cutout
