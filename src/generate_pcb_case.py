@@ -10,7 +10,7 @@ from build123d import *
 from build123d import Align, Rot
 Loc = bd.Location
 
-test_print = True
+test_print = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-27, 0, 0)) * bd.Box(
@@ -27,11 +27,11 @@ if __name__ not in ["__cq_main__", "temp"]:
     log = lambda x: print(x)
     # show_object = lambda *_, **__: None
 
-    # import ocp_vscode as ocp
-    # from ocp_vscode import show
-    # ocp.set_port(3939)
-    # ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
-    # show_object = lambda *args, **__: ocp.show(args)
+    import ocp_vscode as ocp
+    from ocp_vscode import show
+    ocp.set_port(3939)
+    ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
+    show_object = lambda *args, **__: ocp.show(args)
 
 # TODO:
 # * Stand, attachments for straps. Separate module/plugin?
@@ -736,32 +736,23 @@ class PolarWireMap:
             self.map_[angle] = at_position
 
 
-if __name__ in ["temp", "__cq_main__"]:
+if __name__ in ["temp", "__cq_main__", "__main__"]:
     p = script_dir / "build/outline.svg"
     p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
     # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
     # TODO: Move these to my personal maizeless build script
+    import json
+    config = Path(script_dir / "../preset_configs/maizeless.json")
+    param_overrides = json.loads(config.read_text())
     params = default_params
-    params["cutout_position"] = -34
-    params["carrycase_cutout_position"] = 105
-    params["z_space_under_pcb"] = 2.4
-    params["magnet_position"] = 100
-    params["honeycomb_base"] = True
-    params["wall_z_height"] = 2.6
-    params["lip_position_angles"] = [-160, -30]
+    params.update(param_overrides)
     pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
 
     base_face = import_svg_as_face(p)
+    show_object(base_face, name="base_face")
     # bf = bd.make_face(base_face).face()
     # show_object(bf)
 
-    # carry = generate_carrycase(base_face, pcb_case_wall_height)
-    # Generate_carrycase on a different CPU core
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(generate_carrycase, base_face,
-                                pcb_case_wall_height)
-
-        case = generate_pcb_case(base_face, pcb_case_wall_height)
-
-        carry = future.result()
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
