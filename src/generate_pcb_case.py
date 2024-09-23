@@ -42,7 +42,7 @@ default_params = {
     "flush_carrycase_lip": True,
     "output_filetype": ".stl",
     "base_z_thickness": 3,
-    "wall_xy_thickness": 2.5,
+    "wall_xy_thickness": 2.81,
     "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
     "wall_xy_bottom_tolerance": -0.2,
@@ -62,7 +62,7 @@ default_params = {
     "lip_len": 1.3,
     "lip_position_angles": [32, 158],
     "magnet_position": -90.0,
-    "magnet_separation_distance": 1.0,
+    "magnet_separation_distance": 0.81,
     "magnet_spacing": 12,
     "magnet_count": 8,
 }
