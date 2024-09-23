@@ -9,7 +9,7 @@ from build123d import *
 from build123d import Align, Rot
 Loc = bd.Location
 
-test_print = True
+test_print = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-55, 0, 0)) * bd.Box(
@@ -54,9 +54,9 @@ default_params = {
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
     "chamfer_len": 1,
-    "carrycase_tolerance_xy": 0.2,
-    "carrycase_tolerance_z": 0.4,
-    "carrycase_wall_xy_thickness": 4,
+    "carrycase_tolerance_xy": 0.4,
+    "carrycase_tolerance_z": 0.5,
+    "carrycase_wall_xy_thickness": 3,
     "carrycase_z_gap_between_cases": 9 + 1,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 15,
