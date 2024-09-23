@@ -41,7 +41,7 @@ default_params = {
     "output_dir": script_dir / "../build",
     "split": True,
     "carrycase": True,
-    "flush_carrycase_lip": False,
+    "flush_carrycase_lip": True,
     "output_filetype": ".stl",
     "base_z_thickness": 3,
     "wall_xy_thickness": 2.5,
