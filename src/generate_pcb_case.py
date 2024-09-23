@@ -3,16 +3,14 @@ import math
 import os
 from pathlib import Path
 
-import build123d as bd
 import svgpathtools as svg
 from build123d import *
-from build123d import Align, Rot
-Loc = bd.Location
+Loc = Location
 
-test_print = True
+test_print = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
-    slice = Loc((-55, 0, 0)) * bd.Box(
+    slice = Loc((-55, 0, 0)) * Box(
         300, 300, 200, align=(Align.MIN, Align.CENTER, Align.CENTER)
     )
 
@@ -74,14 +72,15 @@ if test_print:
 
 magnet_height = 2
 magnet_radius = 4 / 2
+magnet_radius_y = magnet_radius + 0.4
 
 def import_svg_as_face(path):
-    # step = bd.import_step(str(Path('~/src/keyboard_design/maizeless/pcb/maizeless.step').expanduser()))
-    # top = bd.project(step.faces().sort_by(Axis.Z)[-1], Plane.XY)
+    # step = import_step(str(Path('~/src/keyboard_design/maizeless/pcb/maizeless.step').expanduser()))
+    # top = project(step.faces().sort_by(Axis.Z)[-1], Plane.XY)
     # # show_object(top, name="STEP top")
-    # base_face = bd.Face(top.face().outer_wire())
+    # base_face = Face(top.face().outer_wire())
     # base_face.move(Loc(-base_face.center()))
-    # base_face = -bd.mirror(base_face, about=bd.Plane.XZ).face()
+    # base_face = -mirror(base_face, about=Plane.XZ).face()
     # show_object(base_face, name="STEP _base_face")
     #
     # with BuildPart() as part:
@@ -91,26 +90,26 @@ def import_svg_as_face(path):
     # return base_face
 
 
-    # script, object_name = bd.import_svg_as_buildline_code(path)
-    # outline = bd.import_svg(path)
+    # script, object_name = import_svg_as_buildline_code(path)
+    # outline = import_svg(path)
 
-    # # outline = bd.import_svg(script_dir / "build/simplified/outline.svg")
+    # # outline = import_svg(script_dir / "build/simplified/outline.svg")
     # show_object(outline, name="raw_import_outline")
     # # return outline
     # # Round trip from outline to wires to face to wires to connect the disconnected
     # # edges that an svg gets imported with.
-    # # outline = bd.make_face(outline)
-    # # base_face = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
-    # # log(bd.Shape.mesh(outline.wires(), tolerance=0.01))
-    # # outline = bd.Sketch([f for f in outline.edges() if f.length > 0.0001])
+    # # outline = make_face(outline)
+    # # base_face = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+    # # log(Shape.mesh(outline.wires(), tolerance=0.01))
+    # # outline = Sketch([f for f in outline.edges() if f.length > 0.0001])
     # # What if we make the face from the trace, then filter the wires by
     # # length and fix degen edges?
-    # bb = bd.Compound(outline).bounding_box()
+    # bb = Compound(outline).bounding_box()
     # # Offset bounding box to ensure it is larger than the outline.
-    # sheet = bd.Rectangle(bb.size.X * 3, bb.size.Y * 3, align=None).located(Loc(bb.center()))
+    # sheet = Rectangle(bb.size.X * 3, bb.size.Y * 3, align=None).located(Loc(bb.center()))
     # # Stamp out a slightly thickened outline that will hopefully cover up any gaps in the SVG paths/wires.
-    # stamp = bd.trace(outline, line_width=0.001)
-    # # stamp = bd.Sketch([f for f in stamp.faces() if f.area > 0.0001])
+    # stamp = trace(outline, line_width=0.001)
+    # # stamp = Sketch([f for f in stamp.faces() if f.area > 0.0001])
     # log(stamp)
     # # log([e.length for e in outline.edges()])
     # show_object(stamp, name="stamp")
@@ -120,33 +119,33 @@ def import_svg_as_face(path):
     # base_face = sorted(base_face, key=lambda x: x.area)[-2]
     # show_object(base_face, name="sheet")
     # edges = [e for e in base_face.edges() if e.length > 0.0001]
-    # # show(bd.make_face(edges).face())
-    # base_face = bd.make_face(edges).face()
+    # # show(make_face(edges).face())
+    # base_face = make_face(edges).face()
     # show_object(base_face, name="sheet")
     # return
-    # # base_face = bd.make_face(base_face.outer_wire().fix_degenerate_edges(0.1)).face()
+    # # base_face = make_face(base_face.outer_wire().fix_degenerate_edges(0.1)).face()
     # off = 0.5
-    # # base_face = bd.offset(bd.offset(base_face, -off), off)
+    # # base_face = offset(offset(base_face, -off), off)
     # # base_face = _safe_offset2d(_safe_offset2d(base_face, -off), off)
-    # base_face = bd.offset(base_face, -off).face()
+    # base_face = offset(base_face, -off).face()
     # base_face = _safe_offset2d(base_face, 5*off).face()
     # # log(len(base_face.faces()))
     # show_object(base_face, name="raw_import_base_face")
     # return base_face
     # base_face.move(Loc(-base_face.center()))
-    # # base_face = bd.mirror(base_face, about=bd.Plane.XZ)
+    # # base_face = mirror(base_face, about=Plane.XZ)
 
     # base_face = import_svg(path)
 
     # For testing
-    # base_face = bd.Rectangle(30,80).locate(bd.Location((40, 40, 0)))
-    # base_face = bd.import_svg(script_dir / "build/test_outline_drawn.svg")
+    # base_face = Rectangle(30,80).locate(Location((40, 40, 0)))
+    # base_face = import_svg(script_dir / "build/test_outline_drawn.svg")
 
 
     # show_object(base_face, name="base_face", options={"alpha":0.5, "color": (0, 155, 55)})
     # return base_face
 
-    # script, object_name = bd.import_svg_as_buildline_code(path)
+    # script, object_name = import_svg_as_buildline_code(path)
     # exec(script)
     # with BuildSketch() as general_import:
     #     exec("add("+object_name+".line)")
@@ -161,8 +160,8 @@ def import_svg_as_face(path):
     This is how I used to do it, using b123d import:
     # Round trip from outline to wires to face to wires to connect the disconnected
     # edges that an svg gets imported with.
-    outline = bd.import_svg(script_dir / "build/outline.svg")
-    outline = bd.make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
+    outline = import_svg(script_dir / "build/outline.svg")
+    outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
 
     def point(path_point):
@@ -187,16 +186,16 @@ def import_svg_as_face(path):
                     if i == len(paths) - 1:
                         line_end = point(first_line.start)
                     # else:
-                    #     if bd.Vertex(line_end).distance(bd.Vertex(line_start)) < 0.7:
+                    #     if Vertex(line_end).distance(Vertex(line_start)) < 0.7:
                             # Skip this path if it's really short, just go
                             # straight to the next one.
                             # continue
                     if isinstance(p, svg.Line):
-                        l = bd.Line(line_start, line_end)
+                        l = Line(line_start, line_end)
                     elif isinstance(p, svg.Arc):
                         # Seems all the arcs have same value for real + imag radius, so just use real
                         r = p.radius.real
-                        l = bd.RadiusArc(line_start, line_end, radius=r)
+                        l = RadiusArc(line_start, line_end, radius=r)
                     else:
                         log("Unknown path type for ", p)
                         raise ValueError
@@ -213,10 +212,10 @@ def import_svg_as_face(path):
     # Going through a round of offset out then back in rounds off
     # internally projecting corners just a little, and seems to help reduce the creation of invalid shapes. This won't prevent a case from fitting in, just place tiny gaps in some small concave (from the perspective of the gap) corners.
     off = 1.0
-    face = bd.offset(bd.offset(face, off), -off)
+    face = offset(offset(face, off), -off)
 
     # Flip the face because SVG import seems to be upside down
-    face = bd.mirror(face, about=bd.Plane.XZ).face()
+    face = mirror(face, about=Plane.XZ).face()
     # show_object(face, "imported face")
     return face
 
@@ -280,7 +279,7 @@ def generate_cases(svg_file, user_params=None):
 
     if params["split"] and not test_print:
         case_output = output_path("case_mirrored")
-        _export(bd.mirror(case, about=bd.Plane.YZ), case_output, "mirrored half of the PCB case")
+        _export(mirror(case, about=Plane.YZ), case_output, "mirrored half of the PCB case")
 
     if params["carrycase"]:
         print("Generating carrycase...")
@@ -293,9 +292,9 @@ def generate_cases(svg_file, user_params=None):
 
 
 def generate_pcb_case(base_face, pcb_case_wall_height):
-    base = bd.extrude(base_face, params["base_z_thickness"])
+    base = extrude(base_face, params["base_z_thickness"])
 
-    wall_outer = bd.offset(
+    wall_outer = offset(
         base_face,
         params["wall_xy_thickness"],
     )
@@ -305,7 +304,7 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
     )
     # show_object(inner_cutout, name="inner")
     wall = (
-        bd.extrude(wall_outer, pcb_case_wall_height + params["base_z_thickness"])
+        extrude(wall_outer, pcb_case_wall_height + params["base_z_thickness"])
     )
 
     wall -= inner_cutout
@@ -316,7 +315,7 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
     if params["honeycomb_base"]:
         # Create honeycomb by subtracting it from the top face of the base.
         hc = _create_honeycomb_tile(
-            params["base_z_thickness"], base.faces().sort_by(bd.Axis.Z).last
+            params["base_z_thickness"], base.faces().sort_by(Axis.Z).last
         )
         base -= hc
 
@@ -326,7 +325,7 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
 
 
     # Create finger cutout
-    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    topf = case.faces().sort_by(sort_by=Axis.Z).last
     top_inner_wire = topf.wires()[0]
     polar_map = PolarWireMap(top_inner_wire, topf.center())
     cutout_location, _ = polar_map.get_polar_location(params["cutout_position"])
@@ -354,10 +353,10 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
 
 
 def generate_carrycase(base_face, pcb_case_wall_height):
-    cutout_outline = bd.offset(
+    cutout_outline = offset(
         base_face, params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
     )
-    wall_outline = bd.offset(cutout_outline, params["carrycase_wall_xy_thickness"])
+    wall_outline = offset(cutout_outline, params["carrycase_wall_xy_thickness"])
     wall_outline -= cutout_outline
 
     wall_height = (
@@ -365,8 +364,8 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         + params["base_z_thickness"]
         + params["carrycase_z_gap_between_cases"]
     )
-    wall = bd.extrude(wall_outline, wall_height)
-    # cutout = bd.extrude(cutout_outline, wall_height)
+    wall = extrude(wall_outline, wall_height)
+    # cutout = extrude(cutout_outline, wall_height)
 
     blocker = _carrycase_blocker(base_face, wall_height)
     case = wall + blocker
@@ -375,7 +374,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     case = _poor_mans_chamfer(case, params["chamfer_len"])
 
     # Create finger cutout for removing boards
-    botf = case.faces().sort_by(sort_by=bd.Axis.Z).first
+    botf = case.faces().sort_by(sort_by=Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
     polar_map = PolarWireMap(bottom_inner_wire, botf.center())
     cutout_location, _ = polar_map.get_polar_location(
@@ -385,7 +384,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         cutout_location,
         params["carrycase_wall_xy_thickness"],
         params["carrycase_cutout_xy_width"],
-        pcb_case_wall_height - magnet_height - 0.3,
+        pcb_case_wall_height - magnet_radius_y - 0.3,
     )
     # show_object(cutout_box, name="carry case cutout box")
 
@@ -402,9 +401,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         case -= slice
 
     # Mirror on top face to create both sides
-    topf = case.faces().sort_by(sort_by=bd.Axis.Z).last
+    topf = case.faces().sort_by(sort_by=Axis.Z).last
     if not test_print:
-        case += bd.mirror(case, about=bd.Plane(topf))
+        case += mirror(case, about=Plane(topf))
     show_object(case, name="carry case", options={"color": (0, 0, 255)})
     return case
 
@@ -419,22 +418,24 @@ def _carrycase_blocker(base_face, wall_height):
     to the carrycase wall, to create a printable overhang,
     3. a subtracted layer extruded blocker_thickness from base_face.
     """
+    # Half the wall thickness. Don't want too close to the keyboard because as
+    # the keys tilt to get in, they might hit the blocker.
     blocker_thickness_xy = (
-        params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
+        params["wall_xy_thickness"]/2 + params["carrycase_tolerance_xy"]
     )
-    blocker_thickness_z = 2
+    blocker_thickness_z = 1.5
     taper = 44
     overhang_thickness_z = (blocker_thickness_xy - 0.1) / math.tan(math.radians(taper))
-    overhang = bd.extrude(
+    overhang = extrude(
         base_face,
         overhang_thickness_z,
         taper=-taper,
     ).moved(Loc((0, 0, blocker_thickness_z)))
-    blocker_hull = bd.extrude(
-        bd.offset(base_face, blocker_thickness_xy),
+    blocker_hull = extrude(
+        offset(base_face, blocker_thickness_xy),
         amount=blocker_thickness_z + overhang_thickness_z,
     )
-    blocker_inner_cutout = bd.extrude(base_face, amount=blocker_thickness_z)
+    blocker_inner_cutout = extrude(base_face, amount=blocker_thickness_z)
     blocker = blocker_hull - overhang - blocker_inner_cutout
     # Locate the blocker at the top of the pcb case all
     blocker.move(
@@ -485,9 +486,9 @@ def _friction_fit_cutout(base_face):
     # # So let's try having an untapered wall below the pcb, and only tapering
     # # where the bottom tolerance will come into play.
     # bottom_face = _safe_offset2d(base_face.face(), params["wall_xy_bottom_tolerance"])
-    # under_pcb = bd.extrude(bottom_face, amount=params["z_space_under_pcb"])
-    # face_at_pcb = under_pcb.faces().sort_by(sort_by=bd.Axis.Z).last
-    # tapered_cutout = bd.extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
+    # under_pcb = extrude(bottom_face, amount=params["z_space_under_pcb"])
+    # face_at_pcb = under_pcb.faces().sort_by(sort_by=Axis.Z).last
+    # tapered_cutout = extrude(face_at_pcb, amount=params["wall_z_height"], taper=-taper)
     # case_inner_cutout = under_pcb + tapered_cutout
 
     T = math.tan(math.radians(taper))  # opp/adj
@@ -495,8 +496,8 @@ def _friction_fit_cutout(base_face):
     # # should start (unknown), and one where the pcb starts (wall_xy_bottom_tolerance).
     case_bottom_offset = T * params["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + params["wall_xy_bottom_tolerance"]
-    bottom_face = bd.offset(base_face, bottom_offset).face()
-    case_inner_cutout = bd.extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    bottom_face = offset(base_face, bottom_offset).face()
+    case_inner_cutout = extrude(bottom_face, amount=total_wall_height, taper=-taper)
 
     # Check tightness where pcb should sit
     # pcb_face = base_face.face().thicken(0.01).moved(Loc((0, 0, params["z_space_under_pcb"])))
@@ -527,24 +528,27 @@ def _finger_cutout(location, thickness, width, height):
     # only cutting out of one side.
     # Centering because sometimes depending on the wire we get the location
     # from, it'll be flipped, so we can't just align to MAX.
-    cutout_box = bd.Box(
+    cutout_box = Box(
         # 2.1 to get some overlap
         thickness * 2.1,
         width,
         height * 2,
     )
     # Smooth the sides of the cutout
-    cutout_box = bd.fillet(cutout_box.edges().filter_by(bd.Axis.X), height / 2)
+    cutout_box = fillet(cutout_box.edges().filter_by(Axis.X), height / 2)
     cutout_box.locate(cutout_location)
     return cutout_box
 
 
 def _magnet_cutout(main_face, angle, carrycase=False):
-    # Adding a bit of extra space around the radius, so that we can print
+    assert params["wall_xy_thickness"] - \
+        params["magnet_separation_distance"] >= magnet_height, \
+        "Your wall thickness is too small for the magnets to fit."
+    # Ellipse rather than circle to add a extra space at the top of the magnet radius, so that we can print
     # magnet holes without supports and account for the resulting droop.
-    magnet_radius_y = magnet_radius + 0.2
-    hole = bd.Plane.XY * bd.Ellipse(
-        x_radius=magnet_radius,
+    hole = Plane.XZ * Ellipse(
+        # A tiny bit bigger X than the radius to give fit tolerance. Doensn't need to be a super snug fit, since they'll be held in place by glue or the pcb.
+        x_radius=magnet_radius + 0.2,
         y_radius=magnet_radius_y,
     ).face()
 
@@ -552,19 +556,21 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         distance = (
             params["wall_xy_thickness"]
             + params["carrycase_tolerance_xy"]
-            + magnet_height
+            + magnet_height + 0.1
         )
     else:
         # Distance into main wall of case
         distance = params["wall_xy_thickness"] - params["magnet_separation_distance"]
-    template = bd.extrude(hole, distance)
-    if not carrycase:
-        # Extend into the case too to ensure no overlap, e.g. due to taper
-        template += bd.extrude(hole, -(magnet_height))
+    # Extend into the case too to ensure no overlap, e.g. due to taper
+    # Need it to be centered on X axis so when it is positioned and rotated, it doesn't matter if it is 180 degrees backwards (which might happen on a flipped wire.)
+    template = extrude(hole, distance)
+    template += extrude(hole, -distance)
+    # if not carrycase:
+    #     template += extrude(hole, -(magnet_height))
 
     # Get second largest face parallel to XY plane - i.e., the inner case face
-    # inner_case_face = sorted(case.faces().filter_by(bd.Plane.XY), key=lambda x: x.area)[-2]
-    inner_wire = main_face.wires()[0]
+    # inner_case_face = sorted(case.faces().filter_by(Plane.XY), key=lambda x: x.area)[-2]
+    inner_wire = main_face.wire()
     # show_object(inner_wire, name="inner_wire")
     polar_map = PolarWireMap(inner_wire, main_face.center())
     _, center_percent = polar_map.get_polar_location(angle)
@@ -577,10 +583,15 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     for _ in range(params["magnet_count"]):
         cutout = copy.copy(template)
         location = inner_wire.location_at(
-            position, position_mode=bd.PositionMode.LENGTH
+            position, position_mode=PositionMode.LENGTH
         )
-        cutout.orientation = location.orientation
-        cutout = cutout.rotate(bd.Axis.Z, -90)
+        # Rotation on wire can be tricky to get right, and may flip depending on the location on the wire.
+        # All we know is that the wire's Z orientation is the wire tangent.
+        rotation = inner_wire.tangent_angle_at(position, position_mode=PositionMode.LENGTH)
+        # If the wire has flipped,
+        # towards_center = Axis(origin=main_face.center(), edge=Line(main_face.center(), location.position).edge())
+
+        cutout = cutout.rotate(Axis.Z, rotation)
         cutout.position = location.position
         # Add 0.01 to avoid overlap issue cutting into base slightly. Float error?
         cutout.position += (0, 0, magnet_radius_y + params["base_z_thickness"] + 0.01)
@@ -602,49 +613,49 @@ def _lip(base_face, carrycase=False):
         lip_xy_len += 0.3
         lip_z_len += 0.3
     # Inner face of carrycase
-    inner_face = bd.offset(
+    inner_face = offset(
         base_face,
         params["wall_xy_thickness"]
         + params["carrycase_tolerance_xy"]
     )
     # Outer is the full carrycase outer face
-    outer_face = bd.offset(
+    outer_face = offset(
         inner_face,
         params["carrycase_wall_xy_thickness"]
         # minus chamfer to avoid interfering/drawing over it.
         - params["chamfer_len"],
     )
-    case_outer_face = bd.offset(base_face, params["wall_xy_thickness"])
-    cutout_face = bd.offset(base_face, params["wall_xy_thickness"] - lip_xy_len)
+    case_outer_face = offset(base_face, params["wall_xy_thickness"])
+    cutout_face = offset(base_face, params["wall_xy_thickness"] - lip_xy_len)
     lip = outer_face - cutout_face
 
     # Intersect lip with sector/triangle between the two angles.
     bounds = case_outer_face.bounding_box()
     bound_max = max(bounds.size.X, bounds.size.Y) * 2
     boundary_lines = [
-        bd.PolarLine(
+        PolarLine(
             base_face.center(),
             bound_max,
             params["lip_position_angles"][0]
         ),
-        bd.PolarLine(
+        PolarLine(
             base_face.center(),
             bound_max,
             params["lip_position_angles"][1]
         )
     ]
-    lip_boundary = bd.make_face(
-        [*boundary_lines, bd.Line(boundary_lines[0] @ 1, boundary_lines[1] @ 1)]
+    lip_boundary = make_face(
+        [*boundary_lines, Line(boundary_lines[0] @ 1, boundary_lines[1] @ 1)]
     )
     lip = lip.intersect(lip_boundary)
 
-    lip = bd.extrude(lip.face(), lip_z_len)
+    lip = extrude(lip.face(), lip_z_len)
 
     if params["flush_carrycase_lip"]:
         # Poor man's chamfer of inner edge of lip
         # No point doing it with non-flush lip, because it would reduce the
         # catching surface.
-        chamfer_cutout = bd.extrude(cutout_face.face(), lip_z_len, taper=-45)
+        chamfer_cutout = extrude(cutout_face.face(), lip_z_len, taper=-45)
         lip -= chamfer_cutout
     else:
         lip.move(Loc((0, 0, -lip_z_len)))
@@ -663,28 +674,28 @@ def _create_honeycomb_tile(depth, face):
     radius = params["honeycomb_radius"]
     cell_thickness = params["honeycomb_thickness"]
     d_between_centers = radius + cell_thickness
-    locs = bd.HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
-    h = bd.RegularPolygon(radius, 6)
-    h = bd.extrude(h, -depth)
-    hs = bd.Plane(face) * locs * h
+    locs = HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
+    h = RegularPolygon(radius, 6)
+    h = extrude(h, -depth)
+    hs = Plane(face) * locs * h
     return hs
 
 
 def _poor_mans_chamfer(shape, size, top=False):
     """Chamfers the bottom or top outer edge of a shape by subtracting a tapered extrusion"""
-    faces = shape.faces().sort_by(sort_by=bd.Axis.Z)
+    faces = shape.faces().sort_by(sort_by=Axis.Z)
     if top:
         face = faces.last
     else:
         face = faces.first
-    face = bd.make_face(face.outer_wire()).face()
+    face = make_face(face.outer_wire()).face()
     if top:
         face = -face
     else:
         face = face
-    outer = bd.extrude(face, size)
-    inner_f = bd.offset(face, -size).face()
-    inner = bd.extrude(inner_f, size, taper=-44)
+    outer = extrude(face, size)
+    inner_f = offset(face, -size).face()
+    inner = extrude(inner_f, size, taper=-44)
     cutout = outer - inner
     out = shape - cutout
     return out
@@ -698,9 +709,9 @@ def _export(shape, path, name):
     print(f"Exporting {name} as {path}...")
     pathstr = str(path)
     if path.suffix == ".stl":
-        bd.export_stl(shape, pathstr)
+        export_stl(shape, pathstr)
     elif path.suffix == ".step":
-        bd.export_step(shape, pathstr)
+        export_step(shape, pathstr)
     else:
         print(f"Invalid export suffix: '{path.suffix}' Must be .stl or .step")
 
@@ -735,9 +746,9 @@ class PolarWireMap:
         while at_position <= 1:
             location = self.wire ^ at_position
             at_position += iter
-            ax1 = bd.Axis.X
-            ax2 = bd.Wire(bd.Line(self.origin, location.position)).edge()
-            ax2 = bd.Axis(edge=ax2)
+            ax1 = Axis.X
+            ax2 = Wire(Line(self.origin, location.position)).edge()
+            ax2 = Axis(edge=ax2)
             angle = round(ax1.angle_between(ax2))
             if ax2.direction.Y < 0:
                 # Angle between gives up to 180 as a positive value, so we need to
@@ -760,9 +771,9 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
 
 
     base_face = import_svg_as_face(p)
-    show_object(base_face, name="base_face")
-    # bf = bd.make_face(base_face).face()
+    # show_object(base_face, name="base_face")
+    # bf = make_face(base_face).face()
     # show_object(bf)
 
     carry = generate_carrycase(base_face, pcb_case_wall_height)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
