@@ -1,9 +1,8 @@
 {
-    "cutout_position": -34,
-    "carrycase_cutout_position": 105,
+    "cutout_position": 32,
+    "carrycase_cutout_position": -108,
     "z_space_under_pcb": 2.4,
-    "magnet_position": 100,
+    "magnet_position": -100,
     "honeycomb_base": true,
-    "wall_z_height": 2.6,
-    "lip_position_angles": [-160, -30]
+    "wall_z_height": 2.6
 }

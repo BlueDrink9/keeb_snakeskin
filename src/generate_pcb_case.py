@@ -65,9 +65,9 @@ default_params = {
     "lip_xy_len": 1.3,
     "lip_position_angles": [160, 30],
     "magnet_position": -90.0,
-    "magnet_separation_distance": 1,
+    "magnet_separation_distance": 0.8,
     "magnet_spacing": 12,
-    "magnet_count": 7,
+    "magnet_count": 8,
 }
 params = default_params
 if test_print:
@@ -210,10 +210,14 @@ def import_svg_as_face(path):
 
     face = bd_s.sketch.face()
     face.move(Loc(-face.center()))
+
     # Going through a round of offset out then back in rounds off
     # internally projecting corners just a little, and seems to help reduce the creation of invalid shapes. This won't prevent a case from fitting in, just place tiny gaps in some small concave (from the perspective of the gap) corners.
     off = 1.0
     face = bd.offset(bd.offset(face, off), -off)
+
+    # Flip the face because SVG import seems to be upside down
+    face = bd.mirror(face, about=bd.Plane.XZ).face()
     # show_object(face, "imported face")
     return face
 
