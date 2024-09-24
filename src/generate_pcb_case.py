@@ -427,7 +427,6 @@ def _carrycase_blocker(base_face, wall_height):
     carrycase_inner_face = offset(
         base_face, params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
     ).face()
-    show_object(carrycase_inner_face, name="carrycase_inner_face")
     # Half the wall thickness. Don't want too close to the keyboard because as
     # the keys tilt to get in, they might hit the blocker.
     blocker_thickness_xy = (
