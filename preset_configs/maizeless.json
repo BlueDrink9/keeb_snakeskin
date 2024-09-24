@@ -4,5 +4,5 @@
     "z_space_under_pcb": 2.4,
     "magnet_position": -100,
     "honeycomb_base": true,
-    "wall_z_height": 2.6
+    "wall_z_height": 3.0
 }
