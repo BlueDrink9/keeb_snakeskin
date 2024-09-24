@@ -68,12 +68,18 @@ default_params = {
 }
 params = default_params
 
+test_overrides = {
+    "base_z_thickness": 1.5,
+    "magnet_position": -180 + 22,
+    "magnet_count": 1,
+}
+
 magnet_height = 2
 magnet_radius = 4 / 2
 magnet_radius_y = magnet_radius + 0.4
 
 def import_svg_as_face(path):
-    # step = import_step(str(Path('~/src/keyboard_design/maizeless/pcb/maizeless.step').expanduser()))
+    # step = import_step(str(kPath('~/src/keyboard_design/maizeless/pcb/maizeless.step').expanduser()))
     # top = project(step.faces().sort_by(Axis.Z)[-1], Plane.XY)
     # # show_object(top, name="STEP top")
     # base_face = Face(top.face().outer_wire())
@@ -262,6 +268,8 @@ def generate_cases(svg_file, user_params=None):
     if not user_params:
         user_params = {}
     params.update(user_params)
+    if test_print:
+        params.update(test_overrides)
 
     pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
@@ -416,6 +424,10 @@ def _carrycase_blocker(base_face, wall_height):
     to the carrycase wall, to create a printable overhang,
     3. a subtracted layer extruded blocker_thickness from base_face.
     """
+    carrycase_inner_face = offset(
+        base_face, params["wall_xy_thickness"] + params["carrycase_tolerance_xy"]
+    ).face()
+    show_object(carrycase_inner_face, name="carrycase_inner_face")
     # Half the wall thickness. Don't want too close to the keyboard because as
     # the keys tilt to get in, they might hit the blocker.
     blocker_thickness_xy = (
@@ -424,17 +436,18 @@ def _carrycase_blocker(base_face, wall_height):
     blocker_thickness_z = 1.5
     taper = 44
     overhang_thickness_z = (blocker_thickness_xy - 0.1) / math.tan(math.radians(taper))
+    blocker_hull = extrude(
+        carrycase_inner_face,
+        amount=blocker_thickness_z + overhang_thickness_z,
+    )
+    inner_cutout_face = offset(carrycase_inner_face, -blocker_thickness_xy).face()
+    inner_cutout = extrude(inner_cutout_face, amount=blocker_thickness_z)
     overhang = extrude(
-        base_face,
+        inner_cutout_face,
         overhang_thickness_z,
         taper=-taper,
     ).moved(Loc((0, 0, blocker_thickness_z)))
-    blocker_hull = extrude(
-        offset(base_face, blocker_thickness_xy),
-        amount=blocker_thickness_z + overhang_thickness_z,
-    )
-    blocker_inner_cutout = extrude(base_face, amount=blocker_thickness_z)
-    blocker = blocker_hull - overhang - blocker_inner_cutout
+    blocker = blocker_hull - overhang - inner_cutout
     # Locate the blocker at the top of the pcb case all
     blocker.move(
         Loc(
@@ -755,9 +768,7 @@ class PolarWireMap:
             self.map_[angle] = at_position
 
 if test_print:
-    params["base_z_thickness"] = 1.5
-    params["magnet_position"] = -180 + 22
-    params["magnet_count"] = 1
+    params.update(test_overrides)
 
 if __name__ in ["temp", "__cq_main__", "__main__"]:
     p = script_dir / "build/outline.svg"
@@ -769,11 +780,8 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     param_overrides = json.loads(config.read_text())
     params = default_params
     params.update(param_overrides)
-
     if test_print:
-        params["base_z_thickness"] = 1.5
-        params["magnet_position"] = -180 + 22
-        params["magnet_count"] = 1
+        params.update(test_overrides)
 
     pcb_case_wall_height = params["z_space_under_pcb"] + params["wall_z_height"]
 
