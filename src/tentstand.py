@@ -82,13 +82,27 @@ def _flap_hinge_face(length):
     # show_object(flap_hinge_face)
     return flap_hinge_face
 
-def _flap(length, width_end, width_near, thickness, inner=True):
+@dataclass
+class Flap:
+    """Represents a tenting flap.
+    len is the X length of the flap.
+    width is the width of the far end (away from the hinge) of the tenting flap.
+    tenting_angle is the angle from 0 that the keyboard will be rotated
+    clockwise when looking in the direction of the X axis (i.e. angle it will
+    tilt the board face towards the user).
+    """
+    len: int
+    width: int
+    tent_angle: int = 0
+
+def _flap(f: Flap, width_near, inner=True):
+    thickness = flap_t
     # TODO: add tenting angle front/back at the end.
-    top_left_point = ((width_near - width_end) / 2, length),
+    top_left_point = ((width_near - f.width) / 2, f.len),
     face = Polygon(
         (0, 0),
         (width_near, 0),
-        (width_end + (width_near - width_end) / 2, length),
+        (f.width + (width_near - f.width) / 2, f.len),
         top_left_point,
         align=(Align.CENTER, Align.MIN),
     )
@@ -116,32 +130,18 @@ def _flap(length, width_end, width_near, thickness, inner=True):
     return flap
 
 
-@dataclass
-class Flap:
-    """Represents a tenting flap.
-    len is the X length of the flap.
-    width is the width of the far end (away from the hinge) of the tenting flap.
-    tenting_angle is the angle from 0 that the keyboard will be rotated
-    clockwise when looking in the direction of the X axis (i.e. angle it will
-    tilt the board face towards the user).
-    """
-    len: int
-    width: int
-    tenting_angle: int = 0
-
 def tenting_flaps(flaps: Iterable[Flap]):
     flaps.sort(key=lambda f: f.len, reverse=True)
     out = []
     for i, f in enumerate(flaps):
-        length, width = f.len, f.width
         offset = hinge_width_y*(i+1) + 0.2*(i+1)
         flap_hinge_width = mechanism_length - offset*2
-        flap_hinge = extrude(Plane.XZ * _flap_hinge_face(length), hinge_width_y)
+        flap_hinge = extrude(Plane.XZ * _flap_hinge_face(f.len), hinge_width_y)
         flap_hinge.move(Loc((0, -offset)))
         flap_hinge.move(Loc((0, mechanism_length/2)))
         flap_hinge += mirror(flap_hinge, Plane.XZ)
         flap = -Plane.YX * _flap(
-            length, width, flap_hinge_width, flap_t, inner=i+1==len(flaps)
+            f, flap_hinge_width, inner=i+1==len(flaps)
         )
         flap = flap.move(Loc((0, 0, -outer.radius)))
         flap += flap_hinge
@@ -160,4 +160,4 @@ def tenting_flaps(flaps: Iterable[Flap]):
 
     return out
 
-tenting_flaps([Flap(90, 40), Flap(30, 50)])
+tenting_flaps([Flap(90, 40), Flap(30, 50, 35)])
