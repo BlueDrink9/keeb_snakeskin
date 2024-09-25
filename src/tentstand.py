@@ -39,7 +39,7 @@ case_hinge_face = outer_block + blocker + hinge_face
 #  # class CounterSinkHole(radius: float, counter_sink_radius: float, depth: Optional[float] = None, counter_sink_angle: float = 82, mode: Mode = Mode.SUBTRACT)[source]
 # # .extrude(bold_d)
 
-def _flap_hinge_face(len):
+def _flap_hinge_face(length):
     # Angle above 90 when open so that it holds itself open and won't
     # collapse.
     open_angle = 110
@@ -58,14 +58,39 @@ def _flap_hinge_face(len):
     # show_object(flap_hinge_face)
     return flap_hinge_face
 
-def _flap(len, width_end, width_near):
-    flap = Polygon(
+def _flap(length, width_end, width_near, thickness, inner=True):
+    top_left_point = ((width_near - width_end) / 2, length),
+    face = Polygon(
         (0, 0),
         (width_near, 0),
-        (width_end + (width_near - width_end) / 2, len),
-        ((width_near - width_end) / 2, len),
+        (width_end + (width_near - width_end) / 2, length),
+        top_left_point,
         align=(Align.CENTER, Align.MIN),
     )
+    flap = extrude(face, thickness)
+    show_object(flap, name="flap")
+
+    if inner:
+        # Add a ridge to hold the next flap out in place when closed. Innermost
+        # flap should have velcro to the PCB to hold it in place.
+        edge = face.edges().sort_by(Axis.X).first
+        ax = Axis(origin=edge @ 0, edge=edge)
+        # Wire(Line(self.origin, location.position)).edge()
+        # Create a plane such that the flap edge is X.
+        plane = Plane(origin = edge @ 0.5, x_dir=ax.direction, y_dir=Axis.Y.direction)
+        ridge_width = edge.length/6
+        # Thick enough for chamfer to not fail, and pegged to width for that same reason.
+        ridge_len = thickness*0.25*ridge_width
+        # Arbitrary edge length ratio.
+        ridge_face = Ellipse(ridge_width, ridge_len)
+        # Remove half to form semicircle
+        ridge_face = plane * split(ridge_face)
+        ridge = extrude(ridge_face, thickness/2)
+        top_curve = ridge.edges().group_by(Axis.Z)[-1].sort_by(SortBy.LENGTH)[-1]
+        ridge = chamfer(top_curve, thickness/2 - 0.1)
+        flap += ridge
+
+
     return flap
 
 
@@ -80,24 +105,24 @@ bolthole_cutout.move(Loc((0, mechanism_length/2,)))
 bolthole_cutout += mirror(bolthole_cutout, Plane.XZ)
 
 flaps = []
-for i, (len, width) in enumerate(flap_lens):
+for i, (length, width) in enumerate(flap_lens):
     offset = hinge_width_y*(i+1) + 0.2*(i+1)
     flap_hinge_width = mechanism_length - offset*2
-    flap_hinge = extrude(Plane.XZ * _flap_hinge_face(len), hinge_width_y)
+    flap_hinge = extrude(Plane.XZ * _flap_hinge_face(length), hinge_width_y)
     flap_hinge.move(Loc((0, -offset)))
     flap_hinge.move(Loc((0, mechanism_length/2)))
     flap_hinge += mirror(flap_hinge, Plane.XZ)
     # show_object(flap_hinge)
-    flap = -Plane.YX * _flap(len, width, flap_hinge_width)
-    flap = extrude(flap, flap_t)
+    flap = -Plane.YX * _flap(
+        length, width, flap_hinge_width, flap_t, inner=i+1==len(flap_lens)
+    )
     flap = flap.move(Loc((0, 0, -outer.radius)))
     flap += flap_hinge
     flap -= bolthole_cutout
     flaps.append(flap + flap_hinge)
 
-# cut smaller flaps out of the larger ones.
+# Cut smaller flaps out of the larger ones.
 for i, flap in enumerate(flaps):
     for inner in flaps[i+1:]:
-        flaps[i] -= inner
-
-show_object(flaps[0], name=f"flaps")
+        flaps[i] -= scale(inner, ((1.01, 1.01, 1)))
+    show_object(flaps[i], name=f"flaps{i}")
