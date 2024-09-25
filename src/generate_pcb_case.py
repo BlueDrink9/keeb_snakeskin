@@ -7,7 +7,7 @@ import svgpathtools as svg
 from build123d import *
 Loc = Location
 
-test_print = True
+test_print = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-55, 0, 0)) * Box(
@@ -40,8 +40,10 @@ default_params = {
     "split": True,
     "carrycase": True,
     "flush_carrycase_lip": True,
+    "honeycomb_base": True,
+    "strap_loop": True,
     "output_filetype": ".stl",
-    "base_z_thickness": 3,
+    "base_z_thickness": 2,
     "wall_xy_thickness": 2.81,
     "wall_z_height": 4.0,
     "z_space_under_pcb": 1,
@@ -49,10 +51,12 @@ default_params = {
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
-    "honeycomb_base": True,
+    "chamfer_len": 1,
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
-    "chamfer_len": 1,
+    "strap_loop_thickness": 4,
+    "strap_loop_end_offset": 0,
+    "strap_loop_gap": 5,
     "carrycase_tolerance_xy": 0.4,
     "carrycase_tolerance_z": 0.5,
     "carrycase_wall_xy_thickness": 3,
@@ -351,6 +355,18 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
         # Cut out magnet holes
         case -= _magnet_cutout(base_face, params["magnet_position"])
 
+    if params["strap_loop"]:
+        strap_loop = _strap_loop(
+            base_face, pcb_case_wall_height + params["base_z_thickness"] - params["chamfer_len"]*2
+        ).moved(Loc((0, 0, params["chamfer_len"])))
+        for end in [0, -1]:
+            edges = strap_loop.edges().group_by(Axis.Z)
+            # Filter out edges that touches the case to avoid sharp angle on
+            # the chamfer
+            e = ShapeList([*edges[end].group_by(Axis.X)[:2]])
+            strap_loop = chamfer(e, min(0.5, params["chamfer_len"], params["strap_loop_thickness"] / 2))
+        case += strap_loop
+
     if test_print:
         case -= slice
 
@@ -395,6 +411,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # show_object(cutout_box, name="carry case cutout box")
 
     case -= cutout_box
+
+    if params["strap_loop"]:
+        strap_loop = _strap_loop(
+            base_face, 1
+        ).faces().sort_by(sort_by=Axis.Z).first
+        cutout_face = offset(make_hull(strap_loop.edges()), 0.2)
+        case -= extrude(cutout_face, pcb_case_wall_height + params["base_z_thickness"])
 
     # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
     # flush, changes the top face so do after finger cutout.
@@ -674,10 +697,33 @@ def _lip(base_face, carrycase=False):
     return lip
 
 
-def _find_nearest_key(d, target_int):
-    """Find the nearest existing key in a dict to a target integer"""
-    nearest = min(d, key=lambda x: abs(x - target_int))
-    return nearest
+def _strap_loop(base_face, case_height):
+    """Create a loop for attaching a strap to the left side of the case."""
+    outer_face = offset(base_face, params["wall_xy_thickness"])
+    # Find the leftmost edge of the case
+    bb = outer_face.bounding_box()
+    end_range_size = 0.1
+    case_end_range = Rectangle(end_range_size, bb.size.Y, align=(Align.MIN, Align.CENTER)).located(
+        Loc((bb.min.X, bb.center().Y))
+    )
+    case_end_face = case_end_range.intersect(outer_face)
+    case_end = case_end_face.bounding_box()
+
+    # How much ends of loop are pulled in from the case end (useful for
+    # avoiding or merging with rounded corners)
+    end_inset = params["strap_loop_end_offset"]
+    loop_gap_size = params["strap_loop_gap"]
+    loop_thickness = params["strap_loop_thickness"]
+    x = case_end.min.X + loop_thickness/2
+    outer = SagittaArc(
+        (x, case_end.min.Y + loop_thickness/2 + end_inset),
+        (x, case_end.max.Y - loop_thickness/2 - end_inset),
+        loop_gap_size + loop_thickness,
+    )
+    strap_loop = SlotArc(outer, loop_thickness) - outer_face
+    strap_loop = extrude(strap_loop, case_height)
+    # show_object(strap_loop, name="strap_loop")
+    return strap_loop
 
 
 def _create_honeycomb_tile(depth, face):
@@ -708,6 +754,9 @@ def _poor_mans_chamfer(shape, size, top=False):
     inner = extrude(inner_f, size, taper=-44)
     cutout = outer - inner
     out = shape - cutout
+    # show_object(inner_f, name="inner_f")
+    # show_object(outer, name="outer")
+    # show_object(inner, name="inner")
     return out
 
 
@@ -724,6 +773,12 @@ def _export(shape, path, name):
         export_step(shape, pathstr)
     else:
         print(f"Invalid export suffix: '{path.suffix}' Must be .stl or .step")
+
+
+def _find_nearest_key(d, target_int):
+    """Find the nearest existing key in a dict to a target integer"""
+    nearest = min(d, key=lambda x: abs(x - target_int))
+    return nearest
 
 
 class PolarWireMap:

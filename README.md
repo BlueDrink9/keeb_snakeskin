@@ -68,8 +68,8 @@ is only one severe (90 degree) overhang in the design, which is the first
 blocker of the carrycase. This should be the only part that needs supports.
 Setting your printer to only print overhangs over 70 degrees should be enough
 to automatically support only this part. If you aren't printing the carrycase,
-you shouldn't need supports unless your bridging performance on the magnets is
-bad.
+you shouldn't need supports at all unless your bridging performance on the magnets is bad.
+If you are using advanced features like the strap loop, you may need supports.
 
 If `flush_carrycase_lip` is `False`, you will need short supports all around the bottom of the
 carrycase, and its top lip. Again, setting overhangs to 70 degrees should
@@ -117,10 +117,12 @@ examples.
 | `split`| True | If True, generate mirrored pair of files for a split board |
 | `carrycase` | True | Whether the output designs should incorporate the compression-style carrycase. Will affect the main case as well. |
 | `honeycomb_base` | True | Make the base of the case a honeycombed/hexagon cage instead of solid |
-| `output_filetype` | `.step` | `.step` or `.stl`. What filetype the case will be exported as. |
 | `flush_carrycase_lip` | True | Two options for holding the pcb case into the carrycase: a lip that extends into the carrycase center, with a matching cutout in the pcb case; or, a lip that sits a bit above and below the carrycase. If false, the pcb case will have a flat bottom and your tolerances between the case and carrycase can be tighter, giving a better fit when in the case. However, it will require more supports when printing. |
+| `strap_loop` | False | Adds a loop on the left most end of the boards for a
+strap, e.g. for mounting on legs or chair arms. Experimental. |
+| `output_filetype` | `.step` | `.step` or `.stl`. What filetype the case will be exported as. |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
-| `wall_xy_thickness` | 3 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case.  Top and bottom wall tolerance will also affect the thickness that actually gets printed. Recommend 2 + `magnet_separation_distance` if you're using the carrycase, so the magnets don't rattle. If it's larger, you'll have to glue the magnets into the case as well as the carrycase. |
+| `wall_xy_thickness` | 3 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case.  Top and bottom wall tolerance will also affect the thickness that actually gets printed. Recommend 2 + `magnet_separation_distance` if you're using the carrycase, so the magnets don't rattle. If it's larger, you'll have to glue the magnets into the case as well as the carrycase. If you are using the carrycase and have tall keys (i.e. not flat-soldered chocs) close to the edge of the PCB, you may need to make this bigger and tweak the carrycase lip to ensure enough clearance of the carrycase blocker when you insert the board. |
 | `wall_z_height` | 4.0 mm | Z height of the wall **from the bottom of the PCB** (total case wall height will include z_space_under_pcb). The default includes room for magnets for the carrycase. If you aren't adding a carrycase, 1.6 is a good height for a standard PCB thickness if you just want to cover the pcb. |
 | `z_space_under_pcb` | 1 mm | The size of the gap beneath the PCB, to leave room for through-hole pins, wires, hotswap sockets etc on the underside. Modify this to at least 1.85 if you are using kailh hotswap sockets under the PCB, for example. Also increase it if you want to have bigger tolerences for the fit and need more space for the walls to narrow in. By default, leaves just enough space for the pins of a choc switch directly soldered into a 1.6 mm pcb (which I measure stick out at about 0.83 mm). |
 | `wall_xy_bottom_tolerance` | -0.3 mm | Amount of space between the PCB and the case walls near the case bottom, where PCB should sit (i.e. above z_space_under_pcb). Intended as a -ve value to get a tight friction fit. This is implemented with a scaling hack because of engine limitations, so I'd encourage measuring the result in a CAD program if you need it exact. |
@@ -129,6 +131,11 @@ examples.
 | `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
 | `honeycomb_radius` | 6 mm | Radius of the blank space hexagons for the honeycomb case base |
 | `honeycomb_thickness` | 2 mm | Thickness of the bars (space between hexagons) of the honeycomb case base |
+| `strap_loop_thickness` | 4 mm | Thickness (in XY) of the strap loop |
+| `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the
+strap starts. Fiddle with this to avoid or merge with corners, for example. |
+| `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go
+through. |
 
 #### Carrycase options
 

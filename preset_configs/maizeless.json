@@ -4,5 +4,7 @@
     "z_space_under_pcb": 2.4,
     "magnet_position": -100,
     "honeycomb_base": true,
+    "strap_loop": true,
+    "strap_loop_end_offset": -1.5,
     "wall_z_height": 3.0
 }
