@@ -1,4 +1,6 @@
 import math
+from typing import Iterable
+from dataclasses import dataclass
 from build123d import *
 Loc = Location
 
@@ -13,10 +15,6 @@ bolt_l = 50 # Doesn't include head
 wall_height = 6.4
 mechanism_length = 80
 hinge_width_y = 5
-# Pairs of length, width (where width is the width of the far end of the
-# tenting flap), in order of len
-# TODO: add tenting angle front/back at the end.
-flap_lens = [(90, 40), (30, 50)]
 flap_t = 2
 blocker_zlen = 1
 # More than 90 so that the mating face on the flap hinges can be well above
@@ -28,6 +26,7 @@ outer = Circle(radius=bolt_d/2 + (wall_height-bolt_d)/2 - blocker_zlen/2)
 case_connector = Rectangle(20, outer.radius*2, align=(Align.MAX, Align.CENTER))
 outer_block = case_connector - outer
 bolthole = Circle(radius=bolt_d/2)
+
 def _hinge_blocker():
     lines = [
         PolarLine((0, 0), outer.radius + blocker_zlen, case_blocker_angle),
@@ -84,6 +83,7 @@ def _flap_hinge_face(length):
     return flap_hinge_face
 
 def _flap(length, width_end, width_near, thickness, inner=True):
+    # TODO: add tenting angle front/back at the end.
     top_left_point = ((width_near - width_end) / 2, length),
     face = Polygon(
         (0, 0),
@@ -98,10 +98,8 @@ def _flap(length, width_end, width_near, thickness, inner=True):
         # Add a ridge to hold the next flap out in place when closed. Innermost
         # flap should have velcro to the PCB to hold it in place.
         edge = face.edges().sort_by(Axis.X).first
-        ax = Axis(origin=edge @ 0, edge=edge)
-        # Wire(Line(self.origin, location.position)).edge()
         # Create a plane such that the flap edge is X.
-        plane = Plane(origin = edge @ 0.5, x_dir=ax.direction, y_dir=Axis.Y.direction)
+        plane = Plane(origin = edge @ 0.5, x_dir=edge % 0.5, y_dir=Axis.Y.direction)
         ridge_width = edge.length/6
         # Thick enough for chamfer to not fail, and pegged to width for that same reason.
         ridge_len = thickness*0.25*ridge_width
@@ -118,28 +116,48 @@ def _flap(length, width_end, width_near, thickness, inner=True):
     return flap
 
 
-flaps = []
-for i, (length, width) in enumerate(flap_lens):
-    offset = hinge_width_y*(i+1) + 0.2*(i+1)
-    flap_hinge_width = mechanism_length - offset*2
-    flap_hinge = extrude(Plane.XZ * _flap_hinge_face(length), hinge_width_y)
-    flap_hinge.move(Loc((0, -offset)))
-    flap_hinge.move(Loc((0, mechanism_length/2)))
-    flap_hinge += mirror(flap_hinge, Plane.XZ)
-    flap = -Plane.YX * _flap(
-        length, width, flap_hinge_width, flap_t, inner=i+1==len(flap_lens)
-    )
-    flap = flap.move(Loc((0, 0, -outer.radius)))
-    flap += flap_hinge
-    # show_object(bolthole_cutout, name="bolthole_cutout")
-    flaps.append(flap)
+@dataclass
+class Flap:
+    """Represents a tenting flap.
+    len is the X length of the flap.
+    width is the width of the far end (away from the hinge) of the tenting flap.
+    tenting_angle is the angle from 0 that the keyboard will be rotated
+    clockwise when looking in the direction of the X axis (i.e. angle it will
+    tilt the board face towards the user).
+    """
+    len: int
+    width: int
+    tenting_angle: int = 0
 
-# Cut smaller flaps out of the larger ones.
-for i, flap in enumerate(flaps):
-    for inner in flaps[i+1:]:
-        flaps[i] -= scale(inner, ((1.01, 1.01, 1)))
-    # Cutting this out before the scaled inner causes invalid geom.
-    flaps[i] -= bolthole_cutout
-    # show_object(flaps[i], name=f"flaps{i}")
+def tenting_flaps(flaps: Iterable[Flap]):
+    flaps.sort(key=lambda f: f.len, reverse=True)
+    out = []
+    for i, f in enumerate(flaps):
+        length, width = f.len, f.width
+        offset = hinge_width_y*(i+1) + 0.2*(i+1)
+        flap_hinge_width = mechanism_length - offset*2
+        flap_hinge = extrude(Plane.XZ * _flap_hinge_face(length), hinge_width_y)
+        flap_hinge.move(Loc((0, -offset)))
+        flap_hinge.move(Loc((0, mechanism_length/2)))
+        flap_hinge += mirror(flap_hinge, Plane.XZ)
+        flap = -Plane.YX * _flap(
+            length, width, flap_hinge_width, flap_t, inner=i+1==len(flaps)
+        )
+        flap = flap.move(Loc((0, 0, -outer.radius)))
+        flap += flap_hinge
+        # show_object(bolthole_cutout, name="bolthole_cutout")
+        out.append(flap)
 
-    show_object(flaps[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+    # Cut smaller flaps out of the larger ones.
+    for i, flap in enumerate(out):
+        for inner in out[i+1:]:
+            out[i] -= scale(inner, ((1.01, 1.01, 1)))
+        # Cutting this out before the scaled inner causes invalid geom.
+        out[i] -= bolthole_cutout
+        # show_object(flaps[i], name=f"flaps{i}")
+
+        show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+
+    return out
+
+tenting_flaps([Flap(90, 40), Flap(30, 50)])
