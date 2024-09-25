@@ -18,33 +18,57 @@ hinge_width_y = 5
 # TODO: add tenting angle front/back at the end.
 flap_lens = [(90, 40), (30, 50)]
 flap_t = 2
+blocker_zlen = 1
+# More than 90 so that the mating face on the flap hinges can be well above
+# 0/not point down.
+case_blocker_angle = 120
 
 case_end = Rectangle(10, wall_height).bounding_box()
-blocker_zlen = 1
 outer = Circle(radius=bolt_d/2 + (wall_height-bolt_d)/2 - blocker_zlen/2)
 case_connector = Rectangle(20, outer.radius*2, align=(Align.MAX, Align.CENTER))
 outer_block = case_connector - outer
 bolthole = Circle(radius=bolt_d/2)
-blocker_base = Rectangle(outer.radius, outer.radius*2, align=(Align.MAX, Align.CENTER))
-case_blocker_angle = 120
-blocker = [
-    PolarLine((0, 0), blocker_zlen, case_blocker_angle),
-    Line((0, 0), (-outer.radius, 0)),
-]
-blocker = make_face([*blocker, Line(blocker[0] @ 1, blocker[-1] @ 1)])
-blocker.move(Loc((0, outer.radius)))
+def _hinge_blocker():
+    lines = [
+        PolarLine((0, 0), outer.radius + blocker_zlen, case_blocker_angle),
+        Line((0, 0), (-outer.radius, 0)),
+    ]
+    # Close to form a triangle sort of shape
+    blocker = make_face([*lines, Line(lines[0] @ 1, lines[-1] @ 1)])
+    # Add a rectangle base from the left that merges with the case and makes things
+    # more solid.
+    tip = lines[0] @ 1
+    blocker += Polygon(
+        (tip.X, 0), tip, (-outer.radius*1.5, tip.Y), (-outer.radius*1.5, 0), align=None
+    )
+    # Offset to get some extra space for tolerance in the rotational component.
+    blocker -= offset(outer, 0.2)
+    return blocker
 
+blocker = _hinge_blocker()
 hinge_face = outer - bolthole
 case_hinge_face = outer_block + blocker + hinge_face
 #  # class CounterSinkHole(radius: float, counter_sink_radius: float, depth: Optional[float] = None, counter_sink_angle: float = 82, mode: Mode = Mode.SUBTRACT)[source]
 # # .extrude(bold_d)
+
+
+case_hinge = extrude(Plane.XZ * (blocker), mechanism_length/2)
+case_hinge += extrude(Plane.XZ * (outer_block + case_hinge_face), hinge_width_y)
+case_hinge.move(Loc((0, mechanism_length/2,)))
+case_hinge += mirror(case_hinge, Plane.XZ)
+show_object(case_hinge, name="case_hinge")
+
+bolthole_cutout = extrude(Plane.XZ * (bolthole), mechanism_length/2)
+bolthole_cutout.move(Loc((0, mechanism_length/2,)))
+bolthole_cutout += mirror(bolthole_cutout, Plane.XZ)
+
 
 def _flap_hinge_face(length):
     # Angle above 90 when open so that it holds itself open and won't
     # collapse.
     open_angle = 110
     blocker_angle = case_blocker_angle - open_angle
-    blocker = [Loc((outer.radius, 0)) * PolarLine((0, 0), blocker_zlen, blocker_angle)]
+    blocker = [PolarLine((0, 0), outer.radius + blocker_zlen, blocker_angle)]
     blocker += [
         SagittaArc(
             (0, -outer.radius),
@@ -53,6 +77,7 @@ def _flap_hinge_face(length):
         )
     ]
     blocker = make_face([*blocker, Line(blocker[0] @ 0, blocker[-1] @ 0)])
+    # blocker -= outer
 
     flap_hinge_face = hinge_face + blocker
     # show_object(flap_hinge_face)
@@ -68,7 +93,6 @@ def _flap(length, width_end, width_near, thickness, inner=True):
         align=(Align.CENTER, Align.MIN),
     )
     flap = extrude(face, thickness)
-    show_object(flap, name="flap")
 
     if inner:
         # Add a ridge to hold the next flap out in place when closed. Innermost
@@ -94,16 +118,6 @@ def _flap(length, width_end, width_near, thickness, inner=True):
     return flap
 
 
-case_hinge = extrude(Plane.XZ * (blocker), mechanism_length/2)
-case_hinge += extrude(Plane.XZ * (outer_block + case_hinge_face), hinge_width_y)
-case_hinge.move(Loc((0, mechanism_length/2,)))
-case_hinge += mirror(case_hinge, Plane.XZ)
-show_object(case_hinge)
-
-bolthole_cutout = extrude(Plane.XZ * (bolthole), mechanism_length/2)
-bolthole_cutout.move(Loc((0, mechanism_length/2,)))
-bolthole_cutout += mirror(bolthole_cutout, Plane.XZ)
-
 flaps = []
 for i, (length, width) in enumerate(flap_lens):
     offset = hinge_width_y*(i+1) + 0.2*(i+1)
@@ -112,17 +126,20 @@ for i, (length, width) in enumerate(flap_lens):
     flap_hinge.move(Loc((0, -offset)))
     flap_hinge.move(Loc((0, mechanism_length/2)))
     flap_hinge += mirror(flap_hinge, Plane.XZ)
-    # show_object(flap_hinge)
     flap = -Plane.YX * _flap(
         length, width, flap_hinge_width, flap_t, inner=i+1==len(flap_lens)
     )
     flap = flap.move(Loc((0, 0, -outer.radius)))
     flap += flap_hinge
-    flap -= bolthole_cutout
-    flaps.append(flap + flap_hinge)
+    # show_object(bolthole_cutout, name="bolthole_cutout")
+    flaps.append(flap)
 
 # Cut smaller flaps out of the larger ones.
 for i, flap in enumerate(flaps):
     for inner in flaps[i+1:]:
         flaps[i] -= scale(inner, ((1.01, 1.01, 1)))
-    show_object(flaps[i], name=f"flaps{i}")
+    # Cutting this out before the scaled inner causes invalid geom.
+    flaps[i] -= bolthole_cutout
+    # show_object(flaps[i], name=f"flaps{i}")
+
+    show_object(flaps[i].rotate(Axis.Y, -110), name=f"flaps{i}")
