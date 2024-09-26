@@ -223,5 +223,5 @@ hinge_width_y = 5
 flap_t = 2
 flaps = [[40, 90, 10], [30, 30, 30]]
 
-tenting_flaps(flaps, bolt_d, wall_height)
-case_hinge(bolt_d, wall_height)
+# tenting_fraps(flaps, bolt_d, wall_height)
+# case_hinge(bolt_d, wall_height)
