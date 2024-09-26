@@ -79,8 +79,9 @@ def tenting_flaps(flaps: list[tuple[int, int, int]], bolt_d, wall_height):
         flap_hinge.move(Loc((0, -offset)))
         flap_hinge.move(Loc((0, bolt_l/2)))
         flap_hinge += mirror(flap_hinge, Plane.XZ)
+        near_len = flap_hinge.bounding_box().size.Y
         flap = -Plane.YX * _flap(
-            f, mechanism_length, inner=i+1==len(flaps)
+            f, near_len, inner=i+1==len(flaps)
         )
         flap = flap.move(Loc((0, 0, -outer.radius)))
         flap += flap_hinge
@@ -93,12 +94,11 @@ def tenting_flaps(flaps: list[tuple[int, int, int]], bolt_d, wall_height):
         for inner in out[i+1:]:
             out[i] -= scale(inner, ((1.01, 1.01, 1)))
         # Cutting this out before the scaled inner causes invalid geom.
-        # out[i] -= bolthole_cutout
-        out[i] -= scale(case_hinge_, ((1.2, 1.01, 1)))
-        out[i] -= scale(case_hinge_, ((1.2, 0.98, 1)))
-        show_object(out[i], name=f"flaps{i}")
+        out[i] -= bolthole_cutout
+        out[i] -= scale(case_hinge_, ((1.0, 0.98, 1)))
+        # show_object(out[i], name=f"flaps{i}")
 
-        # show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+        show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
 
     return out
 
