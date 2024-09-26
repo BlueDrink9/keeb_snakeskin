@@ -1,6 +1,14 @@
 import math
 from dataclasses import dataclass
+
 from build123d import *
+
+# Operating under the assumption that the other script will end up directly
+# updating this dict for user preferences.
+from default_params import default_params as params
+# If I wanted to make this more modular, I could probably put the default
+# params for this module here, and add them to the main dict on import...
+
 Loc = Location
 
 if __name__ == "__main__":
@@ -30,7 +38,7 @@ class Flap:
     len: int
     tent_angle: int = 0
 
-def case_hinge(bolt_d, wall_height, countersunk=True):
+def case_hinge(wall_height, bolt_d, countersunk=True):
     """Countersink covers whether both to countersink and create nut holes"""
     _, hinge_face, outer = _base_faces(bolt_d, wall_height)
 
@@ -149,7 +157,7 @@ def _flap_hinge_face(length):
     return flap_hinge_face
 
 def _flap(f: Flap, width_near, inner=True):
-    thickness = flap_t
+    thickness = params["base_z_thickness"]
     pts = [
         # bl, br, tr, tl
         (0, 0),
@@ -213,16 +221,13 @@ def _hinge_blocker(outer):
     return blocker
 
 
-bolt_d = 3 # M3
-bolt_l = 50 # Includes head, assuming countersunk
-bolt_head_d = 6.94  # https://engineersbible.com/countersunk-socket-metric/
-nut_d = 5.50  # https://amesweb.info/Fasteners/Metric_Hex_Nuts/Metric-Hex-Nut-Dimensions.aspx
-nut_l = 2.4
-wall_height = 6.4 + 1
-mechanism_length = 60
+bolt_l = params["tent_hinge_bolt_l"] # Includes head, assuming countersunk
+bolt_head_d = params["tent_hinge_bolt_head_d"]  # https://engineersbible.com/countersunk-socket-metric/
+nut_d = params["tent_hinge_nut_d"]  # https://amesweb.info/Fasteners/Metric_Hex_Nuts/Metric-Hex-Nut-Dimensions.aspx
+nut_l = params["tent_hinge_nut_l"]
+mechanism_length = bolt_l
 hinge_width_y = 5
-flap_t = 2
-flaps = [[40, 90, 10], [30, 30, 30]]
 
-# tenting_fraps(flaps, bolt_d, wall_height)
-# case_hinge(bolt_d, wall_height)
+if __name__ in ["temp", "__cq_main__", "__main__"]:
+    tenting_flaps(params["tent_legs"], 3, 7.4)
+    case_hinge(3, 7.4)

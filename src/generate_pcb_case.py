@@ -5,6 +5,9 @@ from pathlib import Path
 
 import svgpathtools as svg
 from build123d import *
+
+from default_params import default_params
+
 Loc = Location
 
 test_print = False
@@ -69,6 +72,7 @@ default_params = {
     "magnet_spacing": 12,
     "magnet_count": 8,
     "tent_hinge_bolt_d": 3, # M3
+    "tent_hinge_bolt_l": 60, # M3
 }
 params = default_params
 
@@ -763,13 +767,16 @@ def _tent_hinge(base_face, wall_height):
     case_end_face = case_end_range.intersect(outer_face)
     case_end = case_end_face.bounding_box()
 
-    hinge = case_hinge(params["tent_hinge_bolt_d"], wall_height)
+    hinge = case_hinge(wall_height, params["tent_hinge_bolt_d"], params["tent_hinge_bolt_l"])
     left_hinge_face = hinge.faces().sort_by(Axis.X).first
     bot_hinge_face = hinge.faces().sort_by(Axis.Z).first
-    mating_face_X = case_end.max.X - params["chamfer_len"]
+    mating_face_X = case_end.max.X - params["chamfer_len"] / math.cos(math.radians(44))
     hinge = hinge.move(
         Loc((mating_face_X - left_hinge_face.center().X, 0, -bot_hinge_face.center().Z))
     )
+    # hinge = hinge.move(
+    #     Loc((params["tent_hinge_position_adjustment"]))
+    # )
     return hinge
 
 
@@ -883,4 +890,3 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
 
     # carry = generate_carrycase(base_face, pcb_case_wall_height)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
-h =params["z_space_under_pcb"] + params["wall_z_height"] + params["base_z_thickness"]

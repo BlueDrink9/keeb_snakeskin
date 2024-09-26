@@ -7,7 +7,8 @@ import tempfile
 
 from pygerber.gerberx3.api.v2 import GerberFile
 
-from generate_pcb_case import default_params, generate_cases
+from default_params import default_params
+from generate_pcb_case import generate_cases
 
 script_dir = Path(__file__).parent
 default_build_dir = default_params["output_dir"]

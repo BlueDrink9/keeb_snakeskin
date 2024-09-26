@@ -155,6 +155,7 @@ examples.
 | `honeycomb_base` | True | Make the base of the case a honeycombed/hexagon cage instead of solid |
 | `flush_carrycase_lip` | True | Two options for holding the pcb case into the carrycase: a lip that extends into the carrycase center, with a matching cutout in the pcb case; or, a lip that sits a bit above and below the carrycase. If false, the pcb case will have a flat bottom and your tolerances between the case and carrycase can be tighter, giving a better fit when in the case. However, it will require more supports when printing. |
 | `strap_loop` | False | Adds a loop on the left most end of the boards for a strap, e.g. for mounting on legs or chair arms. Experimental. If you want something on the other side, also include the tenting flap hinge and use the bolt. |
+| `tenting_stand` | False | Use the special quick-deploy tenting mechanism. This parameter adds the hinge to the case (and a gap for it in the carrycase) and exports the requested tenting flaps to the output directory.  |
 | `output_filetype` | `.step` | `.step` or `.stl`. What filetype the case will be exported as. |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
 | `wall_xy_thickness` | 3 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case.  Top and bottom wall tolerance will also affect the thickness that actually gets printed. Recommend 2 + `magnet_separation_distance` if you're using the carrycase, so the magnets don't rattle. If it's larger, you'll have to glue the magnets into the case as well as the carrycase. If you are using the carrycase and have tall keys (i.e. not flat-soldered chocs) close to the edge of the PCB, you may need to make this bigger and tweak the carrycase lip to ensure enough clearance of the carrycase blocker when you insert the board. |
@@ -169,8 +170,14 @@ examples.
 | `strap_loop_thickness` | 4 mm | Thickness (in XY) of the strap loop |
 | `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the
 strap starts. Fiddle with this to avoid or merge with corners, for example. |
-| `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go
-through. |
+| `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go through. |
+| `tent_hinge_bolt_d` | 3 (mm, == M3) | Bolt diameter specification for the tenting stand hinge. If you are using imperial bolts, be sure to convert the official size to mm, don't measure the thread. Keep this as small as you can, because the bigger the hole, the less plastic holding it in place. |
+| `tent_hinge_bolt_l` | 60 mm | Length of bolt for the tenting stand hinge, including head assuming it's countersunk. I'd suggest getting something as big as you can find for the size of your case. Push rods might help getting something really long, with small diameters (but will need two nuts). |
+| `tent_hinge_bolt_head_d` | 6.94 mm | Diameter of bolt head (only used for
+countersink). |
+| `tent_hinge_nut_l` | 5.5 mm | Length of nut retention hole |
+| `tent_hinge_nut_d` | 2.4 mm | Inscribed diameter of nut for tent hinge bolt |
+| `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs, which will be nested within each other (to the extent possible with the length of the hinge). Each entry is the width, length and tenting angle. Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). |
 
 #### Carrycase options
 
