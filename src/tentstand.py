@@ -11,7 +11,7 @@ if __name__ not in ["__cq_main__", "temp"]:
 
 
 bolt_d = 3 # M3
-bolt_l = 50 # Doesn't include head
+bolt_l = 50 # Includes head, assuming countersunk
 wall_height = 6.4
 mechanism_length = 80
 hinge_width_y = 5
@@ -20,46 +20,101 @@ blocker_zlen = 1
 # More than 90 so that the mating face on the flap hinges can be well above
 # 0/not point down.
 case_blocker_angle = 120
+flaps = [[90, 40, 10], [30, 50, 30]]
+
+outer = Circle(radius=bolt_d/2 + (wall_height-bolt_d)/2 - blocker_zlen/2)
+# Ellipes to give extra tolerance if printing without supports.
+bolthole = Ellipse(bolt_d/2, bolt_d/2*1.1)
+# Add a 45 slope on the bottom of the loop to print better without supports.
+pnt_45 = outer.wire() @ (1-1/8)
+support_slope = -Polygon(
+    pnt_45,
+    PolarLine(pnt_45, (outer.radius + pnt_45.Y) / math.cos(math.radians(45)), -180 + 45) @ 1,
+    (0, -outer.radius),
+    align=None,
+).face()
+hinge_face = outer - bolthole + support_slope
+
+@dataclass
+class Flap:
+    """Represents a tenting flap.
+    len is the X length of the flap.
+    width is the width of the far end (away from the hinge) of the tenting flap.
+    tenting_angle is the angle from 0 that the keyboard will be rotated
+    clockwise when looking in the direction of the X axis (i.e. angle it will
+    tilt the board face towards the user).
+    """
+    len: int
+    width: int
+    tent_angle: int = 0
+
+flaps = [Flap(*f) for f in flaps]
 
 case_end = Rectangle(10, wall_height).bounding_box()
-outer = Circle(radius=bolt_d/2 + (wall_height-bolt_d)/2 - blocker_zlen/2)
-case_connector = Rectangle(20, outer.radius*2, align=(Align.MAX, Align.CENTER))
-outer_block = case_connector - outer
-bolthole = Circle(radius=bolt_d/2)
 
-def _hinge_blocker():
-    lines = [
-        PolarLine((0, 0), outer.radius + blocker_zlen, case_blocker_angle),
-        Line((0, 0), (-outer.radius, 0)),
-    ]
-    # Close to form a triangle sort of shape
-    blocker = make_face([*lines, Line(lines[0] @ 1, lines[-1] @ 1)])
-    # Add a rectangle base from the left that merges with the case and makes things
-    # more solid.
-    tip = lines[0] @ 1
-    blocker += Polygon(
-        (tip.X, 0), tip, (-outer.radius*1.5, tip.Y), (-outer.radius*1.5, 0), align=None
-    )
-    # Offset to get some extra space for tolerance in the rotational component.
-    blocker -= offset(outer, 0.2)
-    return blocker
+def case_hinge():
+    case_connector = Rectangle(outer.radius*1.5, outer.radius*2, align=(Align.MAX, Align.CENTER))
+    outer_block = case_connector - outer
 
-blocker = _hinge_blocker()
-hinge_face = outer - bolthole
-case_hinge_face = outer_block + blocker + hinge_face
+    blocker_face = _hinge_blocker()
+    blocker = extrude(Plane.XZ * blocker_face, bolt_l/2)
+    botf = blocker.faces().sort_by(Axis.Z).first
+    blocker.edges().group_by(Axis.Z)[0].filter_by(Axis.Y)
+    # Chamfer bottom to reduce support material needed
+    blocker = chamfer(blocker.edges().group_by(Axis.Z)[0].filter_by(Axis.Y), botf.length*0.40)
+    case_hinge_face = outer_block + blocker_face + hinge_face
+    # Just blocker through the center (to block the flaps), then hinges at each
+    # end.
+    hinge = extrude(Plane.XZ * (case_hinge_face), hinge_width_y)
+    case_hinge = blocker + hinge
+    case_hinge.move(Loc((0, bolt_l/2,)))
+    case_hinge += mirror(case_hinge, Plane.XZ)
+
 #  # class CounterSinkHole(radius: float, counter_sink_radius: float, depth: Optional[float] = None, counter_sink_angle: float = 82, mode: Mode = Mode.SUBTRACT)[source]
-# # .extrude(bold_d)
+
+    show_object(case_hinge, name="case_hinge")
+
+    return case_hinge
 
 
-case_hinge = extrude(Plane.XZ * (blocker), mechanism_length/2)
-case_hinge += extrude(Plane.XZ * (outer_block + case_hinge_face), hinge_width_y)
-case_hinge.move(Loc((0, mechanism_length/2,)))
-case_hinge += mirror(case_hinge, Plane.XZ)
-show_object(case_hinge, name="case_hinge")
+def tenting_flaps(flaps: Iterable[Flap]):
+    flaps.sort(key=lambda f: f.len, reverse=True)
+    out = []
+    for i, f in enumerate(flaps):
+        offset = hinge_width_y*(i+1) + 0.2*(i+1)
+        flap_hinge_width = bolt_l - offset*2
+        flap_hinge = extrude(Plane.XZ * _flap_hinge_face(f.len), hinge_width_y)
+        flap_hinge.move(Loc((0, -offset)))
+        flap_hinge.move(Loc((0, bolt_l/2)))
+        flap_hinge += mirror(flap_hinge, Plane.XZ)
+        flap = -Plane.YX * _flap(
+            f, mechanism_length, inner=i+1==len(flaps)
+        )
+        flap = flap.move(Loc((0, 0, -outer.radius)))
+        flap += flap_hinge
+        out.append(flap)
 
-bolthole_cutout = extrude(Plane.XZ * (bolthole), mechanism_length/2)
-bolthole_cutout.move(Loc((0, mechanism_length/2,)))
-bolthole_cutout += mirror(bolthole_cutout, Plane.XZ)
+    case_hinge_ = case_hinge()
+    bolthole_cutout = _bolthole_cutout()
+    # Cut smaller flaps out of the larger ones.
+    for i, flap in enumerate(out):
+        for inner in out[i+1:]:
+            out[i] -= scale(inner, ((1.01, 1.01, 1)))
+        # Cutting this out before the scaled inner causes invalid geom.
+        out[i] -= bolthole_cutout
+        out[i] -= case_hinge_
+        # show_object(out[i], name=f"flaps{i}")
+
+        # show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+
+    return out
+
+
+def _bolthole_cutout():
+    bolthole_cutout = extrude(Plane.XZ * (bolthole), mechanism_length/2)
+    bolthole_cutout.move(Loc((0, mechanism_length/2,)))
+    bolthole_cutout += mirror(bolthole_cutout, Plane.XZ)
+    return bolthole_cutout
 
 
 def _flap_hinge_face(length):
@@ -81,19 +136,6 @@ def _flap_hinge_face(length):
     flap_hinge_face = hinge_face + blocker
     # show_object(flap_hinge_face)
     return flap_hinge_face
-
-@dataclass
-class Flap:
-    """Represents a tenting flap.
-    len is the X length of the flap.
-    width is the width of the far end (away from the hinge) of the tenting flap.
-    tenting_angle is the angle from 0 that the keyboard will be rotated
-    clockwise when looking in the direction of the X axis (i.e. angle it will
-    tilt the board face towards the user).
-    """
-    len: int
-    width: int
-    tent_angle: int = 0
 
 def _flap(f: Flap, width_near, inner=True):
     thickness = flap_t
@@ -139,34 +181,23 @@ def _flap(f: Flap, width_near, inner=True):
     return flap
 
 
-def tenting_flaps(flaps: Iterable[Flap]):
-    flaps.sort(key=lambda f: f.len, reverse=True)
-    out = []
-    for i, f in enumerate(flaps):
-        offset = hinge_width_y*(i+1) + 0.2*(i+1)
-        flap_hinge_width = mechanism_length - offset*2
-        flap_hinge = extrude(Plane.XZ * _flap_hinge_face(f.len), hinge_width_y)
-        flap_hinge.move(Loc((0, -offset)))
-        flap_hinge.move(Loc((0, mechanism_length/2)))
-        flap_hinge += mirror(flap_hinge, Plane.XZ)
-        flap = -Plane.YX * _flap(
-            f, flap_hinge_width, inner=i+1==len(flaps)
-        )
-        flap = flap.move(Loc((0, 0, -outer.radius)))
-        flap += flap_hinge
-        # show_object(bolthole_cutout, name="bolthole_cutout")
-        out.append(flap)
+def _hinge_blocker():
+    lines = [
+        PolarLine((0, 0), outer.radius + blocker_zlen, case_blocker_angle),
+        Line((0, 0), (-outer.radius, 0)),
+    ]
+    # Close to form a triangle sort of shape
+    blocker = make_face([*lines, Line(lines[0] @ 1, lines[-1] @ 1)])
+    # Add a rectangle base from the left that merges with the case and makes things
+    # more solid.
+    tip = lines[0] @ 1
+    blocker += Polygon(
+        (tip.X, 0), tip, (-outer.radius*1.5, tip.Y), (-outer.radius*1.5, 0), align=None
+    )
+    # Offset to get some extra space for tolerance in the rotational component.
+    blocker -= offset(outer, 0.2)
+    return blocker
 
-    # Cut smaller flaps out of the larger ones.
-    for i, flap in enumerate(out):
-        for inner in out[i+1:]:
-            out[i] -= scale(inner, ((1.01, 1.01, 1)))
-        # Cutting this out before the scaled inner causes invalid geom.
-        out[i] -= bolthole_cutout
-        show_object(out[i], name=f"flaps{i}")
 
-        # show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
-
-    return out
-
-tenting_flaps([Flap(90, 40, 10), Flap(30, 50, 30)])
+case_hinge()
+tenting_flaps(flaps)
