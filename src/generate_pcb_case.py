@@ -8,6 +8,7 @@ from build123d import *
 Loc = Location
 
 test_print = False
+fast_render = True
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-55, 0, 0)) * Box(
@@ -556,6 +557,8 @@ def _safe_offset2d(face: Face, offset: float):
 
 
 def _finger_cutout(location, thickness, width, height):
+    if fast_render:
+        return Part()
     cutout_location = location * Rot(X=-90)
     # Mutliplying x and y by ~2 because we're centering it on those axis, but
     # only cutting out of one side.
@@ -574,6 +577,8 @@ def _finger_cutout(location, thickness, width, height):
 
 
 def _magnet_cutout(main_face, angle, carrycase=False):
+    if fast_render:
+        return Part()
     assert params["wall_xy_thickness"] - \
         params["magnet_separation_distance"] >= magnet_height, \
         "Your wall thickness is too small for the magnets to fit."
@@ -727,6 +732,8 @@ def _strap_loop(base_face, case_height):
 
 
 def _create_honeycomb_tile(depth, face):
+    if fast_render:
+        return Part()
     radius = params["honeycomb_radius"]
     cell_thickness = params["honeycomb_thickness"]
     d_between_centers = radius + cell_thickness
@@ -845,5 +852,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    carry = generate_carrycase(base_face, pcb_case_wall_height)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
