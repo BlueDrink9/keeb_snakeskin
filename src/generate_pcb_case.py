@@ -33,16 +33,14 @@ if __name__ not in ["__cq_main__", "temp"]:
         ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
         show_object = lambda *args, **__: ocp.show(args)
 
-# TODO:
-# * Stand, attachments for straps. Separate module/plugin?
-
 default_params = {
     "output_dir": script_dir / "../build",
     "split": True,
     "carrycase": True,
     "flush_carrycase_lip": True,
     "honeycomb_base": True,
-    "strap_loop": True,
+    "strap_loop": False,
+    "tenting_stand": False,
     "output_filetype": ".stl",
     "base_z_thickness": 2,
     "wall_xy_thickness": 2.81,
@@ -70,6 +68,7 @@ default_params = {
     "magnet_separation_distance": 0.81,
     "magnet_spacing": 12,
     "magnet_count": 8,
+    "tent_hinge_bolt_d": 3, # M3
 }
 params = default_params
 
@@ -368,6 +367,11 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
             strap_loop = chamfer(e, min(0.5, params["chamfer_len"], params["strap_loop_thickness"] / 2))
         case += strap_loop
 
+    if params["tenting_stand"]:
+        case += _tent_hinge(
+            base_face, params["z_space_under_pcb"] + params["wall_z_height"] + params["base_z_thickness"]
+        )
+
     if test_print:
         case -= slice
 
@@ -415,7 +419,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     if params["strap_loop"]:
         strap_loop = _strap_loop(
-            base_face, 1
+            # Not using real height because we're cutting out a specific
+            # amount.
+            base_face, 0.1
         ).faces().sort_by(sort_by=Axis.Z).first
         cutout_face = offset(make_hull(strap_loop.edges()), 0.2)
         case -= extrude(cutout_face, pcb_case_wall_height + params["base_z_thickness"])
@@ -423,7 +429,6 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
     # flush, changes the top face so do after finger cutout.
     case += _lip(base_face, carrycase=True)
-
 
     case -= _magnet_cutout(base_face, params["magnet_position"], carrycase=True)
 
@@ -744,6 +749,30 @@ def _create_honeycomb_tile(depth, face):
     return hs
 
 
+def _tent_hinge(base_face, wall_height):
+    """Attach hinge for quick-tenting system to right side of case."""
+    from tenting_stand import case_hinge
+
+    outer_face = offset(base_face, params["wall_xy_thickness"])
+    # Find the leftmost edge of the case
+    bb = outer_face.bounding_box()
+    end_range_size = 1
+    case_end_range = Rectangle(end_range_size, bb.size.Y, align=(Align.MAX, Align.CENTER)).located(
+        Loc((bb.max.X, bb.center().Y))
+    )
+    case_end_face = case_end_range.intersect(outer_face)
+    case_end = case_end_face.bounding_box()
+
+    hinge = case_hinge(params["tent_hinge_bolt_d"], wall_height)
+    left_hinge_face = hinge.faces().sort_by(Axis.X).first
+    bot_hinge_face = hinge.faces().sort_by(Axis.Z).first
+    mating_face_X = case_end.max.X - params["chamfer_len"]
+    hinge = hinge.move(
+        Loc((mating_face_X - left_hinge_face.center().X, 0, -bot_hinge_face.center().Z))
+    )
+    return hinge
+
+
 def _poor_mans_chamfer(shape, size, top=False):
     """Chamfers the bottom or top outer edge of a shape by subtracting a tapered extrusion"""
     faces = shape.faces().sort_by(sort_by=Axis.Z)
@@ -835,7 +864,7 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     p = script_dir / "build/outline.svg"
     p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg').expanduser()
     # p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
-    # TODO: Move these to my personal maizeless build script
+
     import json
     config = Path(script_dir / "../preset_configs/maizeless.json")
     param_overrides = json.loads(config.read_text())
@@ -848,9 +877,10 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
 
 
     base_face = import_svg_as_face(p)
-    # show_object(base_face, name="base_face")
+    show_object(base_face, name="base_face")
     # bf = make_face(base_face).face()
     # show_object(bf)
 
     # carry = generate_carrycase(base_face, pcb_case_wall_height)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
+h =params["z_space_under_pcb"] + params["wall_z_height"] + params["base_z_thickness"]

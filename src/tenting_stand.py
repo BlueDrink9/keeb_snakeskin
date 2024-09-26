@@ -3,10 +3,11 @@ from dataclasses import dataclass
 from build123d import *
 Loc = Location
 
-if __name__ not in ["__cq_main__", "temp"]:
+if __name__ == "__main__":
     from ocp_vscode import show, show_object, reset_show, set_port, set_defaults, get_defaults
     set_port(3939)
-    show_object = lambda *args, **__: show(args)
+if __name__ not in ["__cq_main__", "temp"]:
+    show_object = lambda *_, **__: None
 
 # case_end = Rectangle(10, wall_height).bounding_box()
 
@@ -61,8 +62,8 @@ def case_hinge(bolt_d, wall_height, countersunk=True):
         out -= countersink
         nut_hole = start_plane * extrude(RegularPolygon(nut_d/2, 6), -nut_l)
         out -= nut_hole
-
-    show_object(out, name="case_hinge")
+    h = outer.radius
+    # show_object(out, name="case_hinge")
 
     return out
 
@@ -104,7 +105,7 @@ def tenting_flaps(flaps: list[tuple[int, int, int]], bolt_d, wall_height):
 
 
 def _base_faces(bolt_d, wall_height):
-    outer = Circle(radius=(wall_height)/2 - blocker_zlen/2)
+    outer = Circle(radius=(wall_height)/2)
     # Ellipes to give extra tolerance if printing without supports.
     bolthole = Ellipse(bolt_d/2, bolt_d/2*1.1)
     # Add a 45 slope on the bottom of the loop to print better without supports.
