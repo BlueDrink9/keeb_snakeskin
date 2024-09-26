@@ -92,13 +92,13 @@ def tenting_flaps(flaps: list[tuple[int, int, int]], bolt_d, wall_height):
     # Cut smaller flaps out of the larger ones.
     for i, flap in enumerate(out):
         for inner in out[i+1:]:
-            out[i] -= scale(inner, ((1.01, 1.01, 1)))
+            out[i] -= inner
+            # out[i] -= offset(inner, 0.2)
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
-        out[i] -= scale(case_hinge_, ((1.0, 0.98, 1)))
-        # show_object(out[i], name=f"flaps{i}")
+        show_object(out[i], name=f"flaps{i}")
 
-        show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+        # show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
 
     return out
 
@@ -156,12 +156,15 @@ def _flap(f: Flap, width_near, inner=True):
         (f.width + (width_near - f.width) / 2, f.len),
         ((width_near - f.width) / 2, f.len),
     ]
-    if f.tent_angle < 0:
-        end_slope = PolarLine(pts[2], f.width, 180 + f.tent_angle)
-        pts[3] = end_slope @ 1
-    else:
-        end_slope = PolarLine(pts[3], f.width, f.tent_angle)
-        pts[2] = end_slope @ 1
+
+    if f.tent_angle:
+        hypot = f.width / math.cos(math.radians(f.tent_angle))
+        if f.tent_angle < 0:
+            end_slope = PolarLine(pts[2], hypot, 180 + f.tent_angle)
+            pts[3] = end_slope @ 1
+        else:
+            end_slope = PolarLine(pts[3], hypot, f.tent_angle)
+            pts[2] = end_slope @ 1
 
     face = Polygon(
         *pts,
@@ -220,5 +223,5 @@ hinge_width_y = 5
 flap_t = 2
 flaps = [[40, 90, 10], [30, 30, 30]]
 
-case_hinge(bolt_d, wall_height)
 tenting_flaps(flaps, bolt_d, wall_height)
+case_hinge(bolt_d, wall_height)
