@@ -97,13 +97,22 @@ class Flap:
 
 def _flap(f: Flap, width_near, inner=True):
     thickness = flap_t
-    # TODO: add tenting angle front/back at the end.
-    top_left_point = ((width_near - f.width) / 2, f.len),
-    face = Polygon(
+    pts = [
+        # bl, br, tr, tl
         (0, 0),
         (width_near, 0),
         (f.width + (width_near - f.width) / 2, f.len),
-        top_left_point,
+        ((width_near - f.width) / 2, f.len),
+    ]
+    if f.tent_angle < 0:
+        end_slope = PolarLine(pts[2], f.width, 180 + f.tent_angle)
+        pts[3] = end_slope @ 1
+    else:
+        end_slope = PolarLine(pts[3], f.width, f.tent_angle)
+        pts[2] = end_slope @ 1
+
+    face = Polygon(
+        *pts,
         align=(Align.CENTER, Align.MIN),
     )
     flap = extrude(face, thickness)
@@ -154,10 +163,10 @@ def tenting_flaps(flaps: Iterable[Flap]):
             out[i] -= scale(inner, ((1.01, 1.01, 1)))
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
-        # show_object(flaps[i], name=f"flaps{i}")
+        show_object(out[i], name=f"flaps{i}")
 
-        show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+        # show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
 
     return out
 
-tenting_flaps([Flap(90, 40), Flap(30, 50, 35)])
+tenting_flaps([Flap(90, 40, 10), Flap(30, 50, 30)])
