@@ -22,6 +22,42 @@ Inspired by and in collaboration with the [Compression keyboard](https://github.
 *Carrycase with one case inside*. The carrycase is mirrored around the center, to
 allow for two halves of a split board to be carried together.
 
+## Features
+
+* Gives you a protective case for your keyboard PCBs, even if you aren't using
+a popular design.
+* Compact magnetic carrycase gives you ultimate portability, quick to unclip
+and start typing (no faffing with bags or zips).
+* Optional honeycomb base, to look great, save on weight and plastic, and show
+off your custom PCB and top-notch (😉) soldering.
+* Loop for strap attachment
+    * Attach the boards to your legs for a standing setup,
+    * Tie to a chair arm for a more ergonomic sitting setup, or just to use as a handle or
+to tie to your bad.
+* Works with both split and non-split board PCBs
+* Works with any PCB of unusual shape
+
+### Future feature ideas
+
+* Quick-tenting mechanism with quick-unfold leg, customisable for mutliple
+angles and heights. **IN PROGRESS**
+* Unibody case generator, with customisable distances and angles. Possibly even
+a temporary one (sit/clip your regular case into it to make it a unibody board
+for the couch, then lift them up and use them separately at your desk).
+* Integrate features with the carrycase. Possibly allow clipping the board
+edges into the carrycase for a unibody angle, or clip the board onto the top as
+a tenting mechanism.
+* Strap loop on carrycase as a handle or to attach to a bag.
+
+> See anything you like? Open an issue and express interest
+
+**Tip**: Take note of the version of snakeskin you use to build your cases, as
+well as your current config.
+You may want to print new parts as features are released, and you'll want the
+same config and major version to ensure the case is compatible.
+Features may also get added that change case designs, and you'll want to know
+that if you want to reprint parts that you already have.
+
 ## Install
 
 `pip install --user keeb_snakeskin` installs this package and dependencies, and
@@ -33,7 +69,7 @@ Overall:
 1. In KiCad, export **just the edge cuts layer** as an SVG.
 2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
 3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
-
+j
 ### Input File
 
 #### Getting the starting svg
@@ -118,8 +154,7 @@ examples.
 | `carrycase` | True | Whether the output designs should incorporate the compression-style carrycase. Will affect the main case as well. |
 | `honeycomb_base` | True | Make the base of the case a honeycombed/hexagon cage instead of solid |
 | `flush_carrycase_lip` | True | Two options for holding the pcb case into the carrycase: a lip that extends into the carrycase center, with a matching cutout in the pcb case; or, a lip that sits a bit above and below the carrycase. If false, the pcb case will have a flat bottom and your tolerances between the case and carrycase can be tighter, giving a better fit when in the case. However, it will require more supports when printing. |
-| `strap_loop` | False | Adds a loop on the left most end of the boards for a
-strap, e.g. for mounting on legs or chair arms. Experimental. |
+| `strap_loop` | False | Adds a loop on the left most end of the boards for a strap, e.g. for mounting on legs or chair arms. Experimental. If you want something on the other side, also include the tenting flap hinge and use the bolt. |
 | `output_filetype` | `.step` | `.step` or `.stl`. What filetype the case will be exported as. |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
 | `wall_xy_thickness` | 3 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case.  Top and bottom wall tolerance will also affect the thickness that actually gets printed. Recommend 2 + `magnet_separation_distance` if you're using the carrycase, so the magnets don't rattle. If it's larger, you'll have to glue the magnets into the case as well as the carrycase. If you are using the carrycase and have tall keys (i.e. not flat-soldered chocs) close to the edge of the PCB, you may need to make this bigger and tweak the carrycase lip to ensure enough clearance of the carrycase blocker when you insert the board. |
@@ -172,3 +207,11 @@ Generate case files with custom parameters:
 ```bash
 snakeskin board_outline.svg -o output_dir -c params.json
 ```
+
+## Development
+
+Versioning will follow [semantic versioning](https://semver.org/) to an extent.
+Features will be added in minor versions, and bugfixes in patch versions.
+Designs will be considered "breaking" changes if a plain case printed with a
+prior version would no longer fit the carrycase/other features added in a new
+version. This does not apply to more advanced features.
