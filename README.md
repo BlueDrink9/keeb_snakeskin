@@ -28,6 +28,7 @@ allow for two halves of a split board to be carried together.
 a popular design.
 * Compact magnetic carrycase gives you ultimate portability, quick to unclip
 and start typing (no faffing with bags or zips).
+* Quick-tenting mechanism with quick-unfold leg, customisable for multiple angles and heights.
 * Optional honeycomb base, to look great, save on weight and plastic, and show
 off your custom PCB and top-notch (😉) soldering.
 * Loop for strap attachment
@@ -39,8 +40,6 @@ to tie to your bad.
 
 ### Future feature ideas
 
-* Quick-tenting mechanism with quick-unfold leg, customisable for mutliple
-angles and heights. **IN PROGRESS**
 * Unibody case generator, with customisable distances and angles. Possibly even
 a temporary one (sit/clip your regular case into it to make it a unibody board
 for the couch, then lift them up and use them separately at your desk).
@@ -58,19 +57,37 @@ same config and major version to ensure the case is compatible.
 Features may also get added that change case designs, and you'll want to know
 that if you want to reprint parts that you already have.
 
-## Install
-
-`pip install --user keeb_snakeskin` installs this package and dependencies, and
-should create a new executable `snakeskin` in your python scripts folder.
-
 ## Usage
 
 Overall:
 1. In KiCad, export **just the edge cuts layer** as an SVG.
-2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board.
+2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board, although I suggest verifying the program runs without errors on your SVG before tweaking too many parameters.
 3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
-j
+
+### Install
+
+`pip install --user keeb_snakeskin` installs this package and dependencies, and
+should create a new executable `snakeskin` in your python scripts folder.
+
 ### Input File
+
+The program requires an SVG outline of the PCB, which is then used as the base shape for the case.
+You can pass in either a:
+* `.svg` file
+* `kicad_pcb` file (if `kicad-cli` is available (on your `$PATH`))
+
+For example:
+```bash
+snakeskin -o maizeless ~/src/maizeless/pcb/build/maizeless.gm1 --split true
+```
+
+The `-o` option specifies the output directory for your case files. If it is
+not an absolute path, it will be created as a subfolder or file within the
+`build` folder.
+
+In this case the output would be `./build/maizeless/case.step` and `./build/maizeless/case_mirrored.stl`
+
+See the [Configuration](#configuration) section for more information on how to customise the case design.
 
 #### Getting the starting svg
 
@@ -89,7 +106,7 @@ generate an input SVG or KiCad PCB first with tools like
 * https://kb.xyz.is/
 * https://github.com/adamws/keyboard-tools
 
-#### Troublesome PCBs
+#### Troublesome PCBs/input files
 
 This program requires the PCB outline to be a single, closed path. Complicated
 PCBs will not work out of the box, for example ones with:
@@ -104,12 +121,8 @@ That being said, you can still use this program; you'll just need to manually ed
 One example of a troublesome PCB is the Corne, so I have created a working
 outline for the Corne classic V2 already.
 
-### Extra Options
-
-Other than the case design parameters below, you can also input the following
-arguments:
-- `-o`, `--output`: Output directory or file path (default: "build")
-- `-c`, `--config`: Path to the JSON configuration file
+**Note**: SVG outlines must not contain borders or technical drawings, as are
+exported by default in KiCad. Remove these if you are using an SVG input.
 
 ### Printing
 
@@ -127,40 +140,42 @@ allocate supports appropriately.
 
 ### Assembly
 
-The only assembly required is inserting magnets. Check out [the Compression
-video](https://www.youtube.com/watch?v=eRLCBHWX4eQ&t=905s) to get the general
-idea.
+For the basic case, just insert the PCB with a bit of force to get the friction
+fit. You may choose to add hot clue underneath for a more permanent fit.
+
+#### Carrycase
+
+The only additional assembly required is inserting magnets. Check out [the Compression
+video](https://www.youtube.com/watch?v=eRLCBHWX4eQ&t=905s) to get the general idea.
 Only the carrycase magnets should need glue, the case magnets should be held in
-with the magnet alone.
+by the PCB.
 
+#### Tenting legs
+1. Align the leg hinges with the case hinges (there should only be one sensible way they fit) and insert the nut.
+Screw the bolt in.
+2. Add a small piece of velcro to the top of the smallest leg. Add the other
+   piece, then press the leg up into the case. Ideally the second piece should then glue to the
+PCB. The velcro holds it in place. Feel free to come up with other mechanisms
+for keeping it in place, but velcro is an easy solution that doesn't require
+much force to remove. I got my velcro from an old bike helmet.
 
-### Run
+### Configuration
 
-The program takes in the edge cuts from your gerber files to generate an
-svg outline in the `build` folder, which is then used to render the basic shape for the case.
-This could be an `svg` or  `.gm1` file, or a `.kicad_pcb` file if `kicad-cli`
-is available (on your `$PATH`). For example:
+Other than the case design parameters below, you can also input the following
+arguments:
+- `-o`, `--output`: Output directory or file path (default: "build")
+- `-c`, `--config`: Path to the JSON configuration file
 
-```python
-snakeskin -s -o maizeless ~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts.gm1
-```
-
-The `-o` option specifies the output directory for your case files. If it is
-not an absolute path, it will be created as a subfolder or file within the
-`build` folder.
-`-s` indicates this is a split board and the program should output a mirrored pair of files.
-In this case the output would be `./build/maizeless/case.step` and `./build/maizeless/case_mirrored.stl`
-
-### Specifying parameters
-
-The following tables outline the possible variables you can specify for
+The following tables describe the possible variables you can specify for
 your case creation.
 To modify the paramters, pass a path to a `.json` file with
-`-c path/to/cfg.json`, or pass individual parameters as command line arguments.
+`-c path/to/cfg.json`, and/or pass individual parameters as command line arguments.
 See `python snakeskin.py --help` for more information and for defaults.
 The json should have anything you want to override from
 defaults specified as a top level key:value. See `./preset_configs/` for
 examples.
+Using both the json and command line argument for a parameter will take the
+command line argument as priority.
 
 | Parameter name | Example value + unit| Description |
 | -------------- | ------------- | ----------- |
@@ -169,7 +184,7 @@ examples.
 | `honeycomb_base` | True | Make the base of the case a honeycombed/hexagon cage instead of solid |
 | `flush_carrycase_lip` | True | Two options for holding the pcb case into the carrycase: a lip that extends into the carrycase center, with a matching cutout in the pcb case; or, a lip that sits a bit above and below the carrycase. If false, the pcb case will have a flat bottom and your tolerances between the case and carrycase can be tighter, giving a better fit when in the case. However, it will require more supports when printing. |
 | `strap_loop` | False | Adds a loop on the left most end of the boards for a strap, e.g. for mounting on legs or chair arms. Experimental. If you want something on the other side, also include the tenting flap hinge and use the bolt. |
-| `tenting_stand` | False | Use the special quick-deploy tenting mechanism. This parameter adds the hinge to the case (and a gap for it in the carrycase) and exports the requested tenting flaps to the output directory.  |
+| `tenting_stand` | False | Use the special quick-deploy tenting mechanism. This parameter adds the hinge to the case (and a gap for it in the carrycase) and exports the requested tenting flaps to the output directory. This creates a hinge at the end of the case, which is designed for a hex nut and countersunk bolt of customisable length. |
 | `output_filetype` | `.step` | `.step` or `.stl`. What filetype the case will be exported as. |
 | `base_z_thickness` | 3 mm | Z thickness of bottom of the case, in mm |
 | `wall_xy_thickness` | 3 mm | Thickness/width in X and Y of the wall around the edge of the PCB, holding it in the case.  Top and bottom wall tolerance will also affect the thickness that actually gets printed. Recommend 2 + `magnet_separation_distance` if you're using the carrycase, so the magnets don't rattle. If it's larger, you'll have to glue the magnets into the case as well as the carrycase. If you are using the carrycase and have tall keys (i.e. not flat-soldered chocs) close to the edge of the PCB, you may need to make this bigger and tweak the carrycase lip to ensure enough clearance of the carrycase blocker when you insert the board. |
@@ -216,21 +231,6 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
 | `magnet_count` | 8 | Number of magnets per case (a split board and compression case will need 4× this amount to complete the build). |
 
-#### More usage examples
-
-Generate case files from an SVG to build/cool_board/:
-```bash
-snakeskin cool_board.svg -o build/cool_board
-```
-
-Generate case files from a Gerber file in build/:
-```bash
-snakeskin cool_board.gm1 -o build/
-```
-Generate case files with custom parameters:
-```bash
-snakeskin board_outline.svg -o output_dir -c params.json
-```
 
 ## Development
 
@@ -239,3 +239,18 @@ Features will be added in minor versions, and bugfixes in patch versions.
 Designs will be considered "breaking" changes if a plain case printed with a
 prior version would no longer fit the carrycase/other features added in a new
 version. This does not apply to more advanced features.
+
+## Final notes
+
+This took a _lot_ of time and brainpower to work through. My sincerest hope is
+that it is useful, and unlocks the ability to have cool, super-portable cases
+for your keyboards. I want people to feel that they can create a keyboard that
+fits their hands without forfeiting access to cool cases, rather than having to
+go with a more popular form factor.
+
+If you found it useful, indicating your appreciation will fill me with joy. A
+star or a share are fantastic, letting me know someone has found this useful
+(or even just cool). Even better, you might choose to donate a token of
+appreciation, either via Github or crypto:
+* bitcoincash:qp9c4ppt24c2ewzypv0pk0euapcyr92n85y7rhes7v
+* monero: 48x8HBjE5zeHyk73wtkKdZUJLgBnRFQKWjTnawRFqu3Z5Ldd3CMEGWLE4v1UV1vqSAZCYJRWnDX97iJwxeDtkT9W489vYWr
