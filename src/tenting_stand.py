@@ -14,7 +14,8 @@ Loc = Location
 blocker_zlen = 2
 # More than 90 so that the mating face on the flap hinges can be well above
 # 0/not point down.
-case_blocker_angle = 120
+case_blocker_angle = 90 + 45
+tenting_stability_angle = 30
 velcro_width = 15
 
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
@@ -78,7 +79,8 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
     return out
 
 
-def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
+def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_height):
+    """Create legs and hinges for tenting the keyboard. case_len is the X length of the case, and is used to calculate the optimal angle for the leg to open to so that it is 20 degrees past vertical on the desk."""
     flaps = [_Flap(*f) for f in flaps_]
     bolthole, _, outer = _base_faces(bolt_d, wall_height)
     # Go through from longest to shortest
@@ -87,7 +89,10 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
     for i, f in enumerate(flaps):
         offset = hinge_width_y*(i+1) + 0.2*(i+1)
         # flap_hinge_width = bolt_l - offset*2
-        flap_hinge = extrude(Plane.XZ * _flap_hinge_face(wall_height, bolt_d), hinge_width_y)
+        flap_hinge = extrude(
+            Plane.XZ * _flap_hinge_face(case_len, f.len, wall_height, bolt_d),
+            hinge_width_y,
+        )
         flap_hinge.move(Loc((0, -offset)))
         flap_hinge.move(Loc((0, bolt_l/2)))
         flap_hinge += mirror(flap_hinge, Plane.XZ)
@@ -134,9 +139,9 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
             d = ((-Plane.YX * _velcro_divot(flaps[-1]))).move(Loc((0, 0, -outer.radius)))
             out[i] -= d
 
-        # show_object(out[i], name=f"flaps{i}")
+        show_object(out[i], name=f"flaps{i}")
 
-        show_object(out[i].rotate(Axis.Y, -70), name=f"flaps{i}")
+        # show_object(out[i].rotate(Axis.Y, -70), name=f"flaps{i}")
 
     return ShapeList(out)
 
@@ -165,12 +170,16 @@ def _bolthole_cutout(bolthole):
     return bolthole_cutout
 
 
+def _calc_leg_open_angle(case_len, flap_len):
+    # The calculation gets the angle such that the leg is perpendicular to the desk if the end of the case is also sitting on it. Then add extra to make the leg more stable, so it doesn't collapse back in.
+    # The sloped case acts as the hypotenuse, with flap length as the adjacent side.
+    return math.degrees(math.acos(flap_len / case_len)) + tenting_stability_angle
+
+
 @cache
-def _flap_hinge_face(wall_height, bolt_d):
+def _flap_hinge_face(case_len, flap_len, wall_height, bolt_d):
     _, hinge_face, outer = _base_faces(bolt_d, wall_height)
-    # Angle above 90 when open so that it holds itself open and won't
-    # collapse.
-    open_angle = 110
+    open_angle = _calc_leg_open_angle(case_len, flap_len)
     blocker_angle = case_blocker_angle - open_angle
     blocker = [PolarLine((0, 0), outer.radius + blocker_zlen, blocker_angle)]
     blocker += [
@@ -288,5 +297,5 @@ mechanism_length = bolt_l
 hinge_width_y = cfg["tent_hinge_width"]
 
 if __name__ in ["temp", "__cq_main__", "__main__"]:
-    tenting_legs([[40, 90, 10], [30, 60, 30], [20, 30, 30]], 3, 7.4)
+    tenting_legs([[40, 90, 10], [30, 60, 30], [20, 30, 30]], 144.4, 3, 7.4)
     case_hinge(7.4, 3)

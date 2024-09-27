@@ -789,13 +789,27 @@ def _cutout_tenting_flaps(case, base_face, wall_height):
 @cache
 def _get_tenting_flap_shadow(base_face, wall_height):
     # Import it after updating cnf, because it uses the cnf values on import.
-    from tenting_stand import tenting_legs
-    flaps = tenting_legs(cfg["tent_legs"], cfg["tent_hinge_bolt_d"], wall_height)
+    from tenting_stand import tenting_legs, _calc_leg_open_angle
+    case_len = _calc_case_len(base_face)
+    flaps = tenting_legs(cfg["tent_legs"], case_len, cfg["tent_hinge_bolt_d"], wall_height)
 
     # Reposition to same place as hinge.
     hinge = _tent_hinge(base_face, wall_height)
     for i, f in enumerate(flaps):
-        show_object(flaps[i].rotate(Axis.Y, -70 + 10 * len(flaps) - 10 * (i+1)).move(hinge.location), name=f"flaps{i}", options={"color": (255 - 20 * i, 0, 40*i)})
+        # Show full generated flaps in rotated/open position, to check blockers
+        # and for showcase images.
+        show_object(
+            flaps[i]
+            .rotate(
+                Axis.Y,
+                -_calc_leg_open_angle(
+                    _calc_case_len(base_face), f.bounding_box().size.X - wall_height
+                ),
+            )
+            .move(hinge.location),
+            name=f"flaps{i}",
+            options={"color": (255 - 20 * i, 0, 40 * i)},
+        )
         flaps[i] = f.move(hinge.location)
         # show_object(flaps[i], name=f"flaps{i}", options={"color": (0, 0, 255)})
 
@@ -803,6 +817,13 @@ def _get_tenting_flap_shadow(base_face, wall_height):
     # Ensure we get the outline of the largest face, otherwise might get inversion from little ridge face.
     shadow = make_face(shadow.faces().sort_by(SortBy.AREA).last.outer_wire()).face()
     return shadow
+
+
+def _calc_case_len(base_face):
+    case_len = offset(base_face, cfg["wall_xy_thickness"]).bounding_box().size.X
+    if cfg["strap_loop"]:
+        case_len += cfg["strap_loop_thickness"] + cfg["strap_loop_gap"]
+    return case_len
 
 
 def _poor_mans_chamfer(shape, size, top=False):
