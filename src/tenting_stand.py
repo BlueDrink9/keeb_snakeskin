@@ -110,19 +110,18 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
         out[i] -= bolthole_cutout
 
         # Cut out a ridge for finger to open the flap
-        end_edge = flap.faces().sort_by(Axis.X).first.edges().sort_by(Axis.Z).last
-        end_edge = end_edge # .rotate(Axis(end_edge), 180)
-        edge_width = end_edge.length/6
-        # Create a plane such that the flap edge is X.
+        topright_edge = flap.faces().filter_by(Axis.Z).sort_by(Axis.Z).last.edges().sort_by(Axis.Y).last
+        ridge_len = 10
+        # edge_width = left_edge.length/10
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
-            origin=end_edge @ 0.5,
-            x_dir=(end_edge % 0.5),
-            y_dir=end_edge.normal(),
+            origin=topright_edge.location_at(topright_edge.length-10, position_mode=PositionMode.LENGTH).position,
+            x_dir=(topright_edge % 0.5),
+            y_dir=topright_edge.normal(),
             z_dir=-Axis.Z.direction,
         )
         finger_ridge = _ridge(
-            edge_width,
+            ridge_len,
             # Tiny bit less than max thickness, to exploit the fact that the projection subtracted from the case will be complete, but the slice will have a gap for the finger.
             cfg["base_z_thickness"] * 0.99,
         )
@@ -220,15 +219,15 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
         # Add a ridge to hold the next flap out in place when closed. Innermost
         # flap should have velcro to the PCB to hold it in place.
         edge = face.edges().sort_by(Axis.X).first
-        edge_width = edge.length/6
+        ridge_len = 10
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
-            origin=edge.location_at(edge_width, position_mode=PositionMode.LENGTH).position,
+            origin=edge.location_at(ridge_len+5, position_mode=PositionMode.LENGTH).position,
             x_dir=edge % 0.5,
             y_dir=edge.normal(),
         )
         ridge = _ridge(
-            edge_width,
+            ridge_len,
             thickness/2,
         )
         ridge = plane * ridge
@@ -258,14 +257,14 @@ def _hinge_blocker(outer):
 def _ridge(ridge_width, thickness) -> None:
     # Thick enough for chamfer to not fail, and pegged to width for that same
     # reason.
-    ridge_len = thickness*0.5*ridge_width
-    # Arbitrary edge length ratio.
-    ridge_face = Ellipse(ridge_width, ridge_len)
+    ridge_len = ridge_width * thickness * 0.5
+    ridge_face = Ellipse(ridge_width/2, ridge_len/2)
     # Remove half to form semicircle
     ridge_face = split(ridge_face)
     ridge = extrude(ridge_face, thickness)
     top_curve = ridge.edges().group_by(Axis.Z)[-1].sort_by(SortBy.LENGTH)[-1]
     ridge = chamfer(top_curve, thickness - 0.1)
+
     return ridge
 
 
