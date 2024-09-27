@@ -233,6 +233,9 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
         ridge = plane * ridge
         flap += ridge
 
+    end_edges = flap.edges().filter_by(Plane.XY).group_by(Axis.Y)[-1]
+    flap = fillet(end_edges, thickness/2.1)
+
     return flap
 
 
