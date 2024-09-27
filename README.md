@@ -114,9 +114,10 @@ PCBs will not work out of the box, for example ones with:
 * large irregular holes (e.g. LED holes; vias and holes for keyboard switches are fine)
 * internal cutouts (like for mid-mount connectors),
 * breakable/mouse nibble columns,
+* multiple halves
 * multiple halves in a PCB frame
 
-That being said, you can still use this program; you'll just need to manually edit the SVG. If you do this for a popular board, please open a PR to share the resulting SVG in `./manual_outlines/`
+That being said, you can still use this program; you'll just need to manually edit the SVG outline. If you do this for a popular board, please open a PR to share the resulting SVG in `./manual_outlines/`
 
 One example of a troublesome PCB is the Corne, so I have created a working
 outline for the Corne classic V2 already.
