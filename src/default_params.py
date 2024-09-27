@@ -24,6 +24,7 @@ default_params = {
     "wall_xy_top_tolerance": 0.3,
     "cutout_position": 10,
     "cutout_width": 15,
+    "additional_cutouts": [],
     "chamfer_len": 1,
     "honeycomb_radius": 6,
     "honeycomb_thickness": 2,
@@ -42,8 +43,8 @@ default_params = {
     "magnet_separation_distance": 0.81,
     "magnet_spacing": 12,
     "magnet_count": 8,
-    "tent_hinge_width": 5,
     "tent_legs": [[30, 50, 0]],
+    "tent_hinge_width": 5,
     "tent_hinge_bolt_d": 3,  # M3
     "tent_hinge_bolt_l": 50,
     "tent_hinge_bolt_head_d": 6.94,

@@ -89,6 +89,20 @@ generate an input SVG or KiCad PCB first with tools like
 * https://kb.xyz.is/
 * https://github.com/adamws/keyboard-tools
 
+#### Troublesome PCBs
+
+This program requires the PCB outline to be a single, closed path. Complicated
+PCBs will not work out of the box, for example ones with:
+
+* large irregular holes (e.g. LED holes; vias and holes for keyboard switches are fine)
+* internal cutouts (like for mid-mount connectors),
+* breakable/mouse nibble columns,
+* multiple halves in a PCB frame
+
+That being said, you can still use this program; you'll just need to manually edit the SVG. If you do this for a popular board, please open a PR to share the resulting SVG in `./manual_outlines/`
+
+One example of a troublesome PCB is the Corne, so I have created a working
+outline for the Corne classic V2 already.
 
 ### Extra Options
 
@@ -163,21 +177,25 @@ examples.
 | `z_space_under_pcb` | 1 mm | The size of the gap beneath the PCB, to leave room for through-hole pins, wires, hotswap sockets etc on the underside. Modify this to at least 1.85 if you are using kailh hotswap sockets under the PCB, for example. Also increase it if you want to have bigger tolerences for the fit and need more space for the walls to narrow in. By default, leaves just enough space for the pins of a choc switch directly soldered into a 1.6 mm pcb (which I measure stick out at about 0.83 mm). |
 | `wall_xy_bottom_tolerance` | -0.3 mm | Amount of space between the PCB and the case walls near the case bottom, where PCB should sit (i.e. above z_space_under_pcb). Intended as a -ve value to get a tight friction fit. This is implemented with a scaling hack because of engine limitations, so I'd encourage measuring the result in a CAD program if you need it exact. |
 | `wall_xy_top_tolerance` | 0.3 mm | Amount of space between the widest part of the walls (at the top) and the PCB outline. Adjust this depending on printer tolerances and how tight you want the friction fit. You may want to increase `z_space_under_pcb` if the difference between this and `wall_xy_bottom_tolerance` is large |
-| `cutout_position` | 10 | Location  along the walls of the pcb case for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. |
+| `cutout_position` | 10 | Location  along the walls of the pcb case for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. I suggest this position also be the location of your USB connection. |
 | `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
+| `additional_cutouts` | `[[10, 15]]` | List of extra cutouts in the wall to add, in the format `[[angle at center of cutout, width],]`. See `cutout_position` for info about the angles. Use this to place an extra cutout for your TRRS cable, if it's a wired board. |
 | `honeycomb_radius` | 6 mm | Radius of the blank space hexagons for the honeycomb case base (major/inscribed radius) |
 | `honeycomb_thickness` | 2 mm | Thickness of the bars (space between hexagons) of the honeycomb case base |
 | `strap_loop_thickness` | 4 mm | Thickness (in XY) of the strap loop |
 | `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the
 strap starts. Fiddle with this to avoid or merge with corners, for example. |
 | `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go through. |
+| `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs, which will be exported as separate files, as well as cut out of the keyboard base. Multiple legs will be nested within each other (to the extent possible with the length of the hinge). Each entry is the `width`, `length` and `tenting_angle`. Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). The end widths must decrease with length, or nesting will fail. |
+| `tent_hinge_width` | 5 | How thick in the Y axis the hinges are that hold
+the tenting flaps. Keep this short if you have lots of tenting flaps,
+otherwise you may as well increase it to increase the strength. |
 | `tent_hinge_bolt_d` | 3 (mm, == M3) | Bolt diameter specification for the tenting stand hinge. If you are using imperial bolts, be sure to convert the official size to mm, don't measure the thread. Keep this as small as you can, because the bigger the hole, the less plastic holding it in place. |
 | `tent_hinge_bolt_l` | 60 mm | Length of bolt for the tenting stand hinge, including head assuming it's countersunk. I'd suggest getting something as big as you can find for the size of your case. Push rods might help getting something really long, with small diameters (but will need two nuts). |
 | `tent_hinge_bolt_head_d` | 6.94 mm | Diameter of bolt head (only used for
 countersink). |
 | `tent_hinge_nut_l` | 5.5 mm | Length of nut retention hole |
 | `tent_hinge_nut_d` | 2.4 mm | Inscribed diameter of nut for tent hinge bolt |
-| `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs, which will be nested within each other (to the extent possible with the length of the hinge). Each entry is the width, length and tenting angle. Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). |
 
 #### Carrycase options
 
@@ -189,7 +207,7 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `carrycase_tolerance_z` | 0.5 mm | Gap size between the pcb case and the carry case blockers. May need playing around with on your printer to get a good fit. Larger carrycase tolerances will make it easier to get the case into and out of the carrycase, at the cost of tightness of fit once it's in there. |
 | `carrycase_wall_xy_thickness` | 2 mm | Thickness of the carrycase outer wall |
 | `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case |
-| `carrycase_cutout_position` | -90 | Location  along the walls of the carrycase for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. Should be opposite the lip, on the same side as the magnets. |
+| `carrycase_cutout_position` | -90 | Location  along the walls of the carrycase for the finger removal cutout, as an angle from the center of the case. Should be opposite the lip, on the same side as the magnets. See `cutout_position` for info about the angles. |
 | `carrycase_cutout_xy_width` | 15 mm | Width of the finger cutout for removing the boards from the case. May cut out more if the area isn't a straight line. |
 | `lip_len` | 1.5 mm | Length of the lip (not including carrycase tolerance, i.e. this is the xy length that protrudes over the case). |
 | `lip_position_angles` | [160, 30] | A list of two angles, [start_angle, end_angle], that defines the position of the lip on the case. Measured in degrees from the positive X-axis. Positive angles are measured counterclockwise, with 0 degrees being the positive X-axis and 90 degrees being the positive Y-axis, -90 is the direction of the negative Y axis.The difference between the start and end angles must be less than 180 degrees. It is recommended to set the angles to cover a long, straight section of the case. This must be opposite to the location of the finger cutout on the carry case and the magnets. |

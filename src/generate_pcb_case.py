@@ -15,7 +15,7 @@ cfg = default_params
 Loc = Location
 
 test_print = False
-fast_render = True
+fast_render = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
     slice = Loc((-55, 0, 0)) * Box(
@@ -251,8 +251,8 @@ def generate_cases(svg_file, user_params=None):
 
     base_face = import_svg_as_face(svg_file)
 
-    def output_path(name):
-        return str(Path(cfg["output_dir"] / name).with_suffix(cfg["output_filetype"]))
+    def output_path(shape):
+        return str(Path(cfg["output_dir"] / f"{svg_file.stem}_{shape}").with_suffix(cfg["output_filetype"]))
 
     print("Generating PCB case...")
     case = generate_pcb_case(base_face, pcb_case_wall_height)
@@ -270,7 +270,36 @@ def generate_cases(svg_file, user_params=None):
         case_output = output_path("carrycase")
         _export(carry, case_output, "carry case")
 
+    if cfg["tenting_stand"]:
+        print("Generating tenting legs...")
+        from tenting_stand import tenting_legs, _calc_leg_open_angle
+        wall_height = pcb_case_wall_height + cfg["base_z_thickness"]
+        case_len = _calc_case_len(base_face)
+        flaps = tenting_legs(cfg["tent_legs"], case_len, cfg["tent_hinge_bolt_d"], wall_height)
+        for i, flap in enumerate(flaps):
+            output = output_path(f"tenting_flap_{i+1}")
+            _export(flap, output, "tenting_flap")
+
     return
+
+
+def _do_wall_cutouts(case, pcb_case_wall_height):
+    topf = case.faces().sort_by(sort_by=Axis.Z).last
+    top_inner_wire = topf.wires()[0]
+    polar_map = PolarWireMap(top_inner_wire, topf.center())
+
+    to_do = [[cfg["cutout_position"], cfg["cutout_width"]], *cfg["additional_cutouts"]]
+    for angle, width in to_do:
+        cutout_location, _ = polar_map.get_polar_location(angle)
+        cutout_box = _finger_cutout(
+            cutout_location,
+            cfg["wall_xy_thickness"],
+            width,
+            pcb_case_wall_height,
+        )
+        case -= cutout_box
+
+    return case
 
 
 def generate_pcb_case(base_face, pcb_case_wall_height):
@@ -308,20 +337,7 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
 
     case = _poor_mans_chamfer(case, cfg["chamfer_len"])
 
-
-    # Create finger cutout
-    topf = case.faces().sort_by(sort_by=Axis.Z).last
-    top_inner_wire = topf.wires()[0]
-    polar_map = PolarWireMap(top_inner_wire, topf.center())
-    cutout_location, _ = polar_map.get_polar_location(cfg["cutout_position"])
-    cutout_box = _finger_cutout(
-        cutout_location,
-        cfg["wall_xy_thickness"],
-        cfg["cutout_width"],
-        pcb_case_wall_height,
-    )
-
-    case -= cutout_box
+    case = _do_wall_cutouts(case, pcb_case_wall_height)
 
     if cfg["carrycase"]:
         if cfg["flush_carrycase_lip"]:
@@ -567,7 +583,7 @@ def _finger_cutout(location, thickness, width, height):
         height * 2,
     )
     # Smooth the sides of the cutout
-    cutout_box = fillet(cutout_box.edges().filter_by(Axis.X), height / 2)
+    cutout_box = fillet(cutout_box.edges().filter_by(Axis.X), min(height / 2.1, width / 2.1))
     cutout_box.locate(cutout_location)
     return cutout_box
 
@@ -811,7 +827,7 @@ def _get_tenting_flap_shadow(base_face, wall_height):
             options={"color": (255 - 20 * i, 0, 40 * i)},
         )
         flaps[i] = f.move(hinge.location)
-        # show_object(flaps[i], name=f"flaps{i}", options={"color": (0, 0, 255)})
+    show_object(flaps[-1], name=f"smallest_flap", options={"color": (0, 0, 255)})
 
     shadow = _flatten_to_faces(flaps)
     # Ensure we get the outline of the largest face, otherwise might get inversion from little ridge face.
