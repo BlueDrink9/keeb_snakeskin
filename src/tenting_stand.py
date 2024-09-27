@@ -98,7 +98,7 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
         flap += flap_hinge
         out.append(flap)
 
-    case_hinge_ = case_hinge(bolt_d, wall_height, countersunk=False)
+    case_hinge_ = case_hinge(wall_height, bolt_d, countersunk=False)
     bolthole_cutout = _bolthole_cutout(bolthole)
     # Cut smaller flaps out of the larger ones.
     for i, flap in enumerate(out):
@@ -108,6 +108,10 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
         # show_object(out[i], name=f"flaps{i}")
+        if i + 1 < len(out):  # From all but shortest
+            # Ensure the innermost divot isn't being left out as a floating square
+            d = ((-Plane.YX * _velcro_divot(flaps[-1]))).move(Loc((0, 0, -outer.radius)))
+            out[i] -= d
 
         show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
 
@@ -186,9 +190,7 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False):
     flap = extrude(face, thickness)
 
     if innermost:
-        # Cut out a divot for velcro
-        divot = Rectangle(velcro_width, velcro_width, align=(Align.CENTER, Align.MAX)).move(Loc((0, f.len, cfg["base_z_thickness"])))
-        flap -= extrude(divot, -cfg["base_z_thickness"]*0.5)
+        flap -= _velcro_divot(f)
 
     if inner:
         # Add a ridge to hold the next flap out in place when closed. Innermost
@@ -235,6 +237,14 @@ def _hinge_blocker(outer):
     return blocker
 
 
+def _velcro_divot(flap):
+    # Cut out a divot to allow velcro to sit without affecting closing of the
+    # case
+    divot = Rectangle(velcro_width, velcro_width, align=(Align.CENTER, Align.MAX)).move(Loc((0, flap.len, cfg["base_z_thickness"])))
+    return extrude(divot, -cfg["base_z_thickness"]*0.5)
+
+# TODO way to open the flaps! Finger ridge etc.
+
 bolt_l = cfg["tent_hinge_bolt_l"] # Includes head, assuming countersunk
 bolt_d = cfg["tent_hinge_bolt_d"]
 bolt_head_d = cfg["tent_hinge_bolt_head_d"]  # https://engineersbible.com/countersunk-socket-metric/
@@ -242,9 +252,9 @@ nut_d = cfg["tent_hinge_nut_d"]  # https://amesweb.info/Fasteners/Metric_Hex_Nut
 nut_l = cfg["tent_hinge_nut_l"]
 mechanism_length = bolt_l
 
-hinge_width_y = 5
+hinge_width_y = cfg["tent_hinge_width"]
 velcro_width = 15
 
 if __name__ in ["temp", "__cq_main__", "__main__"]:
-    tenting_legs(cfg["tent_legs"], 3, 7.4)
+    tenting_legs([[40, 90, 10], [30, 60, 30], [20, 30, 30]], 3, 7.4)
     case_hinge(7.4, 3)
