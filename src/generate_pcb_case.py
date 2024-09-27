@@ -252,7 +252,11 @@ def generate_cases(svg_file, user_params=None):
     base_face = import_svg_as_face(svg_file)
 
     def output_path(shape):
-        return str(Path(cfg["output_dir"] / f"{svg_file.stem}_{shape}").with_suffix(cfg["output_filetype"]))
+        p = Path(
+            cfg["output_dir"] / svg_file.stem / shape
+        ).with_suffix(cfg["output_filetype"])
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return str(p)
 
     print("Generating PCB case...")
     case = generate_pcb_case(base_face, pcb_case_wall_height)
