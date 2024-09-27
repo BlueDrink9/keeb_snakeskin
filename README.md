@@ -99,7 +99,7 @@ arguments:
 
 ### Printing
 
-These designs are designed to be printed without supports where possible. There
+These designs are designed to be printed in PLA without supports where possible. There
 is only one severe (90 degree) overhang in the design, which is the first
 blocker of the carrycase. This should be the only part that needs supports.
 Setting your printer to only print overhangs over 70 degrees should be enough
@@ -165,7 +165,7 @@ examples.
 | `wall_xy_top_tolerance` | 0.3 mm | Amount of space between the widest part of the walls (at the top) and the PCB outline. Adjust this depending on printer tolerances and how tight you want the friction fit. You may want to increase `z_space_under_pcb` if the difference between this and `wall_xy_bottom_tolerance` is large |
 | `cutout_position` | 10 | Location  along the walls of the pcb case for the finger removal cutout, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. Not every angle is possible, so your argument will be mapped to the closest acceptable angle. |
 | `cutout_width` | 15 mm | Width of the removal cutout. May cut out more if the area isn't a straight line. |
-| `honeycomb_radius` | 6 mm | Radius of the blank space hexagons for the honeycomb case base |
+| `honeycomb_radius` | 6 mm | Radius of the blank space hexagons for the honeycomb case base (major/inscribed radius) |
 | `honeycomb_thickness` | 2 mm | Thickness of the bars (space between hexagons) of the honeycomb case base |
 | `strap_loop_thickness` | 4 mm | Thickness (in XY) of the strap loop |
 | `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the
@@ -194,8 +194,7 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `lip_len` | 1.5 mm | Length of the lip (not including carrycase tolerance, i.e. this is the xy length that protrudes over the case). |
 | `lip_position_angles` | [160, 30] | A list of two angles, [start_angle, end_angle], that defines the position of the lip on the case. Measured in degrees from the positive X-axis. Positive angles are measured counterclockwise, with 0 degrees being the positive X-axis and 90 degrees being the positive Y-axis, -90 is the direction of the negative Y axis.The difference between the start and end angles must be less than 180 degrees. It is recommended to set the angles to cover a long, straight section of the case. This must be opposite to the location of the finger cutout on the carry case and the magnets. |
 | `magnet_position` | -90 | Location  along the walls of the carrycase and case where the magnets will be centered, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. |
-| `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the
-magnets in the case from the magnets in the carrycase. How thick the case wall |
+| `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the magnets in the case from the magnets in the carrycase. How thick the case wall |
 | `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
 | `magnet_count` | 8 | Number of magnets per case (a split board and compression case will need 4× this amount to complete the build). |
 

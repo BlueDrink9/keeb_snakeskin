@@ -795,7 +795,9 @@ def _get_tenting_flap_shadow(base_face, wall_height):
     # Reposition to same place as hinge.
     hinge = _tent_hinge(base_face, wall_height)
     for i, f in enumerate(flaps):
+        show_object(flaps[i].rotate(Axis.Y, -70 + 10 * len(flaps) - 10 * (i+1)).move(hinge.location), name=f"flaps{i}", options={"color": (255 - 20 * i, 0, 40*i)})
         flaps[i] = f.move(hinge.location)
+        # show_object(flaps[i], name=f"flaps{i}", options={"color": (0, 0, 255)})
 
     shadow = _flatten_to_faces(flaps)
     # Ensure we get the outline of the largest face, otherwise might get inversion from little ridge face.
@@ -935,5 +937,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    carry = generate_carrycase(base_face, pcb_case_wall_height)
+    # carry = generate_carrycase(base_face, pcb_case_wall_height)
     case = generate_pcb_case(base_face, pcb_case_wall_height)

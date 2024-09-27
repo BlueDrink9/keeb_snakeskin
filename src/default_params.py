@@ -42,10 +42,11 @@ default_params = {
     "magnet_separation_distance": 0.81,
     "magnet_spacing": 12,
     "magnet_count": 8,
+    "tent_hinge_width": 5,
+    "tent_legs": [[30, 50, 0]],
     "tent_hinge_bolt_d": 3,  # M3
     "tent_hinge_bolt_l": 50,
     "tent_hinge_bolt_head_d": 6.94,
     "tent_hinge_nut_l": 2.4,
     "tent_hinge_nut_d": 5.5,
-    "tent_legs": [[30, 50, 0]],
 }

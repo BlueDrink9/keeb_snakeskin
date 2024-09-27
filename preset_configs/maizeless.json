@@ -8,5 +8,6 @@
     "magnet_position": -100,
     "strap_loop_end_offset": -1.5,
     "wall_z_height": 3.0,
-    "tent_legs":  [[40, 90, 10], [30, 30, 30]]
+    "tent_hinge_width": 4,
+    "tent_legs":  [[40, 90, 10], [30, 60, 30], [30, 30, 30]]
 }

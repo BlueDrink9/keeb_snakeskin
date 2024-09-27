@@ -11,6 +11,11 @@ from default_params import default_params as cfg
 # params for this module here, and add them to the main dict on import...
 
 Loc = Location
+blocker_zlen = 2
+# More than 90 so that the mating face on the flap hinges can be well above
+# 0/not point down.
+case_blocker_angle = 120
+velcro_width = 15
 
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
@@ -19,12 +24,6 @@ if __name__ == "__main__":
     set_port(3939)
 
 # case_end = Rectangle(10, wall_height).bounding_box()
-
-blocker_zlen = 1
-# More than 90 so that the mating face on the flap hinges can be well above
-# 0/not point down.
-case_blocker_angle = 120
-
 
 @dataclass
 class _Flap:
@@ -93,7 +92,9 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
         flap_hinge.move(Loc((0, bolt_l/2)))
         flap_hinge += mirror(flap_hinge, Plane.XZ)
         near_len = flap_hinge.bounding_box().size.Y
-        flap = -Plane.YX * _flap(f, near_len, inner=i>0, innermost=(i + 1 == len(flaps)))
+        flap = -Plane.YX * _flap(
+            f, near_len, inner=i > 0, innermost=(i + 1 == len(flaps)), outermost=i == 0
+        )
         flap = flap.move(Loc((0, 0, -outer.radius)))
         flap += flap_hinge
         out.append(flap)
@@ -107,13 +108,36 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], bolt_d, wall_height):
             # out[i] -= offset(inner, 0.2)
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
-        # show_object(out[i], name=f"flaps{i}")
+
+        # Cut out a ridge for finger to open the flap
+        end_edge = flap.faces().sort_by(Axis.X).first.edges().sort_by(Axis.Z).last
+        end_edge = end_edge # .rotate(Axis(end_edge), 180)
+        edge_width = end_edge.length/6
+        # Create a plane such that the flap edge is X.
+        plane = Plane(
+            # Origin just before the end. Edge goes from end to start, so -ve position
+            origin=end_edge @ 0.5,
+            x_dir=(end_edge % 0.5),
+            y_dir=end_edge.normal(),
+            z_dir=-Axis.Z.direction,
+        )
+        finger_ridge = _ridge(
+            edge_width,
+            # Tiny bit less than max thickness, to exploit the fact that the projection subtracted from the case will be complete, but the slice will have a gap for the finger.
+            cfg["base_z_thickness"] * 0.99,
+        )
+        finger_ridge = plane * finger_ridge
+        # show_all()
+        out[i] -= finger_ridge
+
         if i + 1 < len(out):  # From all but shortest
             # Ensure the innermost divot isn't being left out as a floating square
             d = ((-Plane.YX * _velcro_divot(flaps[-1]))).move(Loc((0, 0, -outer.radius)))
             out[i] -= d
 
-        show_object(out[i].rotate(Axis.Y, -110), name=f"flaps{i}")
+        # show_object(out[i], name=f"flaps{i}")
+
+        show_object(out[i].rotate(Axis.Y, -70), name=f"flaps{i}")
 
     return ShapeList(out)
 
@@ -164,7 +188,7 @@ def _flap_hinge_face(wall_height, bolt_d):
     # show_object(flap_hinge_face)
     return flap_hinge_face
 
-def _flap(f: _Flap, width_near, inner=True, innermost=False):
+def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
     thickness = cfg["base_z_thickness"]
     pts = [
         # bl, br, tr, tl
@@ -196,25 +220,19 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False):
         # Add a ridge to hold the next flap out in place when closed. Innermost
         # flap should have velcro to the PCB to hold it in place.
         edge = face.edges().sort_by(Axis.X).first
-        ridge_width = edge.length/6
-        # Create a plane such that the flap edge is X.
+        edge_width = edge.length/6
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
-            origin=edge.location_at(ridge_width, position_mode=PositionMode.LENGTH).position,
+            origin=edge.location_at(edge_width, position_mode=PositionMode.LENGTH).position,
             x_dir=edge % 0.5,
-            y_dir=Axis.Y.direction,
+            y_dir=edge.normal(),
         )
-        # Thick enough for chamfer to not fail, and pegged to width for that same reason.
-        ridge_len = thickness*0.25*ridge_width
-        # Arbitrary edge length ratio.
-        ridge_face = Ellipse(ridge_width, ridge_len)
-        # Remove half to form semicircle
-        ridge_face = plane * split(ridge_face)
-        ridge = extrude(ridge_face, thickness/2)
-        top_curve = ridge.edges().group_by(Axis.Z)[-1].sort_by(SortBy.LENGTH)[-1]
-        ridge = chamfer(top_curve, thickness/2 - 0.1)
+        ridge = _ridge(
+            edge_width,
+            thickness/2,
+        )
+        ridge = plane * ridge
         flap += ridge
-
 
     return flap
 
@@ -237,13 +255,26 @@ def _hinge_blocker(outer):
     return blocker
 
 
+def _ridge(ridge_width, thickness) -> None:
+    # Thick enough for chamfer to not fail, and pegged to width for that same
+    # reason.
+    ridge_len = thickness*0.5*ridge_width
+    # Arbitrary edge length ratio.
+    ridge_face = Ellipse(ridge_width, ridge_len)
+    # Remove half to form semicircle
+    ridge_face = split(ridge_face)
+    ridge = extrude(ridge_face, thickness)
+    top_curve = ridge.edges().group_by(Axis.Z)[-1].sort_by(SortBy.LENGTH)[-1]
+    ridge = chamfer(top_curve, thickness - 0.1)
+    return ridge
+
+
 def _velcro_divot(flap):
     # Cut out a divot to allow velcro to sit without affecting closing of the
     # case
     divot = Rectangle(velcro_width, velcro_width, align=(Align.CENTER, Align.MAX)).move(Loc((0, flap.len, cfg["base_z_thickness"])))
     return extrude(divot, -cfg["base_z_thickness"]*0.5)
 
-# TODO way to open the flaps! Finger ridge etc.
 
 bolt_l = cfg["tent_hinge_bolt_l"] # Includes head, assuming countersunk
 bolt_d = cfg["tent_hinge_bolt_d"]
@@ -253,7 +284,6 @@ nut_l = cfg["tent_hinge_nut_l"]
 mechanism_length = bolt_l
 
 hinge_width_y = cfg["tent_hinge_width"]
-velcro_width = 15
 
 if __name__ in ["temp", "__cq_main__", "__main__"]:
     tenting_legs([[40, 90, 10], [30, 60, 30], [20, 30, 30]], 3, 7.4)
