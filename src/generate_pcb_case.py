@@ -10,6 +10,7 @@ from build123d import *
 from build123d import Shape
 
 from default_params import default_params
+cnf = default_params
 
 Loc = Location
 
@@ -39,45 +40,6 @@ if __name__ not in ["__cq_main__", "temp"]:
         ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
         show_object = lambda *args, **__: ocp.show(args)
 
-default_params = {
-    "output_dir": script_dir / "../build",
-    "split": True,
-    "carrycase": True,
-    "flush_carrycase_lip": True,
-    "honeycomb_base": True,
-    "strap_loop": False,
-    "tenting_stand": False,
-    "output_filetype": ".stl",
-    "base_z_thickness": 2,
-    "wall_xy_thickness": 2.81,
-    "wall_z_height": 4.0,
-    "z_space_under_pcb": 1,
-    "wall_xy_bottom_tolerance": -0.2,
-    "wall_xy_top_tolerance": 0.3,
-    "cutout_position": 10,
-    "cutout_width": 15,
-    "chamfer_len": 1,
-    "honeycomb_radius": 6,
-    "honeycomb_thickness": 2,
-    "strap_loop_thickness": 4,
-    "strap_loop_end_offset": 0,
-    "strap_loop_gap": 5,
-    "carrycase_tolerance_xy": 0.4,
-    "carrycase_tolerance_z": 0.5,
-    "carrycase_wall_xy_thickness": 3,
-    "carrycase_z_gap_between_cases": 9 + 1,
-    "carrycase_cutout_position": -90,
-    "carrycase_cutout_xy_width": 15,
-    "lip_len": 1.3,
-    "lip_position_angles": [32, 158],
-    "magnet_position": -90.0,
-    "magnet_separation_distance": 0.81,
-    "magnet_spacing": 12,
-    "magnet_count": 8,
-    "tent_hinge_bolt_d": 3, # M3
-    "tent_hinge_bolt_l": 60, # M3
-}
-cnf = default_params
 
 test_overrides = {
     "base_z_thickness": 1.5,
@@ -433,14 +395,27 @@ def generate_carrycase(base_face, pcb_case_wall_height):
 
     case -= cutout_box
 
+    total_wall_cutout_height = (
+        pcb_case_wall_height + cnf["base_z_thickness"] + cnf["carrycase_tolerance_z"]
+    )
     if cnf["strap_loop"]:
         strap_loop = _strap_loop(
             # Not using real height because we're cutting out a specific
             # amount.
             base_face, 0.1
         ).faces().sort_by(sort_by=Axis.Z).first
-        cutout_face = offset(make_hull(strap_loop.edges()), 0.2)
-        case -= extrude(cutout_face, pcb_case_wall_height + cnf["base_z_thickness"])
+        cutout_face = offset(make_hull(strap_loop.edges()), 0.2).face()
+        case -= extrude(cutout_face, total_wall_cutout_height)
+
+    if cnf["tenting_stand"]:
+        # Cut out case hinge
+        cutout_face = _flatten_to_faces(_tent_hinge(base_face, pcb_case_wall_height + cnf["base_z_thickness"]))
+        cutout_face = offset(cutout_face, 0.2).face()
+        case -= extrude(cutout_face, total_wall_cutout_height)
+        # Cut out leg hinges
+        cutout_face = _get_tenting_flap_shadow(base_face, pcb_case_wall_height + cnf["base_z_thickness"])
+        cutout_face = offset(cutout_face, 0.2).face()
+        case -= extrude(cutout_face, total_wall_cutout_height)
 
     # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
     # flush, changes the top face so do after finger cutout.
@@ -753,8 +728,8 @@ def _strap_loop(base_face, case_height):
 
 
 def _create_honeycomb_tile(depth, face):
-    # if fast_render:
-    #     return Part()
+    if fast_render:
+        return Part()
     radius = cnf["honeycomb_radius"]
     cell_thickness = cnf["honeycomb_thickness"]
     d_between_centers = radius + cell_thickness
@@ -799,20 +774,7 @@ def _find_hinge_reposition(base_face, hinge) -> None:
 
 
 def _cutout_tenting_flaps(case, base_face, wall_height):
-    # Import it after updating cnf, because it uses the cnf values on import.
-    from tenting_stand import tenting_legs
-    flaps = tenting_legs(cnf["tent_legs"], cnf["tent_hinge_bolt_d"], wall_height)
-
-    # Reposition to same place as hinge.
-    hinge = _tent_hinge(base_face, wall_height)
-    for i, f in enumerate(flaps):
-        flaps[i] = f.move(hinge.location)
-
-    shadow = project(flaps.faces().filter_by(Axis.Z), Plane.XY)
-    # outline = Shape.fuse(*outline.faces()).clean()
-    shadow = _sum_shapes(shadow.faces())
-    # Ensure we get the outline of the largest face, otherwise might get inversion from little ridge face.
-    shadow = make_face(shadow.faces().sort_by(SortBy.AREA).last.outer_wire()).face()
+    shadow = _get_tenting_flap_shadow(base_face, wall_height)
     outer_case_face = offset(base_face, cnf["wall_xy_thickness"]).face()
     shadow_within_walls = shadow.intersect(outer_case_face).face()
     # Create plastic outline for flaps to fold into. Only really needed if
@@ -822,6 +784,23 @@ def _cutout_tenting_flaps(case, base_face, wall_height):
     case -= extrude(offset(shadow, 0.2), cnf["base_z_thickness"])
     case += flap_slot
     return case
+
+
+@cache
+def _get_tenting_flap_shadow(base_face, wall_height):
+    # Import it after updating cnf, because it uses the cnf values on import.
+    from tenting_stand import tenting_legs
+    flaps = tenting_legs(cnf["tent_legs"], cnf["tent_hinge_bolt_d"], wall_height)
+
+    # Reposition to same place as hinge.
+    hinge = _tent_hinge(base_face, wall_height)
+    for i, f in enumerate(flaps):
+        flaps[i] = f.move(hinge.location)
+
+    shadow = _flatten_to_faces(flaps)
+    # Ensure we get the outline of the largest face, otherwise might get inversion from little ridge face.
+    shadow = make_face(shadow.faces().sort_by(SortBy.AREA).last.outer_wire()).face()
+    return shadow
 
 
 def _poor_mans_chamfer(shape, size, top=False):
@@ -864,6 +843,26 @@ def _export(shape, path, name):
 
 def _sum_shapes(shapes):
     return reduce(lambda x, y: x+y, shapes)
+
+
+def _parallel_to_axis(axis):
+    """Intended for use as a lambda, e.g.:
+    faces = shape.faces().filter_by(_face_is_parallel_to_axis(Axis.Z))
+    """
+    def _face_is_parallel_to(face):
+        return abs(face.normal_at(None).dot(axis.direction)) < 1e-6
+    return _face_is_parallel_to
+
+
+def _flatten_to_faces(shape):
+    faces = shape.faces().filter_by(Axis.Z)
+    shadow = project(faces, Plane.XY).fuse()
+    # Unify the faces and ensure their orientation is all the same.
+    with BuildSketch() as bd_s:
+        for f in shadow.faces():
+            add(f)
+    shadow = bd_s.sketch.face()
+    return shadow
 
 
 def _find_nearest_key(d, target_int):
@@ -936,5 +935,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
