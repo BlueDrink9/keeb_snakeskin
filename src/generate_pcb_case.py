@@ -814,10 +814,10 @@ def _cutout_tenting_flaps(case, base_face, wall_height):
     # Ensure we get the outline of the largest face, otherwise might get inversion from little ridge face.
     shadow = make_face(shadow.faces().sort_by(SortBy.AREA).last.outer_wire()).face()
     outer_case_face = offset(base_face, cnf["wall_xy_thickness"]).face()
-    shadow = shadow.intersect(outer_case_face).face()
+    shadow_within_walls = shadow.intersect(outer_case_face).face()
     # Create plastic outline for flaps to fold into. Only really needed if
     # using honeycomb base, but may as well include it jic. Extra offset for inner cutout to give a bit of tolerance for the flap.
-    flap_slot = offset(shadow, cnf["wall_xy_thickness"]) - shadow
+    flap_slot = offset(shadow_within_walls, cnf["wall_xy_thickness"]) - shadow
     flap_slot = extrude(flap_slot, cnf["base_z_thickness"])
     case -= extrude(offset(shadow, 0.2), cnf["base_z_thickness"])
     case += flap_slot
