@@ -3,13 +3,10 @@ from functools import cache, reduce
 import math
 import os
 from pathlib import Path
+from typing import TextIO, Union, Optional
 
 import svgpathtools as svg
 from build123d import *
-# Shape not imported as part of * for some reason
-from build123d import Shape
-# pylint has trouble with the OCP imports
-# pylint: disable=no-name-in-module, import-error
 
 if "__file__" in globals():
     script_dir = Path(__file__).parent
@@ -32,278 +29,232 @@ if __name__ not in ["__cq_main__", "temp"]:
         show_object = lambda *args, **__: ocp.show(args)
 
 
-def import_svg_as_buildline_code(file_name: str) -> tuple[str, str]:
-    """translate_to_buildline_code
+def import_svg_as_forced_outline(
+    svg_file: Union[str, Path, TextIO],
+    reorient: bool = True,
+    ignore_visibility: bool = False,
+    tolerance: float = 0.01,
+    extra_cleaning=False,
+) -> ShapeList[Wire]:
+    """Import an SVG and apply cleaning operations to return a closed wire outline, if possible. Useful for SVG outlines that are actually made of thin shapes or slightly disconnected paths. May fail on more complex shapes.
 
-    Translate the contents of the given svg file into executable build123d/BuildLine code.
+    * Removes duplicate lines, including ones that are reverses of the other, within a tolerance level (useful for 'outlines' that are actually very thin shapes)
+    * Sorts paths such that they are end to start in order of distance, flipping them if needed to line up start to end
+    * Goes through each path and creates the next one such that it starts at the end of the last one
+    * Ensures the last and first paths are connected
+
 
     Args:
-        file_name (str): svg file name
+        svg_file (Union[str, Path, TextIO]): svg file
+        reorient (bool, optional): Center result on origin by bounding box, and
+        flip objects to compensate for svg orientation (so the resulting wire
+        is the same way up as it looks when opened in an SVG viewer). Defaults
+        to True.
+        tolerance (float, optional): Amount of tolerance to use for comparing paths. Defaults to 0.01.
+        extra_clean (bool, optional): Do some extra cleaning, including skipping tiny paths and some slight rounding off of corners, which may help smooth out tiny features in the outline. Defaults to False.
+
+    Raises:
+        ValueError: If an unknown path type is encountered.
+        FileNotFoundError: the input file cannot be found.
 
     Returns:
-        tuple[str, str]: code, builder instance name
+        Wire: Forcefully connected SVG paths as a wire.
     """
 
-    translator = {
-        "Line": ["Line", "start", "end"],
-        "CubicBezier": ["Bezier", "start", "control1", "control2", "end"],
-        "QuadraticBezier": ["Bezier", "start", "control", "end"],
-        "Arc": [
-            "EllipticalCenterArc",
-            # "EllipticalStartArc",
-            "start",
-            "end",
-            "radius",
-            "rotation",
-            "large_arc",
-            "sweep",
-        ],
-    }
-    paths_info = svg2paths(file_name)
-    paths, _path_attributes = paths_info[0], paths_info[1]
-    builder_name = os.path.basename(file_name).split(".")[0]
-    builder_name = builder_name if builder_name.isidentifier() else "builder"
-    buildline_code = [
-        "from build123d import *",
-        f"with BuildLine() as {builder_name}:",
-    ]
-    for path in paths:
-        for curve in path:
-            class_name = type(curve).__name__
-            if class_name == "Arc":
-                values = [
-                    (curve.__dict__["center"].real, curve.__dict__["center"].imag)
-                ]
-                values.append(curve.__dict__["radius"].real)
-                values.append(curve.__dict__["radius"].imag)
-                start, end = sorted(
-                    [
-                        curve.__dict__["theta"],
-                        curve.__dict__["theta"] + curve.__dict__["delta"],
-                    ]
-                )
-                values.append(start)
-                values.append(end)
-                values.append(degrees(curve.__dict__["phi"]))
-                if curve.__dict__["delta"] < 0.0:
-                    values.append("AngularDirection.CLOCKWISE")
-                else:
-                    values.append("AngularDirection.COUNTER_CLOCKWISE")
-
-                # EllipticalStartArc implementation
-                # values = [p.__dict__[parm] for parm in translator[class_name][1:3]]
-                # values.append(p.__dict__["radius"].real)
-                # values.append(p.__dict__["radius"].imag)
-                # values.extend([p.__dict__[parm] for parm in translator[class_name][4:]])
-            else:
-                values = [curve.__dict__[parm] for parm in translator[class_name][1:]]
-            values_str = ",".join(
-                [
-                    f"({v.real}, {v.imag})" if isinstance(v, complex) else str(v)
-                    for v in values
-                ]
-            )
-            buildline_code.append(f"    {translator[class_name][0]}({values_str})")
-
-    return ("\n".join(buildline_code), builder_name)
-
-
-def import_svg_as_face(path):
-    """Import SVG as paths and convert to build123d face. Although build123d has a native SVG import, it doesn't create clean wire connections from kicad exports of some shapes (in my experience), causing some more advanced operations to fail (e.g. tapers).
-    This is how I used to do it, using b123d import:
-    # Round trip from outline to wires to face to wires to connect the disconnected
-    # edges that an svg gets imported with.
-    outline = import_svg(script_dir / "build/outline.svg")
-    outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
-    """
-
-    # script, object_name = import_svg_as_buildline_code(path)
-    # exec(script)
-    # with BuildSketch() as general_import:
-    #     exec("add("+object_name+".line)")
-    #     make_face()
     def point(path_point):
         return (path_point.real, path_point.imag)
 
-    paths, attributes = svg.svg2paths(path)
-    [print("Error: path has multiple segments: ", p) for p in paths if len(p) != 1]
+    paths, attributes = svg.svg2paths(svg_file)
     curves = []
     for p in paths:
         curves.extend(p)
-    curves = remove_duplicate_paths(curves, tolerance=0.01)
-    curves = sort_paths(curves)
+    curves = _remove_duplicate_paths(curves, tolerance=tolerance)
+    curves = _sort_curves(curves)
     lines = []
     first_line = curves[0]
-    with BuildPart() as bd_p:
-        with BuildSketch() as bd_s:
-            with BuildLine() as bd_l:
-                line_start = point(first_line.start)
-                for i, p in enumerate(curves):
-                    # Filter out tiny edges that may cause issues with OCCT ops
-                    if p.length() < 0.1:
-                        continue
-                    line_end = point(p.end)
-                    # Forcefully reconnect the end to the start
-                    if i == len(curves) - 1:
-                        line_end = point(first_line.start)
-                    # else:
-                    #     if Vertex(line_end).distance(Vertex(line_start)) < 0.1:
-                        # Skip this path if it's really short, just go
-                        # straight to the next one.
-                        # continue
-                    if isinstance(p, svg.Line):
-                        l = Line(line_start, line_end)
-                    elif isinstance(p, svg.Arc):
-                        # If we can use a RadiusArc, do so because we can
-                        # define the start and end positions to mate with the
-                        # previous paths.
-                        try:
-                        #     l = RadiusArc(line_start, line_end, radius=p.radius.real)
-                        # except ValueError:
-                            # Usually because the radius wasn't big enough to
-                            # span the distance. Probably not a standard radius
-                            # curve.
-                            start, end = sorted(
-                                [
-                                    p.theta,
-                                    p.theta + p.delta,
-                                ]
-                            )
-                            if p.delta < 0.0:
-                                dir_ = AngularDirection.CLOCKWISE
-                            else:
-                                dir_ = AngularDirection.COUNTER_CLOCKWISE
-                            l = EllipticalCenterArc(
-                                center=point(p.center),
-                                x_radius=abs(p.radius.real),
-                                y_radius=abs(p.radius.imag),
-                                start_angle=start,
-                                end_angle=end,
-                                rotation=math.degrees(p.phi),
-                                angular_direction=dir_,
-                                # mode=Mode.PRIVATE,
-                            )
-                            l = l.move(Location(l @ 0 - line_start))
-                            # l.mode = Mode.ADD
-                        except:
-                            pass
+    with BuildLine() as bd_l:
+        line_start = point(first_line.start)
+        for i, p in enumerate(curves):
+            if extra_cleaning and p.length() < tolerance:
+                # Filter out tiny edges that may cause issues with OCCT ops
+                continue
+            line_end = point(p.end)
+            if i == len(curves) - 1:
+                # Forcefully reconnect the end to the start.
+                # Note: This won't quite work if the last path is an arc,
+                # but make_face should still sort it out. Once
+                # EllipticalStartArc is released in build123d, this can be
+                # fixed.
+                line_end = point(first_line.start)
+            else:
+                if (
+                    extra_cleaning
+                    and Vertex(line_end).distance(Vertex(line_start)) < tolerance
+                ):
+                    # Skip this path if it's really short, just go straight
+                    # to the next one.
+                    continue
+            if isinstance(p, svg.Line):
+                l = Line(line_start, line_end)
+                l_end = l @ 1
+                l_strt = l @ 0
+                pass
+            elif isinstance(p, svg.Arc):
+                start, end = sorted(
+                    [
+                        p.theta,
+                        p.theta + p.delta,
+                    ]
+                )
+                if p.delta < 0.0:
+                    dir_ = AngularDirection.CLOCKWISE
+                else:
+                    dir_ = AngularDirection.COUNTER_CLOCKWISE
+                l = EllipticalCenterArc(
+                    center=point(p.center),
+                    x_radius=p.radius.real,
+                    y_radius=p.radius.imag,
+                    start_angle=start,
+                    end_angle=end,
+                    rotation=math.degrees(p.phi),
+                    angular_direction=dir_,
+                    mode=Mode.PRIVATE,
+                )
+                add(l.move(Location(line_start - l @ 0)))
 
-                    else:
-                        print("Unknown path type for ", p)
-                        raise ValueError
-                    # log(f"path_{i}\n{str(p)}  len={p.length}")
-                    # show_object(l, name=f"path_{i}")
-                    line_start = l @ 1
+            else:
+                print("Unknown path type for ", p)
+                raise ValueError
+            line_start = l @ 1
 
-            show_object(bd_l.line, name="line")
-            make_face()
+    wire = bd_l.wire()
+    if reorient:
+        wire = wire.move(Location(-wire.center(center_of=CenterOf.BOUNDING_BOX)))
+        wire = mirror(wire)
 
-    face = bd_s.sketch.face()
-    face.move(Loc(-face.center()))
-
-    # Going through a round of offset out then back in rounds off
-    # internally projecting corners just a little, and seems to help reduce the creation of invalid shapes. This won't prevent a case from fitting in, just place tiny gaps in some small concave (from the perspective of the gap) corners.
-    off = 1.0
-    face = offset(offset(face, off), -off)
-
-    # Flip the face because SVG import seems to be upside down
-    face = mirror(face, about=Plane.XZ).face()
-    # Project to make sure it's all on the same plane. I think it should be
-    # regardless, but just in case...
-    face = -project(face, Plane.XY).face()
-    # show_object(face, "imported face")
-    return face
+    if extra_cleaning:
+        # Going through a round of offset out, then back in, rounds off
+        # internally projecting corners just a little, and seems to help reduce the
+        # creation of invalid shapes.
+        # This won't prevent objects from fitting within the outline, just place tiny gaps in some small concave (from the perspective of the gap) corners.
+        off = 1.0
+        wire = offset(offset(wire, off), -off)
+    return wire
 
 
-def sort_paths(lines):
+def _sort_curves(curves):
     """Return list of paths sorted and flipped so that they are connected end to end as the list iterates."""
-    if not lines:
+    if not curves:
         return []
 
     def euclidean_distance(p1, p2):
         return math.sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
 
-    # Start with the first line
-    sorted_lines = [lines.pop(0)]
+    # Start with the first curve
+    sorted_curves = [curves.pop(0)]
 
-    while lines:
-        last_line = sorted_lines[-1]
-        last_end = last_line.end
+    while curves:
+        last_curve = sorted_curves[-1]
+        last_end = last_curve.end
 
-        # Find the closest line to the last end point
-        closest_line, closest_distance, flip = None, float("inf"), False
-        for line in lines:
-            dist_start = euclidean_distance(last_end, line.start)
-            dist_end = euclidean_distance(last_end, line.end)
-            # if end is closer than start, flip the line right way around
+        # Find the closest curve to the previous end point.
+        closest_curve, closest_distance, flip = None, float("inf"), False
+        for curve in curves:
+            dist_start = euclidean_distance(last_end, curve.start)
+            dist_end = euclidean_distance(last_end, curve.end)
+            # If end is closer than start, flip the curve right way around.
             if dist_start < closest_distance:
-                closest_line, closest_distance, flip = line, dist_start, False
+                closest_curve, closest_distance, flip = curve, dist_start, False
             if dist_end < closest_distance:
-                closest_line, closest_distance, flip = line, dist_end, True
+                closest_curve, closest_distance, flip = curve, dist_end, True
 
-        # Flip the line if necessary
+        # Flip the curve if necessary
         if flip:
-            t = closest_line.start
-            closest_line.start = closest_line.end
-            closest_line.end = t
-            if isinstance(closest_line, svg.Arc):
-                # Flipping ElipticalArcs is a bit more complicated
-                # Calculate the new theta as the original end angle
-                new_theta = closest_line.theta + closest_line.delta
-                # Reverse the delta
-                closest_line.delta = -closest_line.delta
-                # Set theta to the new start angle
-                closest_line.theta = new_theta
+            flipped = _reverse_svg_curve(closest_curve)
+            sorted_curves.append(flipped)
+        else:
+            sorted_curves.append(closest_curve)
+        curves.remove(closest_curve)
 
-        sorted_lines.append(closest_line)
-        lines.remove(closest_line)
-
-    return sorted_lines
+    return sorted_curves
 
 
-def are_paths_similar(path1, path2, tolerance=0.01):
-    """Compares two paths, handling reversed paths, based on type, start/end points, length, and other attributes."""
+def _remove_duplicate_paths(paths, tolerance=0.01):
+    """Remove paths that are identical to within the given positional and
+    parameter tolerance limit, including similar but reversed paths."""
+    cleaned_paths = []
+
+    for path in paths:
+        # Check if a similar path already exists in the cleaned list (either
+        # forward or reversed)
+        if any(
+            _are_paths_similar(path, cleaned_path, tolerance)
+            for cleaned_path in cleaned_paths
+        ):
+            # Skip this path if a similar one is already in the list
+            continue
+        cleaned_paths.append(path)
+
+    return cleaned_paths
+
+
+def _are_paths_similar(path1, path2, tolerance=0.01):
+    """Compares two SVG paths, handling reversed paths, based on type, start/end points, length, and other attributes."""
+
+    if type(path1) != type(path2):
+        return False
+
+    def lengths_are_close(p1, p2):
+        return (
+            abs(p1.length() - p2.length()) / max(p1.length(), p2.length()) < tolerance
+        )
+
+    if not lengths_are_close(path1, path2):
+        return False
 
     def points_are_close(p1, p2):
         return abs(p1.real - p2.real) < tolerance and abs(p1.imag - p2.imag) < tolerance
 
-    def lengths_are_close(p1, p2):
-        return abs(p1.length() - p2.length()) / max(p1.length(), p2.length()) < tolerance
-
-    # Compare path types
-    if type(path1) != type(path2):
-        return False
-
-    # Compare lengths (paths must have similar lengths to be considered identical)
-    if not lengths_are_close(path1, path2):
-        return False
-
-    # Check both directions (normal and reversed)
     def check_forward():
-        return points_are_close(path1.start, path2.start) and points_are_close(path1.end, path2.end)
+        return points_are_close(path1.start, path2.start) and points_are_close(
+            path1.end, path2.end
+        )
 
     def check_reversed():
-        return points_are_close(path1.start, path2.end) and points_are_close(path1.end, path2.start)
+        return points_are_close(path1.start, path2.end) and points_are_close(
+            path1.end, path2.start
+        )
 
-    # Handle reversed paths: Check both normal and reversed orientation
+    # Handle reversed paths by checking both normal and reversed orientation
     if not (check_forward() or check_reversed()):
         return False
 
     # Additional checks for arcs (to handle radius, rotation, etc.)
     if isinstance(path1, svg.Arc) and isinstance(path2, svg.Arc):
-        arc_attributes = ['radius', 'phi', 'theta', 'delta', 'rotation', 'center', 'large_arc', 'sweep']
+        arc_attributes = [
+            "radius",
+            "phi",
+            "theta",
+            "delta",
+            "rotation",
+            "center",
+            "large_arc",
+            "sweep",
+        ]
 
-        path1_vars = vars(path1)
-        path2_vars = vars(path2)
 
         for attr in arc_attributes:
-            if attr in path1_vars and attr in path2_vars:
-                value1 = path1_vars[attr]
-                value2 = path2_vars[attr]
+            if attr in vars(path1) and attr in vars(path2):
+                value1 = vars(path1)[attr]
+                value2 = vars(path2)[attr]
 
-                if attr == 'radius' or attr == 'rotation':
+                if attr == "radius" or attr == "rotation":
                     # Compare regular and inverted values for radius and rotation
-                    if not (abs(value1 - value2) < tolerance or abs(value1 + value2) < tolerance):
+                    # This may not be quite right for identifying reversed arcs
+                    if not (
+                        abs(value1 - value2) < tolerance
+                        or abs(value1 + value2) < tolerance
+                    ):
                         return False
                 else:
                     if abs(value1 - value2) > tolerance:
@@ -311,25 +262,28 @@ def are_paths_similar(path1, path2, tolerance=0.01):
 
     return True
 
-def remove_duplicate_paths(paths, tolerance=0.01):
-    """Remove paths that are identical to within the given positional and
-    parameter tolerance limit, including similar but reversed paths."""
-    cleaned_paths = []
 
-    for path in paths:
-        # Check if a similar path already exists in the cleaned list (either forward or reversed)
-        if any(are_paths_similar(path, cleaned_path, tolerance) for cleaned_path in cleaned_paths):
-            continue  # Skip this path if a similar one is already in the list
-        cleaned_paths.append(path)
+def _reverse_svg_curve(c):
+    c = copy.deepcopy(c)
+    t = c.start
+    c.start = c.end
+    c.end = t
+    if isinstance(c, svg.Arc):
+        # Flipping ElipticalArcs is a bit more complicated.
+        # Calculate the new theta as the original end angle.
+        new_theta = c.theta + c.delta
+        # Reverse the delta.
+        c.delta = -c.delta
+        # Set theta to the new start angle.
+        c.theta = new_theta
+    return c
 
-    return cleaned_paths
 
-
-# Continue with your existing workflow
-
-p = Path('~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg').expanduser()
+p = Path(
+    "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
+).expanduser()
 # p = script_dir / "build/outline.svg"
-p = Path('~/src/keeb_snakeskin/manual_outlines/ferris-base-0.1.svg').expanduser()
+p = Path("~/src/keeb_snakeskin/manual_outlines/ferris-base-0.1.svg").expanduser()
 
-base_face = import_svg_as_face(p)
+base_face = make_face(import_svg_as_forced_outline(p))
 show_object(base_face, name="base_face")
