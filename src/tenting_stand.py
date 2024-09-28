@@ -15,7 +15,7 @@ blocker_zlen = 2
 # More than 90 so that the mating face on the flap hinges can be well above
 # 0/not point down.
 case_blocker_angle = 90 + 45
-tenting_stability_angle = 30
+tenting_stability_angle = 20
 velcro_width = 15
 
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
@@ -267,15 +267,16 @@ def _hinge_blocker(outer):
 
 
 def _ridge(ridge_width, thickness) -> None:
+    """Width = size along the edge it's on"""
     # Thick enough for chamfer to not fail, and pegged to width for that same
     # reason.
-    ridge_len = ridge_width * thickness * 0.5
-    ridge_face = Ellipse(ridge_width/2, ridge_len/2)
-    # Remove half to form semicircle
+    ridge_len = 2
+    ridge_face = Rectangle(ridge_width, ridge_len*2)
+    # Remove half to form half
     ridge_face = split(ridge_face)
     ridge = extrude(ridge_face, thickness)
-    top_curve = ridge.edges().group_by(Axis.Z)[-1].sort_by(SortBy.LENGTH)[-1]
-    ridge = chamfer(top_curve, thickness - 0.1)
+    top_curve = ridge.edges().group_by(Axis.Z)[-1].filter_by(Axis.X).sort_by(Axis.Y).first
+    ridge = chamfer(top_curve, min(ridge_len, thickness) - 0.1)
 
     return ridge
 
