@@ -1,41 +1,34 @@
 import copy
-from functools import cache, reduce
-import math
 import os
+from math import degrees, sqrt
 from pathlib import Path
 from typing import TextIO, Union, Optional
-
 import svgpathtools as svg
-from build123d import *
 
-if "__file__" in globals():
-    script_dir = Path(__file__).parent
-else:
-    script_dir = Path(os.getcwd())
-
-
-# For debugging/viewing in cq-editor or vscode's ocp_vscode plugin.
-if __name__ not in ["__cq_main__", "temp"]:
-    show_object = lambda *_, **__: None
-    log = lambda x: print(x)
-    # show_object = lambda *_, **__: None
-
-    if __name__ == "__main__":
-        import ocp_vscode as ocp
-        from ocp_vscode import show
-
-        ocp.set_port(3939)
-        ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
-        show_object = lambda *args, **__: ocp.show(args)
-
+from build123d.build_enums import CenterOf, Mode, AngularDirection
+from build123d.build_line import BuildLine
+from build123d.geometry import Color, Location
+from build123d.objects_curve import Line, EllipticalCenterArc
+from build123d.operations_generic import add, offset, mirror
+from build123d.topology import (
+    Compound,
+    Edge,
+    Face,
+    Shape,
+    ShapeList,
+    Shell,
+    Solid,
+    Vertex,
+    Wire,
+    downcast,
+)
 
 def import_svg_as_forced_outline(
     svg_file: Union[str, Path, TextIO],
     reorient: bool = True,
-    ignore_visibility: bool = False,
     tolerance: float = 0.01,
     extra_cleaning=False,
-) -> ShapeList[Wire]:
+) -> Wire:
     """Import an SVG and apply cleaning operations to return a closed wire outline, if possible. Useful for SVG outlines that are actually made of thin shapes or slightly disconnected paths. May fail on more complex shapes.
 
     * Removes duplicate lines, including ones that are reverses of the other, within a tolerance level (useful for 'outlines' that are actually very thin shapes)
@@ -64,13 +57,12 @@ def import_svg_as_forced_outline(
     def point(path_point):
         return (path_point.real, path_point.imag)
 
-    paths, attributes = svg.svg2paths(svg_file)
+    paths = svg.svg2paths(svg_file)[0]
     curves = []
     for p in paths:
         curves.extend(p)
     curves = _remove_duplicate_paths(curves, tolerance=tolerance)
     curves = _sort_curves(curves)
-    lines = []
     first_line = curves[0]
     with BuildLine() as bd_l:
         line_start = point(first_line.start)
@@ -95,10 +87,7 @@ def import_svg_as_forced_outline(
                     # to the next one.
                     continue
             if isinstance(p, svg.Line):
-                l = Line(line_start, line_end)
-                l_end = l @ 1
-                l_strt = l @ 0
-                pass
+                edge = Line(line_start, line_end)
             elif isinstance(p, svg.Arc):
                 start, end = sorted(
                     [
@@ -110,22 +99,22 @@ def import_svg_as_forced_outline(
                     dir_ = AngularDirection.CLOCKWISE
                 else:
                     dir_ = AngularDirection.COUNTER_CLOCKWISE
-                l = EllipticalCenterArc(
+                edge = EllipticalCenterArc(
                     center=point(p.center),
                     x_radius=p.radius.real,
                     y_radius=p.radius.imag,
                     start_angle=start,
                     end_angle=end,
-                    rotation=math.degrees(p.phi),
+                    rotation=degrees(p.phi),
                     angular_direction=dir_,
                     mode=Mode.PRIVATE,
                 )
-                add(l.move(Location(line_start - l @ 0)))
+                add(edge.move(Location(line_start - edge @ 0)))
 
             else:
                 print("Unknown path type for ", p)
                 raise ValueError
-            line_start = l @ 1
+            line_start = edge @ 1
 
     wire = bd_l.wire()
     if reorient:
@@ -148,7 +137,7 @@ def _sort_curves(curves):
         return []
 
     def euclidean_distance(p1, p2):
-        return math.sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
+        return sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
 
     # Start with the first curve
     sorted_curves = [curves.pop(0)]
@@ -201,7 +190,7 @@ def _remove_duplicate_paths(paths, tolerance=0.01):
 
 
 def _are_paths_similar(path1, path2, tolerance=0.01):
-    """Compares two SVG paths, handling reversed paths, based on type, start/end points, length, and other attributes."""
+    """Compares two SVG paths, based on type, start/end points, length, and Arc attributes."""
 
     if type(path1) != type(path2):
         return False
@@ -260,13 +249,3 @@ def _reverse_svg_curve(c):
         # Set theta to the new start angle.
         c.theta = new_theta
     return c
-
-
-p = Path(
-    "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
-).expanduser()
-# p = script_dir / "build/outline.svg"
-p = Path("~/src/keeb_snakeskin/manual_outlines/ferris-base-0.1.svg").expanduser()
-
-base_face = make_face(import_svg_as_forced_outline(p))
-show_object(base_face, name="base_face")
