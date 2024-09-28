@@ -2,8 +2,8 @@ import argparse
 import json
 import subprocess
 import sys
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from pygerber.gerberx3.api.v2 import GerberFile
 
@@ -40,7 +40,9 @@ def main():
         svg = pcb_to_svg(input_file)
     else:
         # Exit with error.
-        sys.exit(f"Unknown file type (please check the readme): {args.input_file.suffix}")
+        sys.exit(
+            f"Unknown file type (please check the readme): {args.input_file.suffix}"
+        )
 
     generate_cases(svg, user_params=param_overrides)
 

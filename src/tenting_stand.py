@@ -1,12 +1,13 @@
-from functools import cache
 import math
 from dataclasses import dataclass
+from functools import cache
 
 from build123d import *
 
 # Operating under the assumption that the other script will end up directly
 # updating this dict for user preferences.
 from default_params import default_params as cfg
+
 # If I wanted to make this more modular, I could probably put the default
 # params for this module here, and add them to the main dict on import...
 
@@ -21,10 +22,13 @@ velcro_width = 15
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
 if __name__ == "__main__":
-    from ocp_vscode import show, show_object, reset_show, set_port, set_defaults, get_defaults
+    from ocp_vscode import (get_defaults, reset_show, set_defaults, set_port,
+                            show, show_object)
+
     set_port(3939)
 
 # case_end = Rectangle(10, wall_height).bounding_box()
+
 
 @dataclass
 class _Flap:
@@ -35,31 +39,44 @@ class _Flap:
     clockwise when looking in the direction of the X axis (i.e. angle it will
     tilt the board face towards the user).
     """
+
     width: int
     len: int
     tent_angle: int = 0
+
 
 @cache
 def case_hinge(wall_height, bolt_d, countersunk=True):
     """Countersink covers whether both to countersink and create nut holes"""
     _, hinge_face, outer = _base_faces(bolt_d, wall_height)
 
-    case_connector = Rectangle(outer.radius*1.5, outer.radius*2, align=(Align.MAX, Align.CENTER))
+    case_connector = Rectangle(
+        outer.radius * 1.5, outer.radius * 2, align=(Align.MAX, Align.CENTER)
+    )
     outer_block = case_connector - outer
 
     blocker_face = _hinge_blocker(outer)
-    blocker = extrude(Plane.XZ * blocker_face, bolt_l/2)
+    blocker = extrude(Plane.XZ * blocker_face, bolt_l / 2)
     botf = blocker.faces().sort_by(Axis.Z).first
     blocker.edges().group_by(Axis.Z)[0].filter_by(Axis.Y)
     # Chamfer bottom to reduce support material needed
-    blocker = chamfer(blocker.edges().group_by(Axis.Z)[0].filter_by(Axis.Y), botf.length*0.40)
+    blocker = chamfer(
+        blocker.edges().group_by(Axis.Z)[0].filter_by(Axis.Y), botf.length * 0.40
+    )
 
     case_hinge_face = outer_block + blocker_face + hinge_face
 
     # Just blocker through the center (to block the flaps), then hinges at each end.
     hinge = extrude(Plane.XZ * (case_hinge_face), hinge_width_y)
     out = blocker + hinge
-    out.move(Loc((0, bolt_l/2,)))
+    out.move(
+        Loc(
+            (
+                0,
+                bolt_l / 2,
+            )
+        )
+    )
     out += mirror(out, Plane.XZ)
     end_faces = out.faces().sort_by(Axis.Y)
     # Bolt hole is still centered around Y axis, moving planes to the origin.
@@ -70,7 +87,7 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
             bolt_d / 2, bolt_head_d / 2, hinge_width_y, counter_sink_angle=90
         )
         out -= countersink
-        nut_hole = start_plane * extrude(RegularPolygon(nut_d/2, 6), -nut_l)
+        nut_hole = start_plane * extrude(RegularPolygon(nut_d / 2, 6), -nut_l)
         out -= nut_hole
     h = outer.radius
     show_object(out, name="case_hinge")
@@ -87,14 +104,14 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
     flaps.sort(key=lambda f: f.len, reverse=True)
     out = []
     for i, f in enumerate(flaps):
-        offset = hinge_width_y*(i+1) + 0.2*(i+1)
+        offset = hinge_width_y * (i + 1) + 0.2 * (i + 1)
         # flap_hinge_width = bolt_l - offset*2
         flap_hinge = extrude(
             Plane.XZ * _flap_hinge_face(case_len, f.len, wall_height, bolt_d),
             hinge_width_y,
         )
         flap_hinge.move(Loc((0, -offset)))
-        flap_hinge.move(Loc((0, bolt_l/2)))
+        flap_hinge.move(Loc((0, bolt_l / 2)))
         flap_hinge += mirror(flap_hinge, Plane.XZ)
         near_len = flap_hinge.bounding_box().size.Y
         flap = -Plane.YX * _flap(
@@ -108,19 +125,28 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
     bolthole_cutout = _bolthole_cutout(bolthole)
     # Cut smaller flaps out of the larger ones.
     for i, flap in enumerate(out):
-        for inner in out[i+1:]:
+        for inner in out[i + 1 :]:
             out[i] -= inner
             # out[i] -= offset(inner, 0.2)
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
 
         # Cut out a ridge for finger to open the flap
-        topright_edge = flap.faces().filter_by(Axis.Z).sort_by(Axis.Z).last.edges().sort_by(Axis.Y).last
+        topright_edge = (
+            flap.faces()
+            .filter_by(Axis.Z)
+            .sort_by(Axis.Z)
+            .last.edges()
+            .sort_by(Axis.Y)
+            .last
+        )
         ridge_len = 10
         # edge_width = left_edge.length/10
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
-            origin=topright_edge.location_at(topright_edge.length-10, position_mode=PositionMode.LENGTH).position,
+            origin=topright_edge.location_at(
+                topright_edge.length - 10, position_mode=PositionMode.LENGTH
+            ).position,
             x_dir=(topright_edge % 0.5),
             y_dir=topright_edge.normal(),
             z_dir=-Axis.Z.direction,
@@ -136,7 +162,9 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
 
         if i + 1 < len(out):  # From all but shortest
             # Ensure the innermost divot isn't being left out as a floating square
-            d = ((-Plane.YX * _velcro_divot(flaps[-1]))).move(Loc((0, 0, -outer.radius)))
+            d = ((-Plane.YX * _velcro_divot(flaps[-1]))).move(
+                Loc((0, 0, -outer.radius))
+            )
             out[i] -= d
 
         show_object(out[i], name=f"flaps{i}")
@@ -148,14 +176,17 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
 
 @cache
 def _base_faces(bolt_d, wall_height):
-    outer = Circle(radius=(wall_height)/2)
+    outer = Circle(radius=(wall_height) / 2)
     # Ellipes to give extra tolerance if printing without supports.
-    bolthole = Ellipse(bolt_d/2, bolt_d/2*1.1)
+    bolthole = Ellipse(bolt_d / 2, bolt_d / 2 * 1.1)
     # Add a 45 slope on the bottom of the loop to print better without supports.
-    pnt_45 = outer.wire() @ (1-1/8)
+    pnt_45 = outer.wire() @ (1 - 1 / 8)
     support_slope = -Polygon(
         pnt_45,
-        PolarLine(pnt_45, (outer.radius + pnt_45.Y) / math.cos(math.radians(45)), -180 + 45) @ 1,
+        PolarLine(
+            pnt_45, (outer.radius + pnt_45.Y) / math.cos(math.radians(45)), -180 + 45
+        )
+        @ 1,
         (0, -outer.radius),
         align=None,
     ).face()
@@ -164,8 +195,15 @@ def _base_faces(bolt_d, wall_height):
 
 
 def _bolthole_cutout(bolthole):
-    bolthole_cutout = extrude(Plane.XZ * (bolthole), mechanism_length/2)
-    bolthole_cutout.move(Loc((0, mechanism_length/2,)))
+    bolthole_cutout = extrude(Plane.XZ * (bolthole), mechanism_length / 2)
+    bolthole_cutout.move(
+        Loc(
+            (
+                0,
+                mechanism_length / 2,
+            )
+        )
+    )
     bolthole_cutout += mirror(bolthole_cutout, Plane.XZ)
     return bolthole_cutout
 
@@ -195,6 +233,7 @@ def _flap_hinge_face(case_len, flap_len, wall_height, bolt_d):
     flap_hinge_face = hinge_face + blocker
     # show_object(flap_hinge_face)
     return flap_hinge_face
+
 
 def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
     thickness = cfg["base_z_thickness"]
@@ -231,19 +270,21 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
         ridge_len = 10
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
-            origin=edge.location_at(ridge_len+5, position_mode=PositionMode.LENGTH).position,
+            origin=edge.location_at(
+                ridge_len + 5, position_mode=PositionMode.LENGTH
+            ).position,
             x_dir=edge % 0.5,
             y_dir=edge.normal(),
         )
         ridge = _ridge(
             ridge_len,
-            thickness/2,
+            thickness / 2,
         )
         ridge = plane * ridge
         flap += ridge
 
     end_edges = flap.edges().filter_by(Plane.XY).group_by(Axis.Y)[-1]
-    flap = fillet(end_edges, thickness/2.1)
+    flap = fillet(end_edges, thickness / 2.1)
 
     return flap
 
@@ -259,7 +300,11 @@ def _hinge_blocker(outer):
     # more solid.
     tip = lines[0] @ 1
     blocker += Polygon(
-        (tip.X, 0), tip, (-outer.radius*1.5, tip.Y), (-outer.radius*1.5, 0), align=None
+        (tip.X, 0),
+        tip,
+        (-outer.radius * 1.5, tip.Y),
+        (-outer.radius * 1.5, 0),
+        align=None,
     )
     # Offset to get some extra space for tolerance in the rotational component.
     blocker -= offset(outer, 0.2)
@@ -271,11 +316,13 @@ def _ridge(ridge_width, thickness) -> None:
     # Thick enough for chamfer to not fail, and pegged to width for that same
     # reason.
     ridge_len = 2
-    ridge_face = Rectangle(ridge_width, ridge_len*2)
+    ridge_face = Rectangle(ridge_width, ridge_len * 2)
     # Remove half to form half
     ridge_face = split(ridge_face)
     ridge = extrude(ridge_face, thickness)
-    top_curve = ridge.edges().group_by(Axis.Z)[-1].filter_by(Axis.X).sort_by(Axis.Y).first
+    top_curve = (
+        ridge.edges().group_by(Axis.Z)[-1].filter_by(Axis.X).sort_by(Axis.Y).first
+    )
     ridge = chamfer(top_curve, min(ridge_len, thickness) - 0.1)
 
     return ridge
@@ -284,14 +331,20 @@ def _ridge(ridge_width, thickness) -> None:
 def _velcro_divot(flap):
     # Cut out a divot to allow velcro to sit without affecting closing of the
     # case
-    divot = Rectangle(velcro_width, velcro_width, align=(Align.CENTER, Align.MAX)).move(Loc((0, flap.len, cfg["base_z_thickness"])))
-    return extrude(divot, -cfg["base_z_thickness"]*0.5)
+    divot = Rectangle(velcro_width, velcro_width, align=(Align.CENTER, Align.MAX)).move(
+        Loc((0, flap.len, cfg["base_z_thickness"]))
+    )
+    return extrude(divot, -cfg["base_z_thickness"] * 0.5)
 
 
-bolt_l = cfg["tent_hinge_bolt_l"] # Includes head, assuming countersunk
+bolt_l = cfg["tent_hinge_bolt_l"]  # Includes head, assuming countersunk
 bolt_d = cfg["tent_hinge_bolt_d"]
-bolt_head_d = cfg["tent_hinge_bolt_head_d"]  # https://engineersbible.com/countersunk-socket-metric/
-nut_d = cfg["tent_hinge_nut_d"]  # https://amesweb.info/Fasteners/Metric_Hex_Nuts/Metric-Hex-Nut-Dimensions.aspx
+bolt_head_d = cfg[
+    "tent_hinge_bolt_head_d"
+]  # https://engineersbible.com/countersunk-socket-metric/
+nut_d = cfg[
+    "tent_hinge_nut_d"
+]  # https://amesweb.info/Fasteners/Metric_Hex_Nuts/Metric-Hex-Nut-Dimensions.aspx
 nut_l = cfg["tent_hinge_nut_l"]
 mechanism_length = bolt_l
 
