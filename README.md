@@ -33,7 +33,7 @@ off your custom PCB and top-notch (😉) soldering.
     * Tie to a chair arm for a more ergonomic sitting setup, or just to use as a handle or
 to tie to your bad.
 * Works with both split and non-split board PCBs
-* Works with any PCB of unusual shape
+* Works with any PCB of unusual shape, even non-keyboard PCBs for whatever random project you want an enclosure for.
 
 ### Future feature ideas
 
@@ -124,6 +124,11 @@ exported by default in KiCad. Remove these if you are using an SVG input.
 
 ### Printing
 
+Designed for PLA, but I've had suggestions that TPU will create a great softer,
+more skinlike case. If you have access to it, I would suggest trying that - at
+least for the inner case, if not the legs and carrycase.
+
+#### Supports
 These designs are designed to be printed in PLA without supports where possible. There
 is only one severe (90 degree) overhang in the design, which is the first
 blocker of the carrycase. This should be the only part that needs supports.
@@ -135,6 +140,7 @@ If you are using advanced features like the strap loop, you may need supports.
 If `flush_carrycase_lip` is `False`, you will need short supports all around the bottom of the
 carrycase, and its top lip. Again, setting overhangs to 70 degrees should
 allocate supports appropriately.
+
 
 ### Assembly
 
