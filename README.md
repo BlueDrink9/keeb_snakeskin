@@ -9,18 +9,15 @@ you want a sturdier/more permanent fit.
 Cases have a removal cutout in one part of the wall for you to pull the case out
 after pushing it in.
 
-Inspired by and in collaboration with the [Compression keyboard](https://github.com/compressionKeyboards/compression4c) by Bennett Hermanoff. [More images here](https://compressionkeyboards.com/).
+Inspired by and in collaboration with the [Compression keyboard](https://github.com/compressionKeyboards/compression4c) by Bennett Hermanoff. ([More images here](https://compressionkeyboards.com/)).
 
-![case render](img/maizeless_snakeskin_honeycomb.png)
+|  | |
+| ------------- | -------------- |
+|  *Example case rendered from the [maizeless](https://github.com/BlueDrink9/maizeless) PCB, with honeycomb base.* ![case render](img/maizeless_snakeskin_honeycomb.png)|  |
+| *Carrycase with one case inside*. The carrycase is mirrored around the center, to allow for two halves of a split board to be carried together. ![carrycase with case render](img/maizeless_snakeskin_honeycomb_in_carrycase.png) | Just the carrycase ![carrycase render](img/maizeless_snakeskin_carrycase.png) |
+| With tenting legs and strap loop ![Tenting flaps](img/maizeless_tenting_closed.png) | One leg open ![Tenting leg one open](img/maizeless_tenting_half_open.png) |
 
-*Example case rendered from the
-[maizeless](https://github.com/BlueDrink9/maizeless) PCB, with honeycomb base.*
 
-![carrycase render](img/maizeless_snakeskin_carrycase.png)
-![carrycase with case render](img/maizeless_snakeskin_honeycomb_in_carrycase.png)
-
-*Carrycase with one case inside*. The carrycase is mirrored around the center, to
-allow for two halves of a split board to be carried together.
 
 ## Features
 
@@ -203,13 +200,10 @@ command line argument as priority.
 strap starts. Fiddle with this to avoid or merge with corners, for example. |
 | `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go through. |
 | `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs, which will be exported as separate files, as well as cut out of the keyboard base. Multiple legs will be nested within each other (to the extent possible with the length of the hinge). Each entry is the `width`, `length` and `tenting_angle`. Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). The end widths must decrease with length, or nesting will fail. |
-| `tent_hinge_width` | 5 | How thick in the Y axis the hinges are that hold
-the tenting flaps. Keep this short if you have lots of tenting flaps,
-otherwise you may as well increase it to increase the strength. |
+| `tent_hinge_width` | 5 | How thick in the Y axis the hinges are that hold the tenting flaps. Keep this short if you have lots of tenting flaps, otherwise you may as well increase it to increase the strength. |
 | `tent_hinge_bolt_d` | 3 (mm, == M3) | Bolt diameter specification for the tenting stand hinge. If you are using imperial bolts, be sure to convert the official size to mm, don't measure the thread. Keep this as small as you can, because the bigger the hole, the less plastic holding it in place. |
 | `tent_hinge_bolt_l` | 60 mm | Length of bolt for the tenting stand hinge, including head assuming it's countersunk. I'd suggest getting something as big as you can find for the size of your case. Push rods might help getting something really long, with small diameters (but will need two nuts). |
-| `tent_hinge_bolt_head_d` | 6.94 mm | Diameter of bolt head (only used for
-countersink). |
+| `tent_hinge_bolt_head_d` | 6.94 mm | Diameter of bolt head (only used for countersink). |
 | `tent_hinge_nut_l` | 5.5 mm | Length of nut retention hole |
 | `tent_hinge_nut_d` | 2.4 mm | Inscribed diameter of nut for tent hinge bolt |
 
