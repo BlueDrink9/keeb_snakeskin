@@ -247,7 +247,13 @@ def sort_paths(lines):
             closest_line.start = closest_line.end
             closest_line.end = t
             if isinstance(closest_line, svg.Arc):
-                closest_line.radius = -closest_line.radius
+                # Flipping ElipticalArcs is a bit more complicated
+                # Calculate the new theta as the original end angle
+                new_theta = closest_line.theta + closest_line.delta
+                # Reverse the delta
+                closest_line.delta = -closest_line.delta
+                # Set theta to the new start angle
+                closest_line.theta = new_theta
 
         sorted_lines.append(closest_line)
         lines.remove(closest_line)
