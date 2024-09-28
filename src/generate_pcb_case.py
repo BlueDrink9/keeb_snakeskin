@@ -15,7 +15,7 @@ cfg = default_params
 
 Loc = Location
 
-test_print = False
+test_print = True
 fast_render = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
