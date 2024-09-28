@@ -127,22 +127,22 @@ def import_svg_as_face(path):
 
     paths, attributes = svg.svg2paths(path)
     [print("Error: path has multiple segments: ", p) for p in paths if len(p) != 1]
-    paths = [p[0] for p in paths]
-    paths = remove_duplicate_paths(paths, tolerance=0.01)
-    paths = sort_paths(paths)
+    curves = [p[0] for p in paths]
+    curves = remove_duplicate_paths(curves, tolerance=0.01)
+    curves = sort_paths(curves)
     lines = []
-    first_line = paths[0]
+    first_line = curves[0]
     with BuildPart() as bd_p:
         with BuildSketch() as bd_s:
             with BuildLine() as bd_l:
                 line_start = point(first_line.start)
-                for i, p in enumerate(paths):
+                for i, p in enumerate(curves):
                     # Filter out tiny edges that may cause issues with OCCT ops
                     if p.length() < 0.1:
                         continue
                     line_end = point(p.end)
                     # Forcefully reconnect the end to the start
-                    if i == len(paths) - 1:
+                    if i == len(curves) - 1:
                         line_end = point(first_line.start)
                     # else:
                     #     if Vertex(line_end).distance(Vertex(line_start)) < 0.1:
