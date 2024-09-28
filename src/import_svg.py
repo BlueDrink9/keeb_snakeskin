@@ -187,8 +187,10 @@ def _remove_duplicate_paths(paths, tolerance=0.01):
     for path in paths:
         # Check if a similar path already exists in the cleaned list (either
         # forward or reversed)
+        flipped = _reverse_svg_curve(path)
         if any(
             _are_paths_similar(path, cleaned_path, tolerance)
+            or _are_paths_similar(flipped, cleaned_path, tolerance)
             for cleaned_path in cleaned_paths
         ):
             # Skip this path if a similar one is already in the list
@@ -215,18 +217,10 @@ def _are_paths_similar(path1, path2, tolerance=0.01):
     def points_are_close(p1, p2):
         return abs(p1.real - p2.real) < tolerance and abs(p1.imag - p2.imag) < tolerance
 
-    def check_forward():
-        return points_are_close(path1.start, path2.start) and points_are_close(
-            path1.end, path2.end
-        )
-
-    def check_reversed():
-        return points_are_close(path1.start, path2.end) and points_are_close(
-            path1.end, path2.start
-        )
-
     # Handle reversed paths by checking both normal and reversed orientation
-    if not (check_forward() or check_reversed()):
+    if not points_are_close(path1.start, path2.start) and points_are_close(
+            path1.end, path2.end
+        ):
         return False
 
     # Additional checks for arcs (to handle radius, rotation, etc.)
@@ -242,23 +236,12 @@ def _are_paths_similar(path1, path2, tolerance=0.01):
             "sweep",
         ]
 
-
         for attr in arc_attributes:
-            if attr in vars(path1) and attr in vars(path2):
-                value1 = vars(path1)[attr]
-                value2 = vars(path2)[attr]
-
-                if attr == "radius" or attr == "rotation":
-                    # Compare regular and inverted values for radius and rotation
-                    # This may not be quite right for identifying reversed arcs
-                    if not (
-                        abs(value1 - value2) < tolerance
-                        or abs(value1 + value2) < tolerance
-                    ):
-                        return False
-                else:
-                    if abs(value1 - value2) > tolerance:
-                        return False
+            try:
+                if abs(vars(path1)[attr] - vars(path2)[attr]) > tolerance:
+                    return False
+            except KeyError:
+                continue
 
     return True
 
