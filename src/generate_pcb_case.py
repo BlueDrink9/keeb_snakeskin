@@ -62,18 +62,11 @@ def import_svg_as_face(path):
     outline = import_svg(script_dir / "build/outline.svg")
     outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
-
-    # script, object_name = import_svg_as_buildline_code(path)
-    # exec(script)
-    # with BuildSketch() as general_import:
-    #     exec("add("+object_name+".line)")
-    #     make_face()
     def point(path_point):
         return (path_point.real, path_point.imag)
 
     paths, attributes = svg.svg2paths(path)
     paths = [p[0] for p in paths]
-    # paths.sort(key=lambda x: x.start)
     paths = sort_paths(paths)
     lines = []
     first_line = paths[0]
