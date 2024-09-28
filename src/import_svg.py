@@ -127,7 +127,9 @@ def import_svg_as_face(path):
 
     paths, attributes = svg.svg2paths(path)
     [print("Error: path has multiple segments: ", p) for p in paths if len(p) != 1]
-    curves = [p[0] for p in paths]
+    curves = []
+    for p in paths:
+        curves.extend(p)
     curves = remove_duplicate_paths(curves, tolerance=0.01)
     curves = sort_paths(curves)
     lines = []
