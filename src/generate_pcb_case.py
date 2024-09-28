@@ -4,7 +4,7 @@ import os
 from functools import cache, reduce
 from pathlib import Path
 
-import svgpathtools as svg
+from import_svg import import_svg_as_forced_outline
 from build123d import *
 # Shape not imported as part of * for some reason
 from build123d import Shape
@@ -62,72 +62,8 @@ def import_svg_as_face(path):
     outline = import_svg(script_dir / "build/outline.svg")
     outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
-    def point(path_point):
-        return (path_point.real, path_point.imag)
-
-    paths, attributes = svg.svg2paths(path)
-    paths = [p[0] for p in paths]
-    paths = sort_paths(paths)
-    lines = []
-    first_line = paths[0]
-    with BuildPart() as bd_p:
-        with BuildSketch() as bd_s:
-            with BuildLine() as bd_l:
-                line_start = point(first_line.start)
-                for i, p in enumerate(paths):
-                    # Filter out tiny edges that may cause issues with OCCT ops
-                    if p.length() < 0.1:
-                        continue
-                    line_end = point(p.end)
-                    # Forcefully reconnect the end to the start
-                    if i == len(paths) - 1:
-                        line_end = point(first_line.start)
-                    # else:
-                    #     if Vertex(line_end).distance(Vertex(line_start)) < 0.7:
-                    # Skip this path if it's really short, just go
-                    # straight to the next one.
-                    # continue
-                    if isinstance(p, svg.Line):
-                        l = Line(line_start, line_end)
-                    elif isinstance(p, svg.Arc):
-                        # Seems all the arcs have same value for real + imag radius, so just use real
-                        r = p.radius.real
-                        try:
-                            l = RadiusArc(line_start, line_end, radius=r)
-                        except ValueError:
-                            # Usually because the radius wasn't big enough to
-                            # span the distance. Probably not a standard radius
-                            # curve?
-                            # l = ThreePointArc(line_start, point(p.center), line_end)
-                            height = Vertex(
-                                Line(line_start, line_end).center()
-                            ).distance(Vertex(point(p.center)))
-                            l = SagittaArc(line_start, line_end, height)
-                    else:
-                        log("Unknown path type for ", p)
-                        raise ValueError
-                    # log(f"path_{i}\n{str(p)}  len={p.length}")
-                    # show_object(l, name=f"path_{i}")
-                    line_start = l @ 1
-
-            # show_object(bd_l.line, name="line")
-            # return Sketch()
-            make_face()
-
-    face = bd_s.sketch.face()
-    face.move(Loc(-face.center()))
-
-    # Going through a round of offset out then back in rounds off
-    # internally projecting corners just a little, and seems to help reduce the creation of invalid shapes. This won't prevent a case from fitting in, just place tiny gaps in some small concave (from the perspective of the gap) corners.
-    off = 1.0
-    face = offset(offset(face, off), -off)
-
-    # Flip the face because SVG import seems to be upside down
-    face = mirror(face, about=Plane.XZ).face()
-    # Project to make sure it's all on the same plane. I think it should be
-    # regardless, but just in case...
-    face = -project(face, Plane.XY).face()
-    # show_object(face, "imported face")
+    wire = import_svg_as_forced_outline(path, extra_cleaning=True)
+    face = make_face(wire)
     return face
 
 
@@ -242,6 +178,7 @@ def _do_wall_cutouts(case, pcb_case_wall_height):
     return case
 
 
+@cache
 def generate_pcb_case(base_face, pcb_case_wall_height):
     base = extrude(base_face, cfg["base_z_thickness"])
     total_wall_height = (
@@ -933,5 +870,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    # carry = generate_carrycase(base_face, pcb_case_wall_height)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)
