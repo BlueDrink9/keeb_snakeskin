@@ -10,5 +10,5 @@
     "wall_z_height": 5.0,
     "wall_xy_bottom_tolerance": -0.1,
     "tent_hinge_width": 4,
-    "tent_legs":  [[45, 90, 10], [30, 40, 35]]
+    "tent_legs":  [[45, 30, 25]]
 }
