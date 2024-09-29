@@ -91,15 +91,17 @@ def import_svg_as_forced_outline(
                     continue
             if isinstance(p, svg.Line):
                 edge = Line(line_start, line_end)
-                if (
-                    extra_cleaning
-                    and previous_edge is not None
-                    and isinstance(previous_edge, Line)
-                    and abs(edge % 0 - previous_edge % 0) < duplicate_tolerance
-                ):
-                    # Merge straight lines that are split into multiple paths.
-                    previous_edge = Line(previous_edge @ 0, line_end)
-                    edge = previous_edge
+                # if (
+                #     extra_cleaning
+                #     and previous_edge is not None
+                #     and isinstance(previous_edge, Line)
+                #     and abs(edge % 0 - previous_edge % 0) < duplicate_tolerance
+                # ):
+                #     # Merge straight lines that are split into multiple paths.
+                #     add(previous_edge, mode=Mode.SUBTRACT)
+                #     previous_edge = Line(previous_edge @ 0, line_end)
+                #     edge = previous_edge
+                #     add(edge)
             elif isinstance(p, svg.Arc):
                 start, end = sorted(
                     [
@@ -180,6 +182,9 @@ def _remove_duplicate_paths(paths, tolerance=0.01):
     cleaned_paths = []
 
     for path in paths:
+        if path.length() == 0:
+            # Skip zero-length paths
+            continue
         # Check if a similar path already exists in the cleaned list (either
         # forward or reversed)
         flipped = _reverse_svg_curve(path)
