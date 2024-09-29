@@ -62,11 +62,35 @@ def import_svg_as_face(path):
     outline = import_svg(script_dir / "build/outline.svg")
     outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
-    wire = import_svg_as_forced_outline(path, extra_cleaning=True)
+    wire = import_svg_as_forced_outline(path, extra_cleaning=False)
     face = make_face(wire)
+
+    import tempfile
+
+    # Try to reduce small facets by exporting it and re-importing face.
+    remade = make_face(face.face().outer_wire())
+    # shape = extrude(remade, 3)
+    # with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as temp_file:
+    #     temp_file_path = temp_file.name
+    #     exporter = ExportSVG(precision=2)
+    #     exporter.add_shape(shape)
+    #     exporter.write(temp_file_path)
+    #     imported = import_svg_as_forced_outline(temp_file_path, extra_cleaning=False)
+    #     # projected_shape = section(imported, section_by=Plane.XY, height=0.5)
+    #     # projected_shape = project(imported_shape, Plane.XY)
+    #     face = projected_shape.fuse().face()
+
+
+    # Going through a round of offset out, then back in, rounds off
+    # internally projecting corners just a little, and seems to help reduce the
+    # creation of invalid shapes.
+    # This won't prevent objects from fitting within the outline, just place tiny gaps in some small concave (from the perspective of the gap) corners.
+    face_orig = copy.copy(face)
+    off = 1.0
+    face = offset(offset(face, off), -off)
+    off = -0.01
+    face = offset(offset(face, off), -off)
     return face
-
-
 
 
 def generate_cases(svg_file, user_params=None):
