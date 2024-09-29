@@ -15,7 +15,7 @@ cfg = default_params
 
 Loc = Location
 
-test_print = True
+test_print = False
 fast_render = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
 if test_print:
@@ -140,7 +140,9 @@ def generate_cases(svg_file, user_params=None):
         )
         for i, flap in enumerate(flaps):
             output = output_path(f"tenting_flap_{i+1}")
-            _export(flap, output, "tenting_flap")
+            _export(flap, output, f"tenting flap {i+1}")
+            output = output_path(f"tenting_flap_mirrored_{i+1}")
+            _export(mirror(flap, about=Plane.YZ), output, f"mirrored tenting flap {i+1}")
 
     return
 
