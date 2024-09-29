@@ -255,3 +255,8 @@ star or a share are fantastic, letting me know someone has found this useful
 appreciation, either via Github or crypto:
 * bitcoincash:qp9c4ppt24c2ewzypv0pk0euapcyr92n85y7rhes7v
 * monero: 48x8HBjE5zeHyk73wtkKdZUJLgBnRFQKWjTnawRFqu3Z5Ldd3CMEGWLE4v1UV1vqSAZCYJRWnDX97iJwxeDtkT9W489vYWr
+
+I'd also like to encourage you to sponsor
+[build123d](https://github.com/gumyr/build123d), the technology behind this
+project. Their Discord was a great help in figuring out many of the
+representational challenges.
