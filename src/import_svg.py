@@ -260,3 +260,34 @@ def _reverse_svg_curve(c):
         # Set theta to the new start angle.
         c.theta = new_theta
     return c
+
+
+if "__file__" in globals():
+    script_dir = Path(__file__).parent
+else:
+    script_dir = Path(os.getcwd())
+
+
+# For debugging/viewing in cq-editor or vscode's ocp_vscode plugin.
+if __name__ not in ["__cq_main__", "temp"]:
+    show_object = lambda *_, **__: None
+    log = lambda x: print(x)
+    # show_object = lambda *_, **__: None
+
+    if __name__ == "__main__":
+        import ocp_vscode as ocp
+        from ocp_vscode import show
+
+        ocp.set_port(3939)
+        ocp.set_defaults(reset_camera=ocp.Camera.KEEP)
+        show_object = lambda *args, **__: ocp.show(args)
+
+        p = Path(
+            "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
+        ).expanduser()
+        # p = script_dir / "build/outline.svg"
+        # p = Path("~/src/keeb_snakeskin/manual_outlines/ferris-base-0.1.svg").expanduser()
+
+        import build123d as bd
+        base_face = bd.make_face(import_svg_as_forced_outline(p, cleaning_tolerance = 0.05, extra_cleaning=True))
+        show_object(base_face, name="base_face")
