@@ -26,8 +26,9 @@ from build123d.topology import (
 def import_svg_as_forced_outline(
     svg_file: Union[str, Path, TextIO],
     reorient: bool = True,
-    tolerance: float = 0.01,
+    duplicate_tolerance: float = 0.01,
     extra_cleaning=False,
+    cleaning_tolerance: float = 0.01,
 ) -> Wire:
     """Import an SVG and apply cleaning operations to return a closed wire outline, if possible. Useful for SVG outlines that are actually made of thin shapes or slightly disconnected paths. May fail on more complex shapes.
 
@@ -43,8 +44,9 @@ def import_svg_as_forced_outline(
         flip objects to compensate for svg orientation (so the resulting wire
         is the same way up as it looks when opened in an SVG viewer). Defaults
         to True.
-        tolerance (float, optional): Amount of tolerance to use for comparing paths. Defaults to 0.01.
-        extra_clean (bool, optional): Do some extra cleaning, including skipping tiny paths and some slight rounding off of corners, which may help smooth out tiny features in the outline. Defaults to False.
+        duplicate_tolerance (float, optional): Amount of tolerance to use considering paths to be duplicates. Defaults to 0.01.
+        extra_clean (bool, optional): Do some extra cleaning, mainly skipping tiny paths. Defaults to False.
+        cleaning_tolerance (float, optional): Amount of tolerance to use discarding small paths if extra cleaning is used. Defaults to 0.01.
 
     Raises:
         ValueError: If an unknown path type is encountered.
@@ -61,13 +63,14 @@ def import_svg_as_forced_outline(
     curves = []
     for p in paths:
         curves.extend(p)
-    curves = _remove_duplicate_paths(curves, tolerance=tolerance)
+    curves = _remove_duplicate_paths(curves, tolerance=duplicate_tolerance)
     curves = _sort_curves(curves)
     first_line = curves[0]
+    previous_edge = None
     with BuildLine() as bd_l:
         line_start = point(first_line.start)
         for i, p in enumerate(curves):
-            if extra_cleaning and p.length() < tolerance:
+            if extra_cleaning and p.length() < cleaning_tolerance:
                 # Filter out tiny edges that may cause issues with OCCT ops
                 continue
             line_end = point(p.end)
@@ -81,13 +84,22 @@ def import_svg_as_forced_outline(
             else:
                 if (
                     extra_cleaning
-                    and Vertex(line_end).distance(Vertex(line_start)) < tolerance
+                    and Vertex(line_end).distance(Vertex(line_start)) < cleaning_tolerance
                 ):
                     # Skip this path if it's really short, just go straight
                     # to the next one.
                     continue
             if isinstance(p, svg.Line):
                 edge = Line(line_start, line_end)
+                if (
+                    extra_cleaning
+                    and previous_edge is not None
+                    and isinstance(previous_edge, Line)
+                    and abs(edge % 0 - previous_edge % 0) < duplicate_tolerance
+                ):
+                    # Merge straight lines that are split into multiple paths.
+                    previous_edge = Line(previous_edge @ 0, line_end)
+                    edge = previous_edge
             elif isinstance(p, svg.Arc):
                 start, end = sorted(
                     [
@@ -115,19 +127,13 @@ def import_svg_as_forced_outline(
                 print("Unknown path type for ", p)
                 raise ValueError
             line_start = edge @ 1
+            previous_edge = edge
 
     wire = bd_l.wire()
     if reorient:
         wire = wire.move(Location(-wire.center(center_of=CenterOf.BOUNDING_BOX)))
         wire = mirror(wire)
 
-    if extra_cleaning:
-        # Going through a round of offset out, then back in, rounds off
-        # internally projecting corners just a little, and seems to help reduce the
-        # creation of invalid shapes.
-        # This won't prevent objects from fitting within the outline, just place tiny gaps in some small concave (from the perspective of the gap) corners.
-        off = 1.0
-        wire = offset(offset(wire, off), -off)
     return wire
 
 
