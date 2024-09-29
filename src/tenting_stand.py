@@ -126,8 +126,8 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
     # Cut smaller flaps out of the larger ones.
     for i, flap in enumerate(out):
         for inner in out[i + 1 :]:
-            out[i] -= inner
-            # out[i] -= offset(inner, 0.2)
+            # out[i] -= inner
+            out[i] -= offset(inner, 0.2)
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
 
