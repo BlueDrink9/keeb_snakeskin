@@ -67,44 +67,6 @@ def import_svg_as_face(path):
     return face
 
 
-def sort_paths(lines):
-    """Return list of paths sorted and flipped so that they are connected end to end as the list iterates."""
-    if not lines:
-        return []
-
-    def euclidean_distance(p1, p2):
-        return math.sqrt((p1.real - p2.real) ** 2 + (p1.imag - p2.imag) ** 2)
-
-    # Start with the first line
-    sorted_lines = [lines.pop(0)]
-
-    while lines:
-        last_line = sorted_lines[-1]
-        last_end = last_line.end
-
-        # Find the closest line to the last end point
-        closest_line, closest_distance, flip = None, float("inf"), False
-        for line in lines:
-            dist_start = euclidean_distance(last_end, line.start)
-            dist_end = euclidean_distance(last_end, line.end)
-            # if end is closer than start, flip the line right way around
-            if dist_start < closest_distance:
-                closest_line, closest_distance, flip = line, dist_start, False
-            if dist_end < closest_distance:
-                closest_line, closest_distance, flip = line, dist_end, True
-
-        # Flip the line if necessary
-        if flip:
-            t = closest_line.start
-            closest_line.start = closest_line.end
-            closest_line.end = t
-            if isinstance(closest_line, svg.Arc):
-                closest_line.radius = -closest_line.radius
-
-        sorted_lines.append(closest_line)
-        lines.remove(closest_line)
-
-    return sorted_lines
 
 
 def generate_cases(svg_file, user_params=None):
