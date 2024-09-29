@@ -140,7 +140,7 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
             .sort_by(Axis.Y)
             .last
         )
-        ridge_len = 10
+        ridge_len = 20
         # edge_width = left_edge.length/10
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
@@ -307,7 +307,7 @@ def _hinge_blocker(outer):
         align=None,
     )
     # Offset to get some extra space for tolerance in the rotational component.
-    blocker -= offset(outer, 0.2)
+    blocker -= offset(outer, 0.3)
     return blocker
 
 
@@ -315,7 +315,7 @@ def _ridge(ridge_width, thickness) -> None:
     """Width = size along the edge it's on"""
     # Thick enough for chamfer to not fail, and pegged to width for that same
     # reason.
-    ridge_len = 2
+    ridge_len = 3
     ridge_face = Rectangle(ridge_width, ridge_len * 2)
     # Remove half to form half
     ridge_face = split(ridge_face)
