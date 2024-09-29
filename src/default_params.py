@@ -36,7 +36,7 @@ default_params = {
     "carrycase_wall_xy_thickness": 3,
     "carrycase_z_gap_between_cases": 9 + 1,
     "carrycase_cutout_position": -90,
-    "carrycase_cutout_xy_width": 15,
+    "carrycase_cutout_xy_width": 25,
     "lip_len": 1.3,
     "lip_position_angles": [32, 158],
     "magnet_position": -90.0,
