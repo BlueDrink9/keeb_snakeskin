@@ -7,7 +7,7 @@
     "z_space_under_pcb": 2.4,
     "magnet_position": -99,
     "strap_loop_end_offset": -1.5,
-    "wall_z_height": 3.0,
+    "wall_z_height": 5.0,
     "tent_hinge_width": 4,
     "tent_legs":  [[45, 90, 10], [30, 40, 35]]
 }
