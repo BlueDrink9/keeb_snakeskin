@@ -828,17 +828,15 @@ def _wire_location_at_angle(wire, angle, origin=None):
 if test_print:
     cfg.update(test_overrides)
 
+# Code for debugging
 if __name__ in ["temp", "__cq_main__", "__main__"]:
-    p = Path(
-        "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg"
-    ).expanduser()
+    p = Path(script_dir / "../preset_outlines/maizeless.svg")
     # p = Path(
     #     "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
     # ).expanduser()
-    # p = script_dir / "../build/maizeless.svg"
     config = Path(script_dir / "../preset_configs/maizeless.json")
 
-    # p = script_dir / "../manual_outlines/ferris-base-0.1.svg"
+    # p = script_dir / "../preset_outlines/ferris.svg"
     # config = Path(script_dir / "../preset_configs/ferris.json")
 
     import json
