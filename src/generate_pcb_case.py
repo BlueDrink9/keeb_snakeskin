@@ -239,6 +239,9 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
 
 
 def generate_carrycase(base_face, pcb_case_wall_height):
+    total_wall_cutout_height = (
+        pcb_case_wall_height + cfg["base_z_thickness"] + cfg["carrycase_tolerance_z"]
+    )
     cutout_outline = offset(
         base_face, cfg["wall_xy_thickness"] + cfg["carrycase_tolerance_xy"]
     )
@@ -268,15 +271,17 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         cutout_location,
         cfg["carrycase_wall_xy_thickness"],
         cfg["carrycase_cutout_xy_width"],
-        pcb_case_wall_height - magnet_radius_y - 0.3,
+        # Use same thickness as base to avoid the magnets.
+        # cfg["base_z_thickness"] - 0.2,
+        # Actually, screw the magnet holes, better to have an easy to remvoe
+        # board.
+        total_wall_cutout_height
+
     )
     # show_object(cutout_box, name="carry case cutout box")
 
     case -= cutout_box
 
-    total_wall_cutout_height = (
-        pcb_case_wall_height + cfg["base_z_thickness"] + cfg["carrycase_tolerance_z"]
-    )
     if cfg["strap_loop"]:
         strap_loop = (
             _strap_loop(
@@ -303,7 +308,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         cutout_face = _get_tenting_flap_shadow(
             base_face, pcb_case_wall_height + cfg["base_z_thickness"]
         )
-        cutout_face = offset(cutout_face, 0.2).face()
+        cutout_face = offset(cutout_face, 0.4).face()
         case -= extrude(cutout_face, total_wall_cutout_height)
 
     # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
@@ -841,6 +846,7 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     p = Path(
         "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
     ).expanduser()
+    p = script_dir / "../build/maizeless.svg"
 
     import json
 
@@ -859,4 +865,4 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # show_object(bf)
 
     carry = generate_carrycase(base_face, pcb_case_wall_height)
-    case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # case = generate_pcb_case(base_face, pcb_case_wall_height)
