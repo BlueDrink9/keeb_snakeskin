@@ -28,7 +28,9 @@ def main():
     else:
         param_overrides = {}
     for k, v in vars(args).items():
-        if k in default_params and v is not None:
+        if k not in default_params and k not in ["input_file", "config"]:
+            print(f"Warning: Unknown parameter '{k}'")
+        elif v is not None:
             param_overrides[k] = v
 
     input_file = Path(args.input_file).expanduser()
