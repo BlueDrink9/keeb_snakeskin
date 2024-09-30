@@ -137,32 +137,7 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
         # Cutting this out before the scaled inner causes invalid geom.
         out[i] -= bolthole_cutout
 
-        # Cut out a ridge for finger to open the flap
-        topright_edge = (
-            flap.faces()
-            .filter_by(Axis.Z)
-            .sort_by(Axis.Z)
-            .last.edges()
-            .sort_by(Axis.Y)
-            .last
-        )
-        ridge_len = 20
-        # edge_width = left_edge.length/10
-        plane = Plane(
-            # Origin just before the end. Edge goes from end to start, so -ve position
-            origin=topright_edge.location_at(
-                topright_edge.length - 10, position_mode=PositionMode.LENGTH
-            ).position,
-            x_dir=(topright_edge % 0.5),
-            y_dir=topright_edge.normal(),
-            z_dir=-Axis.Z.direction,
-        )
-        finger_ridge = _ridge(
-            ridge_len,
-            # Tiny bit less than max thickness, to exploit the fact that the projection subtracted from the case will be complete, but the slice will have a gap for the finger.
-            cfg["base_z_thickness"] * 0.99,
-        )
-        finger_ridge = plane * finger_ridge
+        finger_ridge = _finger_opening_ridge(flap)
         # show_all()
         out[i] -= finger_ridge
 
@@ -218,6 +193,37 @@ def _calc_leg_open_angle(case_len, flap_len):
     # The calculation gets the angle such that the leg is perpendicular to the desk if the end of the case is also sitting on it. Then add extra to make the leg more stable, so it doesn't collapse back in.
     # The sloped case acts as the hypotenuse, with flap length as the adjacent side.
     return math.degrees(math.acos(flap_len / case_len)) + tenting_stability_angle
+
+
+def _finger_opening_ridge(flap) -> None:
+    # Cut out a ridge for finger to open the flap
+    topright_edge = (
+        flap.faces()
+        .filter_by(Axis.Z)
+        .sort_by(Axis.Z)
+        .last.edges()
+        .sort_by(Axis.Y)
+        .last
+    )
+    ridge_len = 15
+    # edge_width = left_edge.length/10
+    plane = Plane(
+        # Origin just before the end. Edge goes from end to start, so -ve position
+        origin=topright_edge.location_at(
+            topright_edge.length - ridge_len/2 - 10, position_mode=PositionMode.LENGTH
+        ).position,
+        x_dir=(topright_edge % 0.5),
+        y_dir=topright_edge.normal(),
+        z_dir=-Axis.Z.direction,
+    )
+    finger_ridge = _ridge(
+        ridge_len,
+        # Tiny bit less than max thickness, to exploit the fact that the projection subtracted from the case will be complete, but the slice will have a gap for the finger.
+        cfg["base_z_thickness"] * 0.99,
+    )
+    finger_ridge = plane * finger_ridge
+    finger_ridge = finger_ridge.move(Loc((0, -2, 0)))
+    return finger_ridge
 
 
 @cache
@@ -276,7 +282,7 @@ def _flap(f: _Flap, width_near, hinge_size, inner=True, innermost=False, outermo
         # Add a ridge to hold the next flap out in place when closed. Innermost
         # flap should have velcro to the PCB to hold it in place.
         edge = face.edges().sort_by(Axis.X).first
-        ridge_len = 10
+        ridge_len = 5
         plane = Plane(
             # Origin just before the end. Edge goes from end to start, so -ve position
             origin=edge.location_at(
@@ -328,7 +334,7 @@ def _ridge(ridge_width, thickness) -> None:
     ridge_len = 3
     ridge_face = Rectangle(ridge_width, ridge_len * 2)
     # Remove half to form half
-    ridge_face = split(ridge_face)
+    # ridge_face = split(ridge_face)
     ridge = extrude(ridge_face, thickness)
     top_curve = (
         ridge.edges().group_by(Axis.Z)[-1].filter_by(Axis.X).sort_by(Axis.Y).first
