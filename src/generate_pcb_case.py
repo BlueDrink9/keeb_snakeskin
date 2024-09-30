@@ -886,11 +886,13 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
         "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
     ).expanduser()
     p = script_dir / "../build/maizeless.svg"
+    config = Path(script_dir / "../preset_configs/maizeless.json")
+
     p = script_dir / "../manual_outlines/ferris-base-0.1.svg"
+    config = Path(script_dir / "../preset_configs/ferris.json")
 
     import json
 
-    config = Path(script_dir / "../preset_configs/maizeless.json")
     param_overrides = json.loads(config.read_text())
     cfg = default_params
     cfg.update(param_overrides)
