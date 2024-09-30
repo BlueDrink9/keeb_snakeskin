@@ -1,5 +1,6 @@
 {
     "honeycomb_base": true,
+    "tiny_edge_rounding": true,
     "tenting_stand": true,
     "strap_loop": true,
     "cutout_position": 32,
