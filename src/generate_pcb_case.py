@@ -8,6 +8,7 @@ from import_svg import import_svg_as_forced_outline
 from build123d import *
 # Shape not imported as part of * for some reason
 from build123d import Shape
+import OCP
 
 from default_params import default_params
 
@@ -89,10 +90,12 @@ def import_svg_as_face(path):
     # creation of invalid shapes.
     # This won't prevent objects from fitting within the outline, just place tiny gaps in some small concave (from the perspective of the gap) corners.
     face_orig = copy.copy(face)
-    off = 1.0
-    face = offset(offset(face, off), -off)
-    off = -0.01
-    face = offset(offset(face, off), -off)
+    if cfg["tiny_edge_rounding"]:
+        for off in [1.0, -0.01]:
+            try:
+                face = offset(offset(face, off), -off)
+            except RuntimeError:
+                pass
     return face
 
 
@@ -422,7 +425,11 @@ def _friction_fit_cutout(base_face):
     case_bottom_offset = T * cfg["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + cfg["wall_xy_bottom_tolerance"]
     bottom_face = offset(base_face, bottom_offset).face()
-    case_inner_cutout = extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    try:
+        case_inner_cutout = extrude(bottom_face, amount=total_wall_height, taper=-taper)
+    except (OCP.StdFail.StdFail_NotDone, ValueError):
+        print("Error: This SVG outline has too many small edges to do a friction fit cutout. Try reducing the top and bottom tolerances, reducing the wall height, or simplyfing the input SVG paths.")
+        raise
 
     # Check tightness where pcb should sit
     # pcb_face = base_face.face().thicken(0.01).moved(Loc((0, 0, params["z_space_under_pcb"])))
@@ -580,8 +587,11 @@ def _lip(base_face, carrycase=False):
         # Poor man's chamfer of inner edge of lip
         # No point doing it with non-flush lip, because it would reduce the
         # catching surface.
-        chamfer_cutout = extrude(cutout_face.face(), lip_z_len, taper=-45)
-        lip -= chamfer_cutout
+        try:
+            chamfer_cutout = extrude(cutout_face.face(), lip_z_len, taper=-45)
+            lip -= chamfer_cutout
+        except OCP.StdFail.StdFail_NotDone:
+            print("Warning: Failed to chamfer carrycase lip; cutout will need supports and a higher tolerance")
     else:
         lip.move(Loc((0, 0, -lip_z_len)))
 
@@ -855,6 +865,7 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
         "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
     ).expanduser()
     p = script_dir / "../build/maizeless.svg"
+    p = script_dir / "../manual_outlines/ferris-base-0.1.svg"
 
     import json
 

@@ -15,6 +15,7 @@ default_params = {
     "honeycomb_base": True,
     "strap_loop": False,
     "tenting_stand": False,
+    "tiny_edge_rounding": False,
     "output_filetype": ".stl",
     "base_z_thickness": 3,
     "wall_xy_thickness": 2.81,
