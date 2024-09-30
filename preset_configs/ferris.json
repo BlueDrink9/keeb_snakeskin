@@ -1,11 +1,13 @@
 {
+    "honeycomb_base": false,
     "cutout_position": -7,
     "cutout_width": 25,
     "additional_cutouts": [[25, 10]],
-    "carrycase_cutout_position": -90,
+    "carrycase_cutout_position": -92,
     "z_space_under_pcb": 1.4,
     "magnet_position": -100,
     "magnet_count": 8,
+    "magnet_spacing": 12,
     "lip_position_angles": [58, 140],
     "wall_z_height": 5.0,
     "wall_xy_bottom_tolerance": -0.1
