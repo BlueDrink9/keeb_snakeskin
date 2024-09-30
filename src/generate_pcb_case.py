@@ -68,6 +68,7 @@ def import_svg_as_face(path):
     """
     wire = import_svg_as_forced_outline(path, extra_cleaning=False)
     face = make_face(wire)
+    face = _fix_face_edges(face)
 
     import tempfile
 
@@ -795,6 +796,14 @@ def _export(shape, path, name):
 
 def _sum_shapes(shapes):
     return reduce(lambda x, y: x + y, shapes)
+
+
+def _fix_face_edges(face):
+    try:
+        return make_face(make_face(face.wires()).wire().fix_degenerate_edges(0.01).edges()).face()
+    except IndexError:
+        print("Failed to fix face edges")
+        return face
 
 
 def _parallel_to_axis(axis):
