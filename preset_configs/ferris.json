@@ -1,8 +1,8 @@
 {
     "honeycomb_base": false,
-    "cutout_position": -7,
-    "cutout_width": 25,
-    "additional_cutouts": [[25, 10]],
+    "cutout_position": 5,
+    "cutout_width": 28,
+    "additional_cutouts": [[-27, 15]],
     "carrycase_cutout_position": -92,
     "z_space_under_pcb": 1.4,
     "magnet_position": -100,
