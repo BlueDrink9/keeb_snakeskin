@@ -672,7 +672,7 @@ def _cutout_tenting_flaps(case, base_face, wall_height):
     # using honeycomb base, but may as well include it jic. Extra offset for inner cutout to give a bit of tolerance for the flap.
     flap_slot = offset(shadow_within_walls, cfg["wall_xy_thickness"]) - shadow
     flap_slot = extrude(flap_slot, cfg["base_z_thickness"])
-    case -= extrude(offset(shadow, 0.2), cfg["base_z_thickness"])
+    case -= extrude(offset(shadow, 0.3), cfg["base_z_thickness"])
     case += flap_slot
     return case
 
@@ -683,8 +683,12 @@ def _get_tenting_flap_shadow(base_face, wall_height):
     from tenting_stand import _calc_leg_open_angle, tenting_legs
 
     case_len = _calc_case_len(base_face)
+    # Avoiding filleting the end is important until b123d fixes the bug
+    # preventing rounded faces from projecting to plane successfully. Once that
+    # is fixed, change project_to_face to not filter to those faces, and remove
+    # the fillet_end parameter from this call chan.
     flaps = tenting_legs(
-        cfg["tent_legs"], case_len, cfg["tent_hinge_bolt_d"], wall_height
+        cfg["tent_legs"], case_len, cfg["tent_hinge_bolt_d"], wall_height, fillet_end=False
     )
 
     # Reposition to same place as hinge.
@@ -864,5 +868,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    carry = generate_carrycase(base_face, pcb_case_wall_height)
-    # case = generate_pcb_case(base_face, pcb_case_wall_height)
+    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    case = generate_pcb_case(base_face, pcb_case_wall_height)

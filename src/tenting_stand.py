@@ -96,7 +96,7 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
     return out
 
 
-def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_height):
+def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_height, fillet_end=True):
     """Create legs and hinges for tenting the keyboard. case_len is the X length of the case, and is used to calculate the optimal angle for the leg to open to so that it is 20 degrees past vertical on the desk."""
     flaps = [_Flap(*f) for f in flaps_]
     bolthole, _, outer = _base_faces(bolt_d, wall_height)
@@ -115,7 +115,7 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
         flap_hinge += mirror(flap_hinge, Plane.XZ)
         near_len = flap_hinge.bounding_box().size.Y
         flap = -Plane.YX * _flap(
-            f, near_len, inner=i > 0, innermost=(i + 1 == len(flaps)), outermost=i == 0
+            f, near_len, inner=i > 0, innermost=(i + 1 == len(flaps)), outermost=i == 0, fillet_end=fillet_end
         )
         flap = flap.move(Loc((0, 0, -outer.radius)))
         flap += flap_hinge
@@ -235,7 +235,7 @@ def _flap_hinge_face(case_len, flap_len, wall_height, bolt_d):
     return flap_hinge_face
 
 
-def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
+def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False, fillet_end=True):
     thickness = cfg["base_z_thickness"]
     pts = [
         # bl, br, tr, tl
@@ -284,7 +284,8 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False):
         flap += ridge
 
     end_edges = flap.edges().filter_by(Plane.XY).group_by(Axis.Y)[-1]
-    flap = fillet(end_edges, thickness / 2.1)
+    if fillet_end:
+        flap = fillet(end_edges, thickness / 2.1)
 
     return flap
 
