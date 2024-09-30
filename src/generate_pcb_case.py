@@ -160,9 +160,11 @@ def _do_wall_cutouts(case, pcb_case_wall_height):
 
     to_do = [[cfg["cutout_position"], cfg["cutout_width"]], *cfg["additional_cutouts"]]
     for angle, width in to_do:
-        cutout_location, _ = polar_map.get_polar_location(angle)
+        location, location_percent = polar_map.get_polar_location(angle)
+        rotation = top_inner_wire.tangent_angle_at(location_percent)
         cutout_box = _finger_cutout(
-            cutout_location,
+            location,
+            rotation,
             cfg["wall_xy_thickness"],
             width,
             pcb_case_wall_height,
@@ -272,9 +274,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     botf = case.faces().sort_by(sort_by=Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
     polar_map = PolarWireMap(bottom_inner_wire, botf.center())
-    cutout_location, _ = polar_map.get_polar_location(cfg["carrycase_cutout_position"])
+    location, location_percent = polar_map.get_polar_location(
+        cfg["carrycase_cutout_position"]
+    )
+    rotation = bottom_inner_wire.tangent_angle_at(location_percent)
     cutout_box = _finger_cutout(
-        cutout_location,
+        location,
+        rotation,
         cfg["carrycase_wall_xy_thickness"],
         cfg["carrycase_cutout_xy_width"],
         # Use same thickness as base to avoid the magnets.
@@ -454,25 +460,30 @@ def _safe_offset2d(face: Face, offset: float):
     return new_face
 
 
-def _finger_cutout(location, thickness, width, height):
+def _finger_cutout(location, rotation, thickness, width, height):
     if fast_render:
         return Part()
-    cutout_location = location * Rot(X=-90)
     # Mutliplying x and y by ~2 because we're centering it on those axis, but
     # only cutting out of one side.
     # Centering because sometimes depending on the wire we get the location
     # from, it'll be flipped, so we can't just align to MAX.
     cutout_box = Box(
         # 2.1 to get some overlap
-        thickness * 2.1,
         width,
+        thickness * 2.1,
         height * 2,
     )
     # Smooth the sides of the cutout
     cutout_box = fillet(
-        cutout_box.edges().filter_by(Axis.X), min(height / 2.1, width / 2.1)
+        cutout_box.edges().filter_by(Axis.Y), min(height / 2.1, width / 2.1)
     )
-    cutout_box.locate(cutout_location)
+    # Smooth the wide sides too, just in case this is cutting out a corner (e.g. for ferris)
+    cutout_box = fillet(
+        cutout_box.edges().filter_by(Axis.X), min(height, thickness)
+    )
+
+    cutout_box = cutout_box.rotate(Axis.Z, rotation)
+    cutout_box.position = location.position
     return cutout_box
 
 
