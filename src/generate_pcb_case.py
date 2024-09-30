@@ -467,8 +467,8 @@ def _finger_cutout(location, rotation, thickness, width, height):
     # Centering because sometimes depending on the wire we get the location
     # from, it'll be flipped, so we can't just align to MAX.
     cutout_box = Box(
-        # 2.1 to get some overlap
         width,
+        # 2.1 to get some overlap, since we're centering
         thickness * 2.1,
         height * 2,
     )
@@ -478,7 +478,7 @@ def _finger_cutout(location, rotation, thickness, width, height):
     )
     # Smooth the wide sides too, just in case this is cutting out a corner (e.g. for ferris)
     cutout_box = fillet(
-        cutout_box.edges().filter_by(Axis.X), min(height, thickness)
+        cutout_box.edges().filter_by(Axis.X), min(height / 2.1, thickness / 2.1)
     )
 
     cutout_box = cutout_box.rotate(Axis.Z, rotation)
@@ -927,5 +927,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    # carry = generate_carrycase(base_face, pcb_case_wall_height)
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
