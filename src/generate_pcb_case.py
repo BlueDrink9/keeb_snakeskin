@@ -1,13 +1,11 @@
 import copy
 import math
 import os
-from functools import cache, reduce
+from functools import cache
 from pathlib import Path
 
 from import_svg import import_svg_as_forced_outline
 from build123d import *
-# Shape not imported as part of * for some reason
-from build123d import Shape
 import OCP
 
 from default_params import default_params
@@ -797,29 +795,6 @@ def _export(shape, path, name):
         print(f"Invalid export suffix: '{path.suffix}' Must be .stl or .step")
 
 
-def _sum_shapes(shapes):
-    return reduce(lambda x, y: x + y, shapes)
-
-
-def _fix_face_edges(face):
-    try:
-        return make_face(make_face(face.wires()).wire().fix_degenerate_edges(0.01).edges()).face()
-    except IndexError:
-        print("Failed to fix face edges")
-        return face
-
-
-def _parallel_to_axis(axis):
-    """Intended for use as a lambda, e.g.:
-    faces = shape.faces().filter_by(_face_is_parallel_to_axis(Axis.Z))
-    """
-
-    def _face_is_parallel_to(face):
-        return abs(face.normal_at(None).dot(axis.direction)) < 1e-6
-
-    return _face_is_parallel_to
-
-
 def _flatten_to_faces(shape):
     faces = shape.faces().filter_by(Axis.Z)
     shadow = project(faces, Plane.XY).fuse()
@@ -848,12 +823,6 @@ def _wire_location_at_angle(wire, angle, origin=None):
     tangent = furthest_edge.tangent_angle_at(0.5)
     location_percent = wire.param_at_point(location.position)
     return location, tangent, location_percent
-
-
-def _find_nearest_key(d, target_int):
-    """Find the nearest existing key in a dict to a target integer"""
-    nearest = min(d, key=lambda x: abs(x - target_int))
-    return nearest
 
 
 if test_print:
