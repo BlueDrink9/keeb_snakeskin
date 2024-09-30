@@ -70,10 +70,9 @@ def import_svg_as_face(path):
     face = make_face(wire)
     face = _fix_face_edges(face)
 
-    import tempfile
-
-    # Try to reduce small facets by exporting it and re-importing face.
-    remade = make_face(face.face().outer_wire())
+    # import tempfile
+    # # Try to reduce small facets by exporting it and re-importing face.
+    # remade = make_face(face.face().outer_wire())
     # shape = extrude(remade, 3)
     # with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as temp_file:
     #     temp_file_path = temp_file.name
