@@ -58,7 +58,7 @@ that if you want to reprint parts that you already have.
 
 Overall:
 1. In KiCad, export **just the edge cuts layer** as an SVG.
-2. Customise the design parameters for your board, either by create a config json or just passing the right arguments. At minimum you should tweak the cutout and magnet positioning for your board, although I suggest verifying the program runs without errors on your SVG before tweaking too many parameters.
+2. Customise the design parameters for your board, either by creating/modifying a config json, or passing arguments. At minimum I would suggest tweaking the cutout and magnet positioning for your board, although I suggest verifying the program runs without errors on your SVG with defaults before tweaking too many parameters.
 3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
 
 ### Install
@@ -88,6 +88,11 @@ See the [Configuration](#configuration) section for more information on how to c
 
 #### Getting the starting svg
 
+Clean and working outline svgs for some boards are already included in the `./preset_outlines/` folder.
+Currently this includes:
+* [ferris (0.1)](https://github.com/pierrechevalier83/ferris)
+* [maizeless](https://github.com/BlueDrink9/maizeless)
+
 In kicad, export just the edge.cuts layer as plot format `svg` (board only, not page).
 Note that KiCad has two ways to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
 Ensure coordinate output is mm if relevant, and all the 'plot' general options are unchecked.
@@ -114,7 +119,9 @@ PCBs will not work out of the box, for example ones with:
 * multiple halves
 * multiple halves in a PCB frame
 
-That being said, you can still use this program; you'll just need to manually edit the SVG outline. If you do this for a popular board, please open a PR to share the resulting SVG in `./manual_outlines/`
+That being said, you can still use this program; you'll just need to manually
+edit the SVG outline. If you do this for a popular board, please open a PR to
+share the resulting SVG (and ideally config json) in `./preset_outlines/`
 
 One example of a troublesome PCB is the Corne, so I have created a working
 outline for the Corne classic V2 already.
@@ -181,6 +188,11 @@ examples.
 Using both the json and command line argument for a parameter will take the
 command line argument as priority.
 
+You may prefer to modify an existing config, from `./preset_configs/`.
+Currently there are configs for:
+* [ferris](https://github.com/pierrechevalier83/ferris)
+* [maizeless](https://github.com/BlueDrink9/maizeless)
+
 | Parameter name | Example value + unit| Description |
 | -------------- | ------------- | ----------- |
 | `split`| True | If True, generate mirrored pair of files for a split board |
@@ -205,7 +217,7 @@ command line argument as priority.
 | `strap_loop_thickness` | 4 mm | Thickness (in XY) of the strap loop |
 | `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the strap starts. Fiddle with this to avoid or merge with corners, for example. |
 | `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go through. |
-| `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs, which will be exported as separate files, as well as cut out of the keyboard base. Multiple legs will be nested within each other (to the extent possible with the length of the hinge). Each entry is the `width`, `length` and `tenting_angle`. Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). The end widths must decrease with length, or nesting will fail. |
+| `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs as `width` (Y len), `length` (X len) and `tenting_angle` (slope of the tip), which will be exported as separate files, as well as cut out of the keyboard base. Multiple legs will be nested within each other (to the extent possible with the length of the hinge). Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). The end widths must decrease with length, or nesting will fail. |
 | `tent_hinge_width` | 5 | How thick in the Y axis the hinges are that hold the tenting flaps. Keep this short if you have lots of tenting flaps, otherwise you may as well increase it to increase the strength. |
 | `tent_hinge_bolt_d` | 3 (mm, == M3) | Bolt diameter specification for the tenting stand hinge. If you are using imperial bolts, be sure to convert the official size to mm, don't measure the thread. Keep this as small as you can, because the bigger the hole, the less plastic holding it in place. |
 | `tent_hinge_bolt_l` | 60 mm | Length of bolt for the tenting stand hinge, including head assuming it's countersunk. I'd suggest getting something as big as you can find for the size of your case. Push rods might help getting something really long, with small diameters (but will need two nuts). |
