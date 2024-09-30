@@ -155,13 +155,11 @@ def generate_cases(svg_file, user_params=None):
 
 def _do_wall_cutouts(case, pcb_case_wall_height):
     topf = case.faces().sort_by(sort_by=Axis.Z).last
-    polar_map = PolarWireMap(top_inner_wire, topf.center())
     top_inner_wire = topf.wires().sort_by(SortBy.LENGTH)[0]
 
     to_do = [[cfg["cutout_position"], cfg["cutout_width"]], *cfg["additional_cutouts"]]
     for angle, width in to_do:
-        location, location_percent = polar_map.get_polar_location(angle)
-        rotation = top_inner_wire.tangent_angle_at(location_percent)
+        location, rotation = _wire_location_at_angle(top_inner_wire, angle)
         cutout_box = _finger_cutout(
             location,
             rotation,
@@ -833,6 +831,22 @@ def _flatten_to_faces(shape):
             add(f)
     shadow = bd_s.sketch.face()
     return shadow
+
+
+def _wire_location_at_angle(wire, angle):
+    # Form a ray in the direction of angle. Has to be a face, because 1D objects currently won't intersect.
+    origin = wire.center(CenterOf.BOUNDING_BOX)
+    polar_length = wire.bounding_box().diagonal * 2
+    ray = make_face((
+        PolarLine(origin, polar_length, angle),
+        PolarLine(origin + (0, 0.1), polar_length, angle),
+        Line(origin, origin + (0, 0.1)),
+    ))
+    sect = ray.intersect(make_face(wire))
+    furthest_edge = sect.edges().sort_by(SortBy.DISTANCE)[-1]
+    location = furthest_edge ^ 0.5
+    tangent = furthest_edge.tangent_angle_at(0.5)
+    return location, tangent
 
 
 def _find_nearest_key(d, target_int):
