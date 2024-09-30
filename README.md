@@ -25,13 +25,13 @@ Inspired by and in collaboration with the [Compression keyboard](https://github.
 a popular design.
 * Compact magnetic carrycase gives you ultimate portability, quick to unclip
 and start typing (no faffing with bags or zips).
-* Quick-tenting mechanism with quick-unfold leg, customisable for multiple angles and heights.
+* Quick-tenting mechanism with quick-unfold leg(s), customisable for multiple angles and heights.
 * Optional honeycomb base, to look great, save on weight and plastic, and show
 off your custom PCB and top-notch (😉) soldering.
 * Loop for strap attachment
     * Attach the boards to your legs for a standing setup,
-    * Tie to a chair arm for a more ergonomic sitting setup, or just to use as a handle or
-to tie to your bad.
+    * Tie to a chair arm for a more ergonomic sitting setup,
+    * use as a handle or tie to your bag.
 * Works with both split and non-split board PCBs
 * Works with any PCB of unusual shape, even non-keyboard PCBs for whatever random project you want an enclosure for.
 
