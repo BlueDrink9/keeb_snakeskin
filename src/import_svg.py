@@ -123,7 +123,8 @@ def import_svg_as_forced_outline(
                     angular_direction=dir_,
                     mode=Mode.PRIVATE,
                 )
-                add(edge.move(Location(line_start - edge @ 0)))
+                edge = edge.moved(Location(line_start - edge @ 0))
+                add(edge)
 
             else:
                 print("Unknown path type for ", p)
