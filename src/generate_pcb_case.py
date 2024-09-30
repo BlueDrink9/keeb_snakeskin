@@ -15,6 +15,9 @@ cfg = default_params
 
 Loc = Location
 
+tent_leg_cutout_tolerance = 0.3
+misc_tol = 0.2
+
 test_print = False
 fast_render = False
 # For test prints, slice off the end. Tweak this by hand to get what you want.
@@ -294,7 +297,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
             .sort_by(sort_by=Axis.Z)
             .first
         )
-        cutout_face = offset(make_hull(strap_loop.edges()), 0.2).face()
+        cutout_face = offset(make_hull(strap_loop.edges()), misc_tol).face()
         case -= extrude(cutout_face, total_wall_cutout_height)
 
     if cfg["tenting_stand"]:
@@ -302,13 +305,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         cutout_face = _flatten_to_faces(
             _tent_hinge(base_face, pcb_case_wall_height + cfg["base_z_thickness"])
         )
-        cutout_face = offset(cutout_face, 0.2).face()
+        cutout_face = offset(cutout_face, misc_tol).face()
         case -= extrude(cutout_face, total_wall_cutout_height)
         # Cut out leg hinges
         cutout_face = _get_tenting_flap_shadow(
             base_face, pcb_case_wall_height + cfg["base_z_thickness"]
         )
-        cutout_face = offset(cutout_face, 0.4).face()
+        cutout_face = offset(cutout_face, tent_leg_cutout_tolerance).face()
         case -= extrude(cutout_face, total_wall_cutout_height)
 
     # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
@@ -478,7 +481,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         Plane.XZ
         * Ellipse(
             # A tiny bit bigger X than the radius to give fit tolerance. Doensn't need to be a super snug fit, since they'll be held in place by glue or the pcb.
-            x_radius=magnet_radius + 0.2,
+            x_radius=magnet_radius + misc_tol,
             y_radius=magnet_radius_y,
         ).face()
     )
@@ -666,13 +669,14 @@ def _find_hinge_reposition(base_face, hinge) -> None:
 
 def _cutout_tenting_flaps(case, base_face, wall_height):
     shadow = _get_tenting_flap_shadow(base_face, wall_height)
+    shadow = offset(shadow, tent_leg_cutout_tolerance)
     outer_case_face = offset(base_face, cfg["wall_xy_thickness"]).face()
     shadow_within_walls = shadow.intersect(outer_case_face).face()
     # Create plastic outline for flaps to fold into. Only really needed if
     # using honeycomb base, but may as well include it jic. Extra offset for inner cutout to give a bit of tolerance for the flap.
     flap_slot = offset(shadow_within_walls, cfg["wall_xy_thickness"]) - shadow
     flap_slot = extrude(flap_slot, cfg["base_z_thickness"])
-    case -= extrude(offset(shadow, 0.3), cfg["base_z_thickness"])
+    case -= extrude(shadow, cfg["base_z_thickness"])
     case += flap_slot
     return case
 
@@ -686,7 +690,7 @@ def _get_tenting_flap_shadow(base_face, wall_height):
     # Avoiding filleting the end is important until b123d fixes the bug
     # preventing rounded faces from projecting to plane successfully. Once that
     # is fixed, change project_to_face to not filter to those faces, and remove
-    # the fillet_end parameter from this call chan.
+    # the fillet_end parameter from this call chain.
     flaps = tenting_legs(
         cfg["tent_legs"], case_len, cfg["tent_hinge_bolt_d"], wall_height, fillet_end=False
     )
