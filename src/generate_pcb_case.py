@@ -155,8 +155,8 @@ def generate_cases(svg_file, user_params=None):
 
 def _do_wall_cutouts(case, pcb_case_wall_height):
     topf = case.faces().sort_by(sort_by=Axis.Z).last
-    top_inner_wire = topf.wires()[0]
     polar_map = PolarWireMap(top_inner_wire, topf.center())
+    top_inner_wire = topf.wires().sort_by(SortBy.LENGTH)[0]
 
     to_do = [[cfg["cutout_position"], cfg["cutout_width"]], *cfg["additional_cutouts"]]
     for angle, width in to_do:
