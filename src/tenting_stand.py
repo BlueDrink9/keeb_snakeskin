@@ -104,13 +104,13 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
     flaps.sort(key=lambda f: f.len, reverse=True)
     out = []
     for i, f in enumerate(flaps):
-        offset = hinge_width_y * (i + 1) + 0.2 * (i + 1)
-        # flap_hinge_width = bolt_l - offset*2
+        hinge_y_offset = hinge_width_y * (i + 1) + 0.2 * (i + 1)
+        # flap_hinge_width = bolt_l - hinge_y_offset*2
         flap_hinge = extrude(
             Plane.XZ * _flap_hinge_face(case_len, f.len, wall_height, bolt_d),
             hinge_width_y,
         )
-        flap_hinge.move(Loc((0, -offset)))
+        flap_hinge.move(Loc((0, -hinge_y_offset)))
         flap_hinge.move(Loc((0, bolt_l / 2)))
         flap_hinge += mirror(flap_hinge, Plane.XZ)
         near_len = flap_hinge.bounding_box().size.Y
