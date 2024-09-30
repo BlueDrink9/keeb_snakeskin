@@ -13,7 +13,7 @@ Inspired by and in collaboration with the [Compression keyboard](https://github.
 
 |  | |
 | ------------- | -------------- |
-|  *Example case rendered from the [maizeless](https://github.com/BlueDrink9/maizeless) PCB, with honeycomb base.* ![case render](img/maizeless_snakeskin_honeycomb.png)|  |
+|  *Example case rendered from the [maizeless](https://github.com/BlueDrink9/maizeless) PCB, with honeycomb base.* ![case render](img/maizeless_snakeskin_honeycomb.png)|  *Example [ferris](https://github.com/pierrechevalier83/ferris) case* ![case render](img/ferris_snakeskin.png)|
 | *Carrycase with one case inside*. The carrycase is mirrored around the center, to allow for two halves of a split board to be carried together. ![carrycase with case render](img/maizeless_snakeskin_honeycomb_in_carrycase.png) | Just the carrycase ![carrycase render](img/maizeless_snakeskin_carrycase.png) |
 | With tenting legs and strap loop ![Tenting flaps](img/maizeless_tenting_closed.png) | One leg open ![Tenting leg one open](img/maizeless_tenting_half_open.png) |
 
@@ -203,8 +203,7 @@ command line argument as priority.
 | `honeycomb_radius` | 6 mm | Radius of the blank space hexagons for the honeycomb case base (major/inscribed radius) |
 | `honeycomb_thickness` | 2 mm | Thickness of the bars (space between hexagons) of the honeycomb case base |
 | `strap_loop_thickness` | 4 mm | Thickness (in XY) of the strap loop |
-| `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the
-strap starts. Fiddle with this to avoid or merge with corners, for example. |
+| `strap_loop_end_offset` | 0 mm | Inset from the ends of the case where the strap starts. Fiddle with this to avoid or merge with corners, for example. |
 | `strap_loop_gap` | 5 mm | Gap left in the strap loop for the strap to go through. |
 | `tent_legs` | `[[30, 50, 0], [20, 30, 15]]`, | List of tent legs, which will be exported as separate files, as well as cut out of the keyboard base. Multiple legs will be nested within each other (to the extent possible with the length of the hinge). Each entry is the `width`, `length` and `tenting_angle`. Width is the width of the leg flap at the end furthest from the hinge. The tenting angle is the angle from 0 that the keyboard will be rotated clockwise when looking in the direction of the X axis (i.e. angle it will tilt the board face towards/away from the user). The end widths must decrease with length, or nesting will fail. |
 | `tent_hinge_width` | 5 | How thick in the Y axis the hinges are that hold the tenting flaps. Keep this short if you have lots of tenting flaps, otherwise you may as well increase it to increase the strength. |
