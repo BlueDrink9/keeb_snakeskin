@@ -634,7 +634,9 @@ def _create_honeycomb_tile(depth, face):
     radius = cfg["honeycomb_radius"]
     cell_thickness = cfg["honeycomb_thickness"]
     d_between_centers = radius + cell_thickness
-    locs = HexLocations(d_between_centers, 50, 50, major_radius=True).local_locations
+    area = face.bounding_box()
+    n_hexes = [round(size / d_between_centers) for size in (area.size.X, area.size.Y)]
+    locs = HexLocations(d_between_centers, *n_hexes, major_radius=True).local_locations
     h = RegularPolygon(radius, 6)
     h = extrude(h, -depth)
     hs = Plane(face) * locs * h
