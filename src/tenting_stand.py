@@ -342,7 +342,7 @@ def _velcro_divot(flap):
     # Cut out a divot to allow velcro to sit without affecting closing of the
     # case
     divot = Rectangle(velcro_width, velcro_width, align=(Align.CENTER, Align.MAX)).move(
-        Loc((0, flap.len, cfg["base_z_thickness"]))
+        Loc((0, flap.len - 2.5, cfg["base_z_thickness"]))
     )
     return extrude(divot, -cfg["base_z_thickness"] * 0.5)
 
