@@ -115,7 +115,13 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
         flap_hinge += mirror(flap_hinge, Plane.XZ)
         near_len = flap_hinge.bounding_box().size.Y
         flap = -Plane.YX * _flap(
-            f, near_len, inner=i > 0, innermost=(i + 1 == len(flaps)), outermost=i == 0, fillet_end=fillet_end
+            f,
+            near_len,
+            outer.radius + cfg["wall_xy_thickness"],
+            inner=i > 0,
+            innermost=(i + 1 == len(flaps)),
+            outermost=i == 0,
+            fillet_end=fillet_end,
         )
         flap = flap.move(Loc((0, 0, -outer.radius)))
         flap += flap_hinge
@@ -235,12 +241,15 @@ def _flap_hinge_face(case_len, flap_len, wall_height, bolt_d):
     return flap_hinge_face
 
 
-def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False, fillet_end=True):
+def _flap(f: _Flap, width_near, hinge_size, inner=True, innermost=False, outermost=False, fillet_end=True):
     thickness = cfg["base_z_thickness"]
+    # Extend straight until the edge of hinge_size, then trapezoid to the end
     pts = [
-        # bl, br, tr, tl
+        # ml, bl, br, mr, tr, tl
+        (0, hinge_size),
         (0, 0),
         (width_near, 0),
+        (width_near, hinge_size),
         (f.width + (width_near - f.width) / 2, f.len),
         ((width_near - f.width) / 2, f.len),
     ]
@@ -248,11 +257,11 @@ def _flap(f: _Flap, width_near, inner=True, innermost=False, outermost=False, fi
     if f.tent_angle:
         hypot = f.width / math.cos(math.radians(f.tent_angle))
         if f.tent_angle < 0:
-            end_slope = PolarLine(pts[2], hypot, 180 + f.tent_angle)
-            pts[3] = end_slope @ 1
+            end_slope = PolarLine(pts[-2], hypot, 180 + f.tent_angle)
+            pts[-1] = end_slope @ 1
         else:
-            end_slope = PolarLine(pts[3], hypot, f.tent_angle)
-            pts[2] = end_slope @ 1
+            end_slope = PolarLine(pts[-1], hypot, f.tent_angle)
+            pts[-2] = end_slope @ 1
 
     face = Polygon(
         *pts,
