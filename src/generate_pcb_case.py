@@ -159,7 +159,7 @@ def _do_wall_cutouts(case, pcb_case_wall_height):
 
     to_do = [[cfg["cutout_position"], cfg["cutout_width"]], *cfg["additional_cutouts"]]
     for angle, width in to_do:
-        location, rotation = _wire_location_at_angle(top_inner_wire, angle)
+        location, rotation, _ = _wire_location_at_angle(top_inner_wire, angle)
         cutout_box = _finger_cutout(
             location,
             rotation,
@@ -271,11 +271,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     # Create finger cutout for removing boards
     botf = case.faces().sort_by(sort_by=Axis.Z).first
     bottom_inner_wire = botf.wires()[0]
-    polar_map = PolarWireMap(bottom_inner_wire, botf.center())
-    location, location_percent = polar_map.get_polar_location(
-        cfg["carrycase_cutout_position"]
+    location, rotation, location_percent = _wire_location_at_angle(
+        bottom_inner_wire, cfg["carrycase_cutout_position"]
     )
-    rotation = bottom_inner_wire.tangent_angle_at(location_percent)
     cutout_box = _finger_cutout(
         location,
         rotation,
@@ -523,9 +521,9 @@ def _magnet_cutout(main_face, angle, carrycase=False):
     # Get second largest face parallel to XY plane - i.e., the inner case face
     # inner_case_face = sorted(case.faces().filter_by(Plane.XY), key=lambda x: x.area)[-2]
     inner_wire = main_face.wire()
-    # show_object(inner_wire, name="inner_wire")
-    polar_map = PolarWireMap(inner_wire, main_face.center())
-    _, center_percent = polar_map.get_polar_location(angle)
+    _, _, center_percent = _wire_location_at_angle(
+        inner_wire, angle, origin=main_face.center()
+    )
     center_at_mm = center_percent * inner_wire.length
     span = (cfg["magnet_count"] - 1) * cfg["magnet_spacing"]
     start = center_at_mm - span / 2
@@ -833,9 +831,11 @@ def _flatten_to_faces(shape):
     return shadow
 
 
-def _wire_location_at_angle(wire, angle):
+def _wire_location_at_angle(wire, angle, origin=None):
+    """Find the location of a wire at a certail polar angle from the given origin.polar location of a wire relative to a central origin."""
+    if not origin:
+        origin = wire.center(CenterOf.BOUNDING_BOX)
     # Form a ray in the direction of angle. Has to be a face, because 1D objects currently won't intersect.
-    origin = wire.center(CenterOf.BOUNDING_BOX)
     polar_length = wire.bounding_box().diagonal * 2
     ray = make_face((
         PolarLine(origin, polar_length, angle),
@@ -846,54 +846,14 @@ def _wire_location_at_angle(wire, angle):
     furthest_edge = sect.edges().sort_by(SortBy.DISTANCE)[-1]
     location = furthest_edge ^ 0.5
     tangent = furthest_edge.tangent_angle_at(0.5)
-    return location, tangent
+    location_percent = wire.param_at_point(location.position)
+    return location, tangent, location_percent
 
 
 def _find_nearest_key(d, target_int):
     """Find the nearest existing key in a dict to a target integer"""
     nearest = min(d, key=lambda x: abs(x - target_int))
     return nearest
-
-
-class PolarWireMap:
-    """Maps between polar locations of a wire relative to a central origin,
-    where the resulting map is a dict of angle to location for
-    use with wire ^ location (`wire.at_location`). Angle is calculated
-    from the provide origin (intended to be the center of the closed
-    wire)."""
-
-    def __init__(self, wire, origin):
-        self.wire, self.origin = wire, origin
-        self.map_ = {}
-        self.__map_polar_locations()
-
-    def get_polar_location(self, angle):
-        """return the wire's intersection location at `angle`."""
-        angle = _find_nearest_key(self.map_, angle)
-        at = self.map_[angle]
-        return self.wire ^ at, at
-
-    def __map_polar_locations(self):
-        """Populate map with the polar location of
-        a wire, where the resulting map is a dict of angle to location for
-        use with wire ^ location (`wire.at_location`). Angle is calculated
-        from the provide origin (intended to be the center of the closed
-        wire)."""
-        n_angles = 360
-        at_position = 0
-        iter = 1 / n_angles
-        while at_position <= 1:
-            location = self.wire ^ at_position
-            at_position += iter
-            ax1 = Axis.X
-            ax2 = Wire(Line(self.origin, location.position)).edge()
-            ax2 = Axis(edge=ax2)
-            angle = round(ax1.angle_between(ax2))
-            if ax2.direction.Y < 0:
-                # Angle between gives up to 180 as a positive value, so we need to
-                # flip it for -ve angles.
-                angle = -angle
-            self.map_[angle] = at_position
 
 
 if test_print:
@@ -909,8 +869,8 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # p = script_dir / "../build/maizeless.svg"
     config = Path(script_dir / "../preset_configs/maizeless.json")
 
-    p = script_dir / "../manual_outlines/ferris-base-0.1.svg"
-    config = Path(script_dir / "../preset_configs/ferris.json")
+    # p = script_dir / "../manual_outlines/ferris-base-0.1.svg"
+    # config = Path(script_dir / "../preset_configs/ferris.json")
 
     import json
 
