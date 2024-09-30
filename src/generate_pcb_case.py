@@ -66,9 +66,9 @@ def import_svg_as_face(path):
     outline = import_svg(script_dir / "build/outline.svg")
     outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
-    wire = import_svg_as_forced_outline(path, extra_cleaning=False)
-    face = make_face(wire)
-    face = _fix_face_edges(face)
+    face = import_svg_as_forced_outline(path, extra_cleaning=False)
+    # face = make_face(wire)
+    # face = _fix_face_edges(face)
 
     # import tempfile
     # # Try to reduce small facets by exporting it and re-importing face.
@@ -431,6 +431,7 @@ def _friction_fit_cutout(base_face):
     case_bottom_offset = T * cfg["z_space_under_pcb"]
     bottom_offset = -case_bottom_offset + cfg["wall_xy_bottom_tolerance"]
     bottom_face = offset(base_face, bottom_offset).face()
+    # bottom_face = _fix_face_edges(bottom_face)
     try:
         case_inner_cutout = extrude(bottom_face, amount=total_wall_height, taper=-taper)
     except (OCP.StdFail.StdFail_NotDone, ValueError):
@@ -578,6 +579,8 @@ def _lip(base_face, carrycase=False):
     )
     case_outer_face = offset(base_face, cfg["wall_xy_thickness"])
     cutout_face = offset(base_face, cfg["wall_xy_thickness"] - lip_xy_len)
+    # # Offsetting on wires rather than faces seems to help fix OCP edge issues
+    # cutout_face = make_face(offset(base_face.face().outer_wire(), cfg["wall_xy_thickness"] - lip_xy_len))
     lip = outer_face - cutout_face
 
     # Intersect lip with sector/triangle between the two angles.
@@ -599,7 +602,8 @@ def _lip(base_face, carrycase=False):
         # No point doing it with non-flush lip, because it would reduce the
         # catching surface.
         try:
-            chamfer_cutout = extrude(cutout_face.face(), lip_z_len, taper=-45)
+            # cutout_face = _fix_face_edges(cutout_face.face())
+            chamfer_cutout = extrude(cutout_face, lip_z_len, taper=-45)
             lip -= chamfer_cutout
         except OCP.StdFail.StdFail_NotDone:
             print("Warning: Failed to chamfer carrycase lip; cutout will need supports and a higher tolerance")
@@ -769,7 +773,11 @@ def _poor_mans_chamfer(shape, size, top=False):
         face = face
     outer = extrude(face, size)
     inner_f = offset(face, -size).face()
-    inner = extrude(inner_f, size, taper=-44)
+    try:
+        inner = extrude(inner_f, size, taper=-44)
+    except (OCP.StdFail.StdFail_NotDone, ValueError):
+        print("Error: This SVG outline has too many small edges to chamfer the top and bottom. Skipping")
+        return shape
     cutout = outer - inner
     out = shape - cutout
     # show_object(inner_f, name="inner_f")
@@ -878,14 +886,13 @@ if test_print:
     cfg.update(test_overrides)
 
 if __name__ in ["temp", "__cq_main__", "__main__"]:
-    # p = script_dir / "build/outline.svg"
     p = Path(
         "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts export.svg"
     ).expanduser()
-    p = Path(
-        "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
-    ).expanduser()
-    p = script_dir / "../build/maizeless.svg"
+    # p = Path(
+    #     "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
+    # ).expanduser()
+    # p = script_dir / "../build/maizeless.svg"
     config = Path(script_dir / "../preset_configs/maizeless.json")
 
     p = script_dir / "../manual_outlines/ferris-base-0.1.svg"

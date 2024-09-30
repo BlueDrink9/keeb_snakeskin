@@ -10,6 +10,7 @@ from build123d.build_line import BuildLine
 from build123d.geometry import Color, Location
 from build123d.objects_curve import Line, EllipticalCenterArc
 from build123d.operations_generic import add, offset, mirror
+from build123d.operations_sketch import make_face
 from build123d.topology import (
     Compound,
     Edge,
@@ -123,7 +124,8 @@ def import_svg_as_forced_outline(
                     angular_direction=dir_,
                     mode=Mode.PRIVATE,
                 )
-                edge = edge.moved(Location(line_start - edge @ 0))
+                to_move = line_start - edge @ 0
+                edge = edge.moved(Location(to_move))
                 add(edge)
 
             else:
@@ -131,14 +133,37 @@ def import_svg_as_forced_outline(
                 raise ValueError
             line_start = edge @ 1
             previous_edge = edge
+    face = mirror(-make_face(bd_l.edges()).face())
+    # Mirroring faces sometimes causes invalid geometry, but apparently this process of offsetting in then out 'cures' it.
+    # https://github.com/gumyr/build123d/issues/719
+    off = 0.01
+    face = offset(-offset(face, off).face(), -off)
+    if reorient:
+        face = face.move(Location(-face.center(center_of=CenterOf.BOUNDING_BOX)))
+    return face
+
+    # edges = bd_l.edges()
+    # for i, edge in enumerate(edges):
+        # print(i, edges[i-1] @ 1 == edges[i] @ 0)
 
     wire = bd_l.wire()
     if reorient:
         wire = wire.move(Location(-wire.center(center_of=CenterOf.BOUNDING_BOX)))
+        # Mirroring wires can introduce bad geometry!?
         wire = mirror(wire)
+
+    # new = []
+    # for edge in wire.edges():
+    #     new.append(mirror(edge))
+    # wire = Wire.combine(new).wire()
 
     return wire
 
+def _mirror_around_center(shape, plane):
+    shape = mirror(shape, around=plane.move(Location(shape.center(center_of=CenterOf.BOUNDING_BOX))))
+
+def _center_obj(shape):
+    return shape.move(Location(-shape.center(center_of=CenterOf.BOUNDING_BOX)))
 
 def _sort_curves(curves):
     """Return list of paths sorted and flipped so that they are connected end to end as the list iterates."""
@@ -286,6 +311,7 @@ if __name__ not in ["__cq_main__", "temp"]:
         p = Path(
             "~/src/keyboard_design/maizeless/pcb/build/maizeless-Edge_Cuts gerber.svg"
         ).expanduser()
+        p = script_dir / "../manual_outlines/ferris-base-0.1.svg"
         # p = script_dir / "build/outline.svg"
         # p = Path("~/src/keeb_snakeskin/manual_outlines/ferris-base-0.1.svg").expanduser()
 
