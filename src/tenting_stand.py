@@ -18,6 +18,7 @@ blocker_zlen = 2
 case_blocker_angle = 90 + 45
 tenting_stability_angle = 20
 velcro_width = 15
+hole_tolerance = 0.5
 
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
@@ -87,7 +88,8 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
             bolt_d / 2, bolt_head_d / 2, hinge_width_y, counter_sink_angle=90
         )
         out -= countersink
-        nut_hole = start_plane * extrude(RegularPolygon(nut_d / 2, 6), -nut_l)
+        hexagon = offset(RegularPolygon(nut_d / 2, 6), hole_tolerance)
+        nut_hole = start_plane * extrude(hexagon, -nut_l)
         out -= nut_hole
     h = outer.radius
     show_object(out, name="case_hinge")
@@ -159,7 +161,7 @@ def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_heig
 def _base_faces(bolt_d, wall_height):
     outer = Circle(radius=(wall_height) / 2)
     # Ellipes to give extra tolerance if printing without supports.
-    bolthole = Ellipse(bolt_d / 2, bolt_d / 2 * 1.1)
+    bolthole = offset(Ellipse(bolt_d / 2, bolt_d / 2 * 1.1), hole_tolerance).face()
     # Add a 45 slope on the bottom of the loop to print better without supports.
     pnt_45 = outer.wire() @ (1 - 1 / 8)
     support_slope = -Polygon(
