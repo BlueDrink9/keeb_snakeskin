@@ -53,7 +53,7 @@ test_overrides = {
 
 magnet_height = 2
 magnet_radius = 4 / 2
-magnet_radius_y = magnet_radius + 0.4
+magnet_radius_y = magnet_radius + 0.3
 
 
 def import_svg_as_face(path):
@@ -494,7 +494,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         Plane.XZ
         * Ellipse(
             # A tiny bit bigger X than the radius to give fit tolerance. Doensn't need to be a super snug fit, since they'll be held in place by glue or the pcb.
-            x_radius=magnet_radius + misc_tol,
+            x_radius=magnet_radius + misc_tol/2,
             y_radius=magnet_radius_y,
         ).face()
     )
