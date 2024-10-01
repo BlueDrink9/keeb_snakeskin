@@ -10,7 +10,7 @@
     "strap_loop_end_offset": -1.5,
     "wall_z_height": 5.0,
     "wall_xy_bottom_tolerance": -0.1,
-    "tent_hinge_width": 4.5,
+    "tent_hinge_width": 5,
     "tent_hinge_nut_l": 3.7,
     "tent_legs":  [[50, 29, 5], [75, 30, 25]]
 }
