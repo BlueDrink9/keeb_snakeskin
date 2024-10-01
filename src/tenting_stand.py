@@ -18,7 +18,7 @@ blocker_zlen = 2
 case_blocker_angle = 90 + 45
 tenting_stability_angle = 20
 velcro_width = 15
-hole_tolerance = 0.5
+hole_tolerance = 0.2
 
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
