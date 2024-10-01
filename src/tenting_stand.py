@@ -88,7 +88,7 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
             bolt_d / 2, bolt_head_d / 2, hinge_width_y, counter_sink_angle=90
         )
         out -= countersink
-        hexagon = offset(RegularPolygon(nut_d / 2, 6), hole_tolerance)
+        hexagon = offset(RegularPolygon(nut_d / 2, 6, major_radius=False), hole_tolerance)
         nut_hole = start_plane * extrude(hexagon, -nut_l)
         out -= nut_hole
     h = outer.radius
