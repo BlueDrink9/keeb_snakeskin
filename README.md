@@ -66,10 +66,7 @@ Note: this is still a young project, so please feel free to open issues. Include
 
 ### Install
 
-> **WIP**: Not yet on PyPI, so use the source and install dependencies
-> manually. This currently requires the latest github version of `build123d`,
-> until a version of it > 0.7 is released.
-`pip install --user keeb_snakeskin` installs this package and dependencies, and
+`pip install --user keeb-snakeskin` installs this package and dependencies, and
 should create a new executable `snakeskin` in your python scripts folder.
 
 ### Input File
