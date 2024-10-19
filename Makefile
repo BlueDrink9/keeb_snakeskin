@@ -2,12 +2,13 @@
 SVG_FILES := $(wildcard preset_outlines/*.svg)
 TARGETS := $(patsubst preset_outlines/%.svg,%,$(SVG_FILES))
 
-.PHONY: $(TARGETS)
+.PHONY: $(TARGETS) all
 
 define RUN_SNAKESKIN
 	python src/snakeskin.py preset_outlines/$@.svg --config preset_configs/$@.json
 endef
 
+all_presets: $(TARGETS)
+
 $(TARGETS):
 	$(RUN_SNAKESKIN)
-
