@@ -133,7 +133,7 @@ def import_svg_as_forced_outline(
                 raise ValueError
             line_start = edge @ 1
             previous_edge = edge
-    face = make_face(bd_l.edges()).face()
+    face = make_face(bd_l.wire()).face()
     face = mirror(face)
     # Mirroring faces sometimes causes invalid geometry, but apparently this process of offsetting in then out 'cures' it.
     # https://github.com/gumyr/build123d/issues/719
