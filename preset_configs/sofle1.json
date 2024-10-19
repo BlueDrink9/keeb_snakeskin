@@ -1,7 +1,7 @@
-
 {
     "cutout_position": 42,
     "cutout_width": 20,
+    "additional_cutouts": [[180, 10]],
     "carrycase_cutout_position": -90,
     "magnet_position": -80,
     "lip_position_angles": [60, 130],

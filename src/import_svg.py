@@ -8,7 +8,7 @@ import svgpathtools as svg
 from build123d.build_enums import CenterOf, Mode, AngularDirection
 from build123d.build_line import BuildLine
 from build123d.geometry import Color, Location, Vector
-from build123d.objects_curve import Line, EllipticalCenterArc
+from build123d.objects_curve import Line, EllipticalCenterArc, Bezier
 from build123d.operations_generic import add, offset, mirror
 from build123d.operations_sketch import make_face
 from build123d.topology import (
@@ -103,6 +103,10 @@ def import_svg_as_forced_outline(
                 #     previous_edge = Line(previous_edge @ 0, line_end)
                 #     edge = previous_edge
                 #     add(edge)
+            elif isinstance(p, svg.CubicBezier):
+                edge = Bezier(line_start, point(p.control1), point(p.control2), line_end)
+            elif isinstance(p, svg.QuadraticBezier):
+                edge = Bezier(line_start, point(p.control), line_end)
             elif isinstance(p, svg.Arc):
                 start, end = sorted(
                     [
