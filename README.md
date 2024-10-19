@@ -69,6 +69,8 @@ Note: this is still a young project, so please feel free to open issues. Include
 `pip install --user keeb-snakeskin` installs this package and dependencies, and
 should create a new executable `snakeskin` in your python scripts folder.
 
+Use `pip install --user git+https://github.com/BlueDrink9/keeb_snakeskin.git` for the latest git version.
+
 ### Input File
 
 The program requires an SVG outline of the PCB, which is then used as the base shape for the case.
