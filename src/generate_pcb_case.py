@@ -812,11 +812,8 @@ def _wire_location_at_angle(wire, angle, origin=None):
         origin = wire.center(CenterOf.BOUNDING_BOX)
     # Form a ray in the direction of angle. Has to be a face, because 1D objects currently won't intersect.
     polar_length = wire.bounding_box().diagonal * 2
-    ray = make_face((
-        PolarLine(origin, polar_length, angle),
-        PolarLine(origin + (0, 0.1), polar_length, angle),
-        Line(origin, origin + (0, 0.1)),
-    ))
+    # Ensure ray has thickness regardless of angle.
+    ray = make_face(SlotArc(PolarLine(origin, polar_length, angle), 0.1))
     sect = ray.intersect(make_face(wire))
     furthest_edge = sect.edges().sort_by(SortBy.DISTANCE)[-1]
     location = furthest_edge ^ 0.5
@@ -843,7 +840,7 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
 
     param_overrides = json.loads(config.read_text())
     cfg = default_params
-    cfg.update(param_overrides)
+    # cfg.update(param_overrides)
     if test_print:
         cfg.update(test_overrides)
 
