@@ -60,9 +60,15 @@ Overall:
 1. In KiCad, export **just the edge cuts layer** as an SVG.
 2. Customise the design parameters for your board, either by creating/modifying a config json, or passing arguments. At minimum I would suggest tweaking the cutout and magnet positioning for your board, although I suggest verifying the program runs without errors on your SVG with defaults before tweaking too many parameters.
 3. Run `snakeskin.py --config path/to/config.json path/to/edge_cuts.svg`.
+4. (Optional) Read the [Configuration](#configuration) section to tweak for your board.
+
+Note: this is still a young project, so please feel free to open issues. Include the SVG and config you are having issues with.
 
 ### Install
 
+> **WIP**: Not yet on PyPI, so use the source and install dependencies
+> manually. This currently requires the latest github version of `build123d`,
+> until a version of it > 0.7 is released.
 `pip install --user keeb_snakeskin` installs this package and dependencies, and
 should create a new executable `snakeskin` in your python scripts folder.
 

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keeb_snakeskin"
+version = "1.0.0"
+description = "Automatically generate a 3D printable case and magnetic carrycase for your custom split keyboard PCBs, from just the outline. (Also generates cases for other PCBs.)"
+dependencies = [
+    "build123d>0.7.0",
+    "svgpathtools",
+    "pygerber"
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "BlueDrink9"},
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering",
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = [
+    "mechanical-keyboard",
+    "keyboards",
+    "3d-printing",
+    "ergonomic-keyboard",
+    "build123d"
+]
+
+[project.urls]
+Homepage = "https://github.com/BlueDrink9/keeb_snakeskin.git"
+Documentation = "https://github.com/BlueDrink9/keeb_snakeskin?tab=readme-ov-file#configuration"
+Repository = "https://github.com/BlueDrink9/keeb_snakeskin.git"
+Issues = "https://github.com/BlueDrink9/keeb_snakeskin/issues"
+# Changelog = "https://github.com/BlueDrink9/keeb_snakeskin/blob/master/CHANGELOG.md"
+
+[tool.setuptools]
+packages = { find = { where = ["src"] } }
+package-dir = { "" = "src" }
+
+[project.scripts]
+snakeskin = "snakeskin:main"
