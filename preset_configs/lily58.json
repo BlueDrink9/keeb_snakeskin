@@ -1,0 +1,10 @@
+{
+    "cutout_position": 135,
+    "cutout_width": 35,
+    "wall_z_height": 7,
+    "carrycase_cutout_position": -90,
+    "magnet_position": -78,
+    "lip_position_angles": [50, 130],
+    "magnet_count": 9,
+    "magnet_spacing": 16
+}
