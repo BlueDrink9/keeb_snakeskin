@@ -1,0 +1,10 @@
+
+{
+    "cutout_position": 42,
+    "cutout_width": 20,
+    "carrycase_cutout_position": -90,
+    "magnet_position": -80,
+    "lip_position_angles": [60, 130],
+    "magnet_count": 9,
+    "magnet_spacing": 14
+}

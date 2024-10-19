@@ -1,5 +1,4 @@
 {
-    "honeycomb_base": false,
     "cutout_position": 5,
     "cutout_width": 28,
     "additional_cutouts": [[-27, 15]],

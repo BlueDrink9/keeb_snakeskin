@@ -845,7 +845,7 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
 
     param_overrides = json.loads(config.read_text())
     cfg = default_params
-    # cfg.update(param_overrides)
+    cfg.update(param_overrides)
     if test_print:
         cfg.update(test_overrides)
 
