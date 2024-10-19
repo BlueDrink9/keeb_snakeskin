@@ -5,8 +5,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-from pygerber.gerberx3.api.v2 import GerberFile
-
 from default_params import default_params
 from generate_pcb_case import generate_cases
 
@@ -88,6 +86,7 @@ def resolve_output_dir(output_path):
 
 
 def gerber_to_svg(input_file):
+    from pygerber.gerberx3.api.v2 import GerberFile
     # First convert gerber to svg
     gerber = GerberFile.from_file(input_file).parse()
     svg_file = default_build_dir / "outline.svg"
