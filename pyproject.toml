@@ -39,8 +39,8 @@ Issues = "https://github.com/BlueDrink9/keeb_snakeskin/issues"
 # Changelog = "https://github.com/BlueDrink9/keeb_snakeskin/blob/master/CHANGELOG.md"
 
 [tool.setuptools]
-packages = { find = { where = ["src"] } }
-package-dir = { "" = "src" }
+# packages = { find = { where = ["snakeskin"] } }
+package-dir = { "keeb_snakeskin" = "src" }
 
 [project.scripts]
-snakeskin = "snakeskin:main"
+snakeskin = "keeb_snakeskin.snakeskin:main"
