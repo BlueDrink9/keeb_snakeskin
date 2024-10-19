@@ -7,7 +7,7 @@ import svgpathtools as svg
 
 from build123d.build_enums import CenterOf, Mode, AngularDirection
 from build123d.build_line import BuildLine
-from build123d.geometry import Color, Location
+from build123d.geometry import Color, Location, Vector
 from build123d.objects_curve import Line, EllipticalCenterArc
 from build123d.operations_generic import add, offset, mirror
 from build123d.operations_sketch import make_face
@@ -69,7 +69,7 @@ def import_svg_as_forced_outline(
     first_line = curves[0]
     previous_edge = None
     with BuildLine() as bd_l:
-        line_start = point(first_line.start)
+        line_start = Vector(point(first_line.start))
         for i, p in enumerate(curves):
             if extra_cleaning and p.length() < cleaning_tolerance:
                 # Filter out tiny edges that may cause issues with OCCT ops
