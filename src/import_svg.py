@@ -211,21 +211,22 @@ def _remove_duplicate_paths(paths, tolerance=0.01):
     parameter tolerance limit, including similar but reversed paths."""
     cleaned_paths = []
 
-    for path in paths:
+    for _, path in enumerate(paths):
         if path.length() == 0:
             # Skip zero-length paths
             continue
         # Check if a similar path already exists in the cleaned list (either
         # forward or reversed)
         flipped = _reverse_svg_curve(path)
-        for cleaned_path in cleaned_paths:
+        for _, cleaned_path in enumerate(cleaned_paths):
             if (
                 _are_paths_similar(path, cleaned_path, tolerance) or
                 _are_paths_similar(flipped, cleaned_path, tolerance)
             ):
                 # Skip this path if a similar one is already in the list
-                continue
-        cleaned_paths.append(path)
+                break
+        else:
+            cleaned_paths.append(path)
 
     return cleaned_paths
 
@@ -247,7 +248,6 @@ def _are_paths_similar(path1, path2, tolerance=0.01):
     def points_are_close(p1, p2):
         return abs(p1.real - p2.real) < tolerance and abs(p1.imag - p2.imag) < tolerance
 
-    # Handle reversed paths by checking both normal and reversed orientation
     if not (points_are_close(path1.start, path2.start) and points_are_close(
             path1.end, path2.end
         )):
