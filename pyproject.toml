@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "Automatically generate a 3D printable case and magnetic carrycase for your custom split keyboard PCBs, from just the outline. (Also generates cases for other PCBs.)"
 dependencies = [
     "build123d>0.7.0",
-    "svgpathtools",
+    "svgpathtools > 1",
     "pygerber > 2"
 ]
 requires-python = ">=3.8"
