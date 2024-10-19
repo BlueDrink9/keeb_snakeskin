@@ -1,9 +1,13 @@
-.PHONY: maizeless ferris basic_macropad
+# Get the base names of all .svg files in preset_outlines/
+SVG_FILES := $(wildcard preset_outlines/*.svg)
+TARGETS := $(patsubst preset_outlines/%.svg,%,$(SVG_FILES))
+
+.PHONY: $(TARGETS)
 
 define RUN_SNAKESKIN
 	python src/snakeskin.py preset_outlines/$@.svg --config preset_configs/$@.json
 endef
 
-maizeless ferris basic_macropad:
+$(TARGETS):
 	$(RUN_SNAKESKIN)
 
