@@ -89,7 +89,7 @@ def gerber_to_svg(input_file):
     from pygerber.gerberx3.api.v2 import GerberFile
     # First convert gerber to svg
     gerber = GerberFile.from_file(input_file).parse()
-    svg_file = default_build_dir / "outline.svg"
+    svg_file = default_build_dir / input_file.with_suffix(".svg").name
     gerber.render_svg(svg_file)
     return svg_file
 
@@ -98,7 +98,7 @@ def pcb_to_svg(input_file):
     """Run kicad-cli to convert the input pcb to svg, and check it ran correctly"""
     # For some reason kicad-cli (or maybe just the flatpak version) can't write
     # to tmp files.
-    output_path = default_build_dir / "outline.svg"
+    output_path = default_build_dir / input_file.with_suffix(".svg").name
 
     # Define the kicad-cli command
     command = [
