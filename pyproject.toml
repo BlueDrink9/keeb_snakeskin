@@ -7,9 +7,10 @@ name = "keeb_snakeskin"
 version = "1.0.0"
 description = "Automatically generate a 3D printable case and magnetic carrycase for your custom split keyboard PCBs, from just the outline. (Also generates cases for other PCBs.)"
 dependencies = [
-    "build123d>0.7.0",
+    # "build123d > 0.7.0",
+    "build123d @ git+https://github.com/gumyr/build123d.git@6452e1bfd600b1514c3b8c8f58057b3c789f05b9",
     "svgpathtools > 1",
-    "pygerber > 2"
+    "pygerber > 2.0"
 ]
 requires-python = ">=3.8"
 authors = [
