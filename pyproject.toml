@@ -9,7 +9,7 @@ description = "Automatically generate a 3D printable case and magnetic carrycase
 dependencies = [
     "build123d>0.7.0",
     "svgpathtools",
-    "pygerber"
+    "pygerber > 2"
 ]
 requires-python = ">=3.8"
 authors = [
