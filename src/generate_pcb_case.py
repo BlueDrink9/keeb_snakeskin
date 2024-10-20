@@ -814,12 +814,19 @@ def _wire_location_at_angle(wire, angle, origin=None):
     polar_length = wire.bounding_box().diagonal * 2
     projection = PolarLine(origin, polar_length, angle)
     # Ensure ray has thickness regardless of angle.
-    ray = make_face(SlotArc(projection, 0.1))
-    if ray.face().normal_at().Z != 1:
-        # Sometimes projection is sideways, so the slot is also sideways. Annoying, but simple to fix.
-        ax = Axis(origin=origin, edge=projection.edge())
-        ray = ray.rotate(ax, 90)
-    sect = ray.intersect(make_face(wire))
+    ray = make_face(SlotArc(projection, 1.1))
+    face = make_face(wire)
+    # Sometimes projection has a rotation, so the ray isn't coplanar with the face.
+    projected_ax = Axis(origin=origin, edge=projection.edge())
+    # Have to do this multiple times to ensure coplanar, for some reason. Floats, presumably.
+    while ray.face().normal_at().Z != 1:
+        ray_normal = Axis(origin=origin, direction=ray.face().normal_at())
+        angle_correction = ray_normal.angle_between(Axis.Z)
+        ray = ray.rotate(projected_ax, angle_correction)
+    # ensure it isn't upside down
+    if ray.face().normal_at().Z < 0.99:
+        ray = ray.rotate(projected_ax, 180)
+    sect = ray.intersect(face)
     furthest_edge = sect.edges().sort_by(SortBy.DISTANCE)[-1]
     location = furthest_edge ^ 0.5
     tangent = furthest_edge.tangent_angle_at(0.5)
