@@ -97,6 +97,7 @@ Clean and working outline svgs for some boards are already included in the `./pr
 Currently this includes:
 * [ferris (0.1)](https://github.com/pierrechevalier83/ferris)
 * [maizeless](https://github.com/BlueDrink9/maizeless)
+* [Sofle (v1 --- v2 works directly from the `.kicad_pcb`)](https://github.com/josefadamcik/SofleKeyboard)
 
 In kicad, export just the edge.cuts layer as plot format `svg` (board only, not page).
 Note that KiCad has two ways to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
@@ -125,14 +126,23 @@ PCBs will not work out of the box, for example ones with:
 * multiple halves in a PCB frame
 
 That being said, you can still use this program; you'll just need to manually
-edit the SVG outline. If you do this for a popular board, please open a PR to
+edit the SVG outline. Usually this will be as simple as removing the second
+half or any internal holes. If you do this for a popular board, please open a PR to
 share the resulting SVG (and ideally config json) in `./preset_outlines/`
 
-One example of a troublesome PCB is the Corne, so I have created a working
-outline for the Corne classic V2 already.
-
 **Note**: SVG outlines must not contain borders or technical drawings, as are
-exported by default in KiCad. Remove these if you are using an SVG input.
+often exported by default in KiCad. Remove these if you are using an SVG input.
+
+##### Troubleshooting steps to try
+* First check with default settings
+* Remove any internal holes or cutouts from the SVG
+* Set `tiny_edge_rounding` to `True` in your config
+* In Inkscape, select the outline, then `Path -> Stroke to Path`, then `Path -> Union`
+* In Inkscape, select the outline, then `Path -> Simplify`
+* In Inkscape, edit path nodes and ensure they are all connected (small
+disconnections should be handled by the code, but large ones, especially in PCBs with bezier edges, may cause issues). To connect them, go to node edit mode, and draw a box around each node and each close pairs of nodes (drawing a box is important, don't just click) to select them both, then double-click `Join selected nodes` in the node editing toolbar.
+* Note that KiCad usually exports a double layer for the edge cuts, so you may
+  need to delete one before simplifying.
 
 ### Printing
 
@@ -142,13 +152,14 @@ least for the inner case, if not the legs and carrycase.
 
 #### Supports
 These designs are designed to be printed in PLA without supports where possible. There
-is only one severe (90 degree) overhang in the design, which is the first
-blocker of the carrycase. This should be the only part that needs supports.
+is only two severe (90 degree) overhang in the design, which is the first
+blocker of the carrycase and the first carrycase finger cutout.
+These should be the only parts that needs supports with the default featureset.
 Setting your printer to only print overhangs over 70 degrees should be enough
-to automatically support only this part. If you aren't printing the carrycase,
-you shouldn't need supports at all unless your bridging performance on the magnets is bad.
-If you are using advanced features like the strap loop, you may need supports.
+to automatically support only these parts.
 
+If you aren't printing the carrycase, you shouldn't need supports at all.
+If you are using advanced features like the strap loop, you may need additional supports.
 If `flush_carrycase_lip` is `False`, you will need short supports all around the bottom of the
 carrycase, and its top lip. Again, setting overhangs to 70 degrees should
 allocate supports appropriately.
@@ -197,6 +208,11 @@ You may prefer to modify an existing config, from `./preset_configs/`.
 Currently there are configs for:
 * [ferris](https://github.com/pierrechevalier83/ferris)
 * [maizeless](https://github.com/BlueDrink9/maizeless)
+* [Sofle (v1 and v2)](https://github.com/josefadamcik/SofleKeyboard)
+* [Lily58](https://github.com/kata0510/Lily58)
+
+Please note that these configs are on a best-effort basis only, and so far only
+the Maizeless has been tested on a real print.
 
 | Parameter name | Example value + unit| Description |
 | -------------- | ------------- | ----------- |
