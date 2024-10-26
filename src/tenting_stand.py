@@ -23,8 +23,14 @@ hole_tolerance = 0.2
 if __name__ not in ["__main__", "__cq_main__", "temp"]:
     show_object = lambda *_, **__: None
 if __name__ == "__main__":
-    from ocp_vscode import (get_defaults, reset_show, set_defaults, set_port,
-                            show, show_object)
+    from ocp_vscode import (
+        get_defaults,
+        reset_show,
+        set_defaults,
+        set_port,
+        show,
+        show_object,
+    )
 
     set_port(3939)
 
@@ -88,7 +94,9 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
             bolt_d / 2, bolt_head_d / 2, hinge_width_y, counter_sink_angle=90
         )
         out -= countersink
-        hexagon = offset(RegularPolygon(nut_d / 2, 6, major_radius=False), hole_tolerance)
+        hexagon = offset(
+            RegularPolygon(nut_d / 2, 6, major_radius=False), hole_tolerance
+        )
         nut_hole = start_plane * extrude(hexagon, -nut_l)
         out -= nut_hole
     h = outer.radius
@@ -98,7 +106,9 @@ def case_hinge(wall_height, bolt_d, countersunk=True):
     return out
 
 
-def tenting_legs(flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_height, fillet_end=True):
+def tenting_legs(
+    flaps_: list[tuple[int, int, int]], case_len, bolt_d, wall_height, fillet_end=True
+):
     """Create legs and hinges for tenting the keyboard. case_len is the X length of the case, and is used to calculate the optimal angle for the leg to open to so that it is 20 degrees past vertical on the desk."""
     flaps = [_Flap(*f) for f in flaps_]
     bolthole, _, outer = _base_faces(bolt_d, wall_height)
@@ -200,19 +210,14 @@ def _calc_leg_open_angle(case_len, flap_len):
 def _finger_opening_ridge(flap) -> None:
     # Cut out a ridge for finger to open the flap
     topright_edge = (
-        flap.faces()
-        .filter_by(Axis.Z)
-        .sort_by(Axis.Z)
-        .last.edges()
-        .sort_by(Axis.Y)
-        .last
+        flap.faces().filter_by(Axis.Z).sort_by(Axis.Z).last.edges().sort_by(Axis.Y).last
     )
     ridge_len = 15
     # edge_width = left_edge.length/10
     plane = Plane(
         # Origin just before the end. Edge goes from end to start, so -ve position
         origin=topright_edge.location_at(
-            topright_edge.length - ridge_len/2 - 10, position_mode=PositionMode.LENGTH
+            topright_edge.length - ridge_len / 2 - 10, position_mode=PositionMode.LENGTH
         ).position,
         x_dir=(topright_edge % 0.5),
         y_dir=topright_edge.normal(),
@@ -249,7 +254,15 @@ def _flap_hinge_face(case_len, flap_len, wall_height, bolt_d):
     return flap_hinge_face
 
 
-def _flap(f: _Flap, width_near, hinge_size, inner=True, innermost=False, outermost=False, fillet_end=True):
+def _flap(
+    f: _Flap,
+    width_near,
+    hinge_size,
+    inner=True,
+    innermost=False,
+    outermost=False,
+    fillet_end=True,
+):
     thickness = cfg["base_z_thickness"]
     # Extend straight until the edge of hinge_size, then trapezoid to the end
     pts = [
