@@ -255,9 +255,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     wall_outline -= cutout_outline
 
     wall_height = (
-        pcb_case_wall_height
-        + cfg["base_z_thickness"]
-        + cfg["carrycase_z_gap_between_cases"]
+        cfg["base_z_thickness"]
+        + pcb_case_wall_height
+        + cfg["carrycase_z_gap_between_cases"] / 2
     )
     wall = extrude(wall_outline, wall_height)
     # cutout = extrude(cutout_outline, wall_height)
