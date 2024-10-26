@@ -36,7 +36,9 @@ default_params = {
     "carrycase_tolerance_xy": 0.6,
     "carrycase_tolerance_z": 0.5,
     "carrycase_wall_xy_thickness": 3,
-    "carrycase_z_gap_between_cases": 9 + 1,
+    # 11 is about the height above PCB for choc switches. 1.6 = standard pcb
+    # thickness. 4 = default wall height
+    "carrycase_z_gap_between_cases": 11 + 1.6 - 4 + 1,
     "carrycase_cutout_position": -90,
     "carrycase_cutout_xy_width": 20,
     "lip_len": 1.3,
