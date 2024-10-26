@@ -266,7 +266,7 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `carrycase_tolerance_xy` | 0.8 mm | Gap size between the pcb case and the carry case. May need playing around with on your printer to get a good fit. Err on the side of too large if you don't want to print too much. |
 | `carrycase_tolerance_z` | 0.5 mm | Gap size between the pcb case and the carry case blockers. May need playing around with on your printer to get a good fit. Larger carrycase tolerances will make it easier to get the case into and out of the carrycase, at the cost of tightness of fit once it's in there. |
 | `carrycase_wall_xy_thickness` | 2 mm | Thickness of the carrycase outer wall |
-| `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case |
+| `carrycase_z_gap_between_cases` | 8 mm | How much room to leave between each pcb (well, actually between the tops of the pcb case walls). By default this works for soldered in choc v1 switches with thin keycaps (and it will leave about 1 mm between them when they are in the case. An easy way to calculate it is to measure the distance from the bottom of the PCB to the highest part of your keycaps, subtract `wall_z_height`, and add 1. |
 | `carrycase_cutout_position` | -90 | Location  along the walls of the carrycase for the cutout that lets you remove the cases, as an angle from the center of the case. Should be opposite the lip, on the same side as the magnets. See `cutout_position` for info about the angles. |
 | `carrycase_cutout_xy_width` | 15 mm | Width of the finger cutout for removing the boards from the case. May cut out more if the area isn't a straight line. |
 | `lip_len` | 1.5 mm | Length of the lip (not including carrycase tolerance, i.e. this is the xy length that protrudes over the case). |
@@ -274,7 +274,7 @@ If you are creating a carrycase (`"carrycase": true`), the following additional 
 | `magnet_position` | -90 | Location  along the walls of the carrycase and case where the magnets will be centered, as an angle from the center of the case. Angle is between -180 and 180, with 0 pointing in +ve X axis, and -90 pointing in the -ve Y axis. |
 | `magnet_separation_distance` | 0.3 mm | Amount of plastic separating the magnets in the case from the magnets in the carrycase. How thick the case wall |
 | `magnet_spacing` | 12 mm | Distance between the centers of magnets along the same wall of the case |
-| `magnet_count` | 8 | Number of magnets per case (a split board and compression case will need 4× this amount to complete the build). |
+| `magnet_count` | 8 | Number of magnets per case (a split board and compression case will need 4× this amount to complete the build). The carrycase finger cutout may remove a couple of these, so check the output. I find 5 is just enough for a stable hold on my 42-key board, but you may as well print a few more and glue just as many as you need. |
 
 
 ## Development
