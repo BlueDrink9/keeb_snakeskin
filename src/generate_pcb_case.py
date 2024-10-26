@@ -302,7 +302,9 @@ def generate_carrycase(base_face, pcb_case_wall_height):
             .sort_by(sort_by=Axis.Z)
             .first
         )
-        cutout_face = offset(make_hull(strap_loop.edges()), misc_tol).face()
+        cutout_face = offset(
+            make_hull(strap_loop.edges()), cfg["carrycase_tolerance_xy"]
+        ).face()
         case -= extrude(cutout_face, z_space_for_case)
 
     if cfg["tenting_stand"]:
@@ -310,7 +312,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         cutout_face = _flatten_to_faces(
             _tent_hinge(base_face, pcb_case_wall_height + cfg["base_z_thickness"])
         )
-        cutout_face = offset(cutout_face, misc_tol).face()
+        cutout_face = offset(cutout_face, cfg["carrycase_tolerance_xy"]).face()
         case -= extrude(cutout_face, z_space_for_case)
         # Cut out leg hinges
         cutout_face = _get_tenting_flap_shadow(
