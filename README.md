@@ -35,6 +35,8 @@ off your custom PCB and top-notch (😉) soldering.
     * use as a handle or tie to your bag.
 * Works with both split and non-split board PCBs
 * Works with any PCB of unusual shape, even non-keyboard PCBs for whatever random project you want an enclosure for.
+* If you don't care about the magnets, you can input an SVG outline of a board with an existing case (e.g. commercial Ergodox or Voyager) and just print a carrycase for protecting the keys.
+* Outputs as `STL` or `STEP`, so you can use this as the base shape for your own more exciting custom case designs (as long as they are provided under the same licence).
 
 ### Future feature ideas
 
@@ -49,6 +51,7 @@ a tenting mechanism.
 * Folding hinge join between the two halves, similar to the [Leaf fold](https://www.reddit.com/r/ErgoMechKeyboards/comments/1g9hv4a/introducing_leaf_fold_an_ultra_portable_keyboard/)
 * Insets/holes under case to sit rubber feet in. (You can still use them currently, but they stick out of the bottom and may not be as stable.) This feature would probably be configured with a list of angles to place the holes at around the case edge (as well as hole diameter and depth, and maybe distance from the case edge). Subtracting holes from the final case would be quite easy to do manually from the .step output, so if you need this feature, you can probably do it yourself.
 * Standoffs to screw in PCB --- I'm not likely to do this (at least certainly not automatically generating them from the PCB holes). This would be easy to add yourself from the .step output in another program like freecad, if you really need these.
+* Different patterns for the bottom (like the popular organic void patterns).
 
 > See anything you like? Open an issue and express interest
 
