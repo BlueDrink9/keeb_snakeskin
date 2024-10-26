@@ -285,9 +285,14 @@ def _flap(
             pts[-2] = end_slope @ 1
 
     face = Polygon(*pts, align=None)
-    # Cut out gap on inner edge for strap to fit through against the hinge
-    face -= Rectangle(width_near, 2, align=(Align.CENTER, Align.MIN))
     flap = extrude(face, thickness)
+    # Cut out gap on inner edge for strap to fit through against the hinge
+    # Extruding slightly less than total so that the shadow is still cut out of
+    # carrycase. Won't be printed by most slicers.
+    flap -= extrude(
+        Rectangle(width_near - 2 * hinge_width_y, 3, align=(Align.CENTER, Align.MIN)),
+        thickness * 0.99
+    )
 
     if innermost:
         flap -= _velcro_divot(f)
