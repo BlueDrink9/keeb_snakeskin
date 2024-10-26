@@ -178,6 +178,10 @@ video](https://www.youtube.com/watch?v=eRLCBHWX4eQ&t=905s) to get the general id
 Only the carrycase magnets should need glue, the case magnets should be held in
 by the PCB.
 
+The magnets can be tricky to insert, because you need the orientation lined up between the case and carrycase, and if adjacent magnets are close together, they will interfere with the alignment during placement.
+The easiest way to insert the magnets is to do the carrycase first, gluing the magnets that are far away from each other first, letting them dry, then doing the magnet locations adjacent to them.
+Then, insert the cases into the carrycase one at a time and insert the magnets, letting the glued carrycase magnets orient the case magnets for you.
+
 #### Tenting legs
 1. Align the leg hinges with the case hinges (there should only be one sensible way they fit) and insert the nut.
 Screw the bolt in.
