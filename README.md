@@ -52,6 +52,7 @@ a tenting mechanism.
 * Insets/holes under case to sit rubber feet in. (You can still use them currently, but they stick out of the bottom and may not be as stable.) This feature would probably be configured with a list of angles to place the holes at around the case edge (as well as hole diameter and depth, and maybe distance from the case edge). Subtracting holes from the final case would be quite easy to do manually from the .step output, so if you need this feature, you can probably do it yourself.
 * Standoffs to screw in PCB --- I'm not likely to do this (at least certainly not automatically generating them from the PCB holes). This would be easy to add yourself from the .step output in another program like freecad, if you really need these.
 * Different patterns for the bottom (like the popular organic void patterns).
+* Position eyelets for slower but more flexibly screw-based tenting legs (like often seen in nyquist cases).
 
 > See anything you like? Open an issue and express interest
 
