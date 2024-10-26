@@ -14,6 +14,7 @@ Inspired by and in collaboration with the [Compression keyboard](https://github.
 |  | |
 | ------------- | -------------- |
 |  *Example case rendered from the [maizeless](https://github.com/BlueDrink9/maizeless) PCB, with honeycomb base.* ![case render](img/maizeless_snakeskin_honeycomb.png)|  *Example [ferris](https://github.com/pierrechevalier83/ferris) case* ![case render](img/ferris_snakeskin.png)|
+|  *Corne* ![case render](img/corne.png)|  *Lily58 with a fat honeycomb* ![case render](img/lily58.png)|
 | *Carrycase with one case inside*. The carrycase is mirrored around the center, to allow for two halves of a split board to be carried together. ![carrycase with case render](img/maizeless_snakeskin_honeycomb_in_carrycase.png) | Just the carrycase ![carrycase render](img/maizeless_snakeskin_carrycase.png) |
 | With tenting legs and strap loop ![Tenting flaps](img/maizeless_tenting_closed.png) | One leg open ![Tenting leg one open](img/maizeless_tenting_half_open.png) |
 
