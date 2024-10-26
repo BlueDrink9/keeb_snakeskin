@@ -11,8 +11,9 @@
     "wall_z_height": 5.3,
     "carrycase_z_gap_between_cases": 15,
     "wall_xy_bottom_tolerance": -0.1,
+    "tent_hinge_position_offset": 5,
     "tent_hinge_width": 5,
     "tent_hinge_nut_l": 3.7,
     "lip_position_angles": [32, 130],
-    "tent_legs":  [[50, 29, 5], [75, 30, 25]]
+    "tent_legs":  [[70, 70, 10]]
 }
