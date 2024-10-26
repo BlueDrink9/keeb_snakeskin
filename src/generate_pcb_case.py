@@ -84,7 +84,6 @@ def import_svg_as_face(path):
     #     # projected_shape = project(imported_shape, Plane.XY)
     #     face = projected_shape.fuse().face()
 
-
     # Going through a round of offset out, then back in, rounds off
     # internally projecting corners just a little, and seems to help reduce the
     # creation of invalid shapes.
@@ -148,7 +147,9 @@ def generate_cases(svg_file, user_params=None):
             output = output_path(f"tenting_flap_{i+1}")
             _export(flap, output, f"tenting flap {i+1}")
             output = output_path(f"tenting_flap_mirrored_{i+1}")
-            _export(mirror(flap, about=Plane.YZ), output, f"mirrored tenting flap {i+1}")
+            _export(
+                mirror(flap, about=Plane.YZ), output, f"mirrored tenting flap {i+1}"
+            )
 
     return
 
@@ -283,8 +284,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         # cfg["base_z_thickness"] - 0.2,
         # Actually, screw the magnet holes, better to have an easy to remvoe
         # board.
-        z_space_for_case
-
+        z_space_for_case,
     )
     # show_object(cutout_box, name="carry case cutout box")
 
@@ -419,7 +419,9 @@ def _friction_fit_cutout(base_face):
     try:
         case_inner_cutout = extrude(bottom_face, amount=total_wall_height, taper=-taper)
     except (OCP.StdFail.StdFail_NotDone, ValueError):
-        print("Error: This SVG outline has too many small edges to do a friction fit cutout. Try reducing the top and bottom tolerances, reducing the wall height, or simplyfing the input SVG paths.")
+        print(
+            "Error: This SVG outline has too many small edges to do a friction fit cutout. Try reducing the top and bottom tolerances, reducing the wall height, or simplyfing the input SVG paths."
+        )
         raise
 
     # Check tightness where pcb should sit
@@ -484,7 +486,7 @@ def _magnet_cutout(main_face, angle, carrycase=False):
         Plane.XZ
         * Ellipse(
             # A tiny bit bigger X than the radius to give fit tolerance. Doensn't need to be a super snug fit, since they'll be held in place by glue or the pcb.
-            x_radius=magnet_radius + misc_tol/2,
+            x_radius=magnet_radius + misc_tol / 2,
             y_radius=magnet_radius_y,
         ).face()
     )
@@ -590,7 +592,9 @@ def _lip(base_face, carrycase=False):
             chamfer_cutout = extrude(cutout_face, lip_z_len, taper=-45)
             lip -= chamfer_cutout
         except OCP.StdFail.StdFail_NotDone:
-            print("Warning: Failed to chamfer carrycase lip; cutout will need supports and a higher tolerance")
+            print(
+                "Warning: Failed to chamfer carrycase lip; cutout will need supports and a higher tolerance"
+            )
     else:
         lip.move(Loc((0, 0, -lip_z_len)))
 
@@ -703,7 +707,11 @@ def _get_tenting_flap_shadow(base_face, wall_height):
     # is fixed, change project_to_face to not filter to those faces, and remove
     # the fillet_end parameter from this call chain.
     flaps = tenting_legs(
-        cfg["tent_legs"], case_len, cfg["tent_hinge_bolt_d"], wall_height, fillet_end=False
+        cfg["tent_legs"],
+        case_len,
+        cfg["tent_hinge_bolt_d"],
+        wall_height,
+        fillet_end=False,
     )
 
     # Reposition to same place as hinge.
@@ -760,7 +768,9 @@ def _poor_mans_chamfer(shape, size, top=False):
     try:
         inner = extrude(inner_f, size, taper=-44)
     except (OCP.StdFail.StdFail_NotDone, ValueError):
-        print("Error: This SVG outline has too many small edges to chamfer the top and bottom. Skipping")
+        print(
+            "Error: This SVG outline has too many small edges to chamfer the top and bottom. Skipping"
+        )
         return shape
     cutout = outer - inner
     out = shape - cutout
