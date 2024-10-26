@@ -44,6 +44,10 @@ for the couch, then lift them up and use them separately at your desk).
 edges into the carrycase for a unibody angle, or clip the board onto the top as
 a tenting mechanism.
 * Strap loop on carrycase as a handle or to attach to a bag.
+* Wrist wrest that magnetically snap to the case.
+* Folding hinge join between the two halves, similar to the [Leaf fold](https://www.reddit.com/r/ErgoMechKeyboards/comments/1g9hv4a/introducing_leaf_fold_an_ultra_portable_keyboard/)
+* Insets/holes under case to sit rubber feet in. (You can still use them currently, but they stick out of the bottom and may not be as stable.) This feature would probably be configured with a list of angles to place the holes at around the case edge (as well as hole diameter and depth, and maybe distance from the case edge). Subtracting holes from the final case would be quite easy to do manually from the .step output, so if you need this feature, you can probably do it yourself.
+* Standoffs to screw in PCB --- I'm not likely to do this (at least certainly not automatically generating them from the PCB holes). This would be easy to add yourself from the .step output in another program like freecad, if you really need these.
 
 > See anything you like? Open an issue and express interest
 
