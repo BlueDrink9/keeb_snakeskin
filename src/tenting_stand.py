@@ -275,6 +275,8 @@ def _flap(f: _Flap, width_near, hinge_size, inner=True, innermost=False, outermo
         *pts,
         align=(Align.CENTER, Align.MIN),
     )
+    # Cut out gap on inner edge for strap to fit through against the hinge
+    face -= Rectangle(width_near, 2, align=(Align.CENTER, Align.MIN))
     flap = extrude(face, thickness)
 
     if innermost:
