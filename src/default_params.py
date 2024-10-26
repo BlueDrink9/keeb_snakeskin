@@ -48,6 +48,7 @@ default_params = {
     "magnet_spacing": 10,
     "magnet_count": 10,
     "tent_legs": [[30, 50, 0]],
+    "tent_hinge_position_offset": 0,
     "tent_hinge_width": 5,
     "tent_hinge_bolt_d": 3,  # M3
     "tent_hinge_bolt_l": 50,

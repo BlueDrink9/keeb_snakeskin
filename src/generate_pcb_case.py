@@ -681,7 +681,11 @@ def _find_hinge_reposition(base_face, hinge) -> None:
     bot_hinge_face = hinge.faces().sort_by(Axis.Z).first
     mating_face_X = case_end.max.X - cfg["chamfer_len"] / math.cos(math.radians(44))
     reposition = Loc(
-        (mating_face_X - left_hinge_face.center().X, 0, -bot_hinge_face.center().Z)
+        (
+            mating_face_X - left_hinge_face.center().X,
+            cfg["tent_hinge_position_offset"],
+            -bot_hinge_face.center().Z,
+        )
     )
     return reposition
 
