@@ -64,7 +64,9 @@ def import_svg_as_face(path):
     outline = import_svg(script_dir / "build/outline.svg")
     outline = make_face(outline.wires()).wire().fix_degenerate_edges(0.01)
     """
-    face = import_svg_as_forced_outline(path, extra_cleaning=False)
+    face = import_svg_as_forced_outline(
+        path, extra_cleaning=False, simplify_beziers=cfg["simplify_beziers"]
+    )
     # face = make_face(wire)
     # face = _fix_face_edges(face)
 

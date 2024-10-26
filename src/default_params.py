@@ -16,6 +16,7 @@ default_params = {
     "strap_loop": False,
     "tenting_stand": False,
     "tiny_edge_rounding": False,
+    "simplify_beziers": False,
     "output_filetype": ".stl",
     "base_z_thickness": 2,
     "wall_xy_thickness": 2.81,

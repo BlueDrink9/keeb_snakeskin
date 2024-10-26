@@ -2,26 +2,18 @@ import copy
 import os
 from math import degrees, sqrt
 from pathlib import Path
-from typing import TextIO, Union, Optional
+from typing import TextIO, Union
 import svgpathtools as svg
 
 from build123d.build_enums import CenterOf, Mode, AngularDirection
 from build123d.build_line import BuildLine
-from build123d.geometry import Color, Location, Vector
-from build123d.objects_curve import Line, EllipticalCenterArc, Bezier
+from build123d.geometry import Location, Vector
+from build123d.objects_curve import Line, EllipticalCenterArc, Bezier, Polyline
 from build123d.operations_generic import add, offset, mirror
 from build123d.operations_sketch import make_face
 from build123d.topology import (
-    Compound,
-    Edge,
-    Face,
-    Shape,
-    ShapeList,
-    Shell,
-    Solid,
     Vertex,
     Wire,
-    downcast,
 )
 
 def import_svg_as_forced_outline(
@@ -30,6 +22,7 @@ def import_svg_as_forced_outline(
     duplicate_tolerance: float = 0.01,
     extra_cleaning=False,
     cleaning_tolerance: float = 0.01,
+    simplify_beziers=False,
 ) -> Wire:
     """Import an SVG and apply cleaning operations to return a closed wire outline, if possible. Useful for SVG outlines that are actually made of thin shapes or slightly disconnected paths. May fail on more complex shapes.
 
@@ -104,8 +97,14 @@ def import_svg_as_forced_outline(
                 #     edge = previous_edge
                 #     add(edge)
             elif isinstance(p, svg.CubicBezier):
-                edge = Bezier(line_start, point(p.control1), point(p.control2), line_end)
+                pts = [line_start, point(p.control1), point(p.control2), line_end]
+                if simplify_beziers:
+                    # Splines seem to cause issues with offsetting or tapered extrusion, so we may have to approximate them with polylines.
+                    edge = Polyline(*pts)
+                else:
+                    edge = Bezier(*pts)
             elif isinstance(p, svg.QuadraticBezier):
+                print("Warning: this shape contais quadratic beziers. These are untested, and may fail to generate a valid case.")
                 edge = Bezier(line_start, point(p.control), line_end)
             elif isinstance(p, svg.Arc):
                 start, end = sorted(
@@ -324,5 +323,13 @@ if __name__ not in ["__cq_main__", "temp"]:
         # p = Path("~/src/keeb_snakeskin/manual_outlines/ferris-base-0.1.svg").expanduser()
 
         import build123d as bd
-        base_face = bd.make_face(import_svg_as_forced_outline(p, cleaning_tolerance = 0.05, extra_cleaning=True))
+        base_face = bd.make_face(
+            import_svg_as_forced_outline(
+                p,
+                cleaning_tolerance=0.05,
+                extra_cleaning=True,
+                duplicate_tolerance=0.1,
+                simplify_bezier=True,
+            )
+        )
         show_object(base_face, name="base_face")
