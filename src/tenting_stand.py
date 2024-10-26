@@ -267,12 +267,12 @@ def _flap(
     # Extend straight until the edge of hinge_size, then trapezoid to the end
     pts = [
         # ml, bl, br, mr, tr, tl
-        (0, hinge_size),
-        (0, 0),
-        (width_near, 0),
-        (width_near, hinge_size),
-        (f.width + (width_near - f.width) / 2, f.len),
-        ((width_near - f.width) / 2, f.len),
+        (-width_near/2, hinge_size),
+        (-width_near/2, 0),
+        (width_near/2, 0),
+        (width_near/2, hinge_size),
+        (f.width / 2, f.len),
+        (-f.width / 2, f.len),
     ]
 
     if f.tent_angle:
@@ -284,10 +284,7 @@ def _flap(
             end_slope = PolarLine(pts[-1], hypot, f.tent_angle)
             pts[-2] = end_slope @ 1
 
-    face = Polygon(
-        *pts,
-        align=(Align.CENTER, Align.MIN),
-    )
+    face = Polygon(*pts, align=None)
     # Cut out gap on inner edge for strap to fit through against the hinge
     face -= Rectangle(width_near, 2, align=(Align.CENTER, Align.MIN))
     flap = extrude(face, thickness)
