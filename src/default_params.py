@@ -29,7 +29,7 @@ default_params = {
     "additional_cutouts": [],
     "chamfer_len": 1,
     "honeycomb_radius": 6,
-    "honeycomb_thickness": 2,
+    "honeycomb_thickness": 3,
     "strap_loop_thickness": 4,
     "strap_loop_end_offset": 0,
     "strap_loop_gap": 5,
