@@ -6,7 +6,7 @@
     "cutout_position": 32,
     "carrycase_cutout_position": -108,
     "z_space_under_pcb": 2.4,
-    "magnet_position": -102,
+    "magnet_position": -105,
     "strap_loop_end_offset": 1.0,
     "wall_z_height": 5.3,
     "carrycase_z_gap_between_cases": 15,
