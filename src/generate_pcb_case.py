@@ -220,14 +220,13 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
             base_face,
             pcb_case_wall_height + cfg["base_z_thickness"] - cfg["chamfer_len"] * 2,
         ).moved(Loc((0, 0, cfg["chamfer_len"])))
-        for end in [0, -1]:
-            edges = strap_loop.edges().group_by(Axis.Z)
-            # Filter out edges that touches the case to avoid sharp angle on
-            # the chamfer
-            e = ShapeList([*edges[end].group_by(Axis.X)[:2]])
-            strap_loop = chamfer(
-                e, min(0.5, cfg["chamfer_len"], cfg["strap_loop_thickness"] / 2)
-            )
+        edges = strap_loop.edges()
+        # Filter out edges that touches the case to avoid sharp angle on
+        # the chamfer
+        edges = edges.group_by(Axis.X)[:2]
+        strap_loop = chamfer(
+            edges, min(1.5, cfg["chamfer_len"], cfg["strap_loop_thickness"] / 2)
+        )
         case += strap_loop
 
     if cfg["tenting_stand"]:
@@ -621,13 +620,16 @@ def _strap_loop(base_face, case_height):
     end_inset = cfg["strap_loop_end_offset"]
     loop_gap_size = cfg["strap_loop_gap"]
     loop_thickness = cfg["strap_loop_thickness"]
-    x = case_end.min.X + loop_thickness / 2
-    outer = SagittaArc(
-        (x, case_end.min.Y + loop_thickness / 2 + end_inset),
-        (x, case_end.max.Y - loop_thickness / 2 - end_inset),
-        loop_gap_size + loop_thickness,
-    )
-    strap_loop = SlotArc(outer, loop_thickness) - outer_face
+    outer_rect_args = {
+        "width": loop_gap_size + loop_thickness,
+        "height": case_end.size.Y - (2 * end_inset),
+        "align": (Align.MAX, Align.CENTER),
+    }
+    inner_rect_args = copy.copy(outer_rect_args)
+    inner_rect_args["width"] -= loop_thickness
+    inner_rect_args["height"] -= 2*loop_thickness
+    strap_loop = Rectangle(**outer_rect_args) - Rectangle(**inner_rect_args)
+    strap_loop = strap_loop.located(Loc(case_end.center())) - outer_face
     strap_loop = extrude(strap_loop, case_height)
     # show_object(strap_loop, name="strap_loop")
     return strap_loop
