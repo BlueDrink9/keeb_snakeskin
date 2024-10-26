@@ -1,0 +1,15 @@
+{
+    "tiny_edge_rounding": false,
+    "simplify_beziers": true,
+    "cutout_position": 146,
+    "cutout_width": 18,
+    "additional_cutouts": [[190, 10]],
+    "carrycase_cutout_position": -90,
+    "magnet_position": -80,
+    "lip_position_angles": [50, 120],
+    "magnet_count": 9,
+    "wall_xy_bottom_tolerance": -0.1,
+    "wall_xy_top_tolerance": 0.1,
+    "z_space_under_pcb": 1.0,
+    "magnet_spacing": 12
+}

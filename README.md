@@ -97,7 +97,8 @@ Clean and working outline svgs for some boards are already included in the `./pr
 Currently this includes:
 * [ferris (0.1)](https://github.com/pierrechevalier83/ferris)
 * [maizeless](https://github.com/BlueDrink9/maizeless)
-* [Sofle (v1 --- v2 works directly from the `.kicad_pcb`)](https://github.com/josefadamcik/SofleKeyboard)
+* [corne](https://github.com/foostan/crkbd) (cherry version, not sure what compatibility is like with other versions - it depends purely on the PCB outline)
+* [Sofle](https://github.com/josefadamcik/SofleKeyboard) (v1 --- v2 works directly from the `.kicad_pcb`)
 
 In kicad, export just the edge.cuts layer as plot format `svg` (board only, not page).
 Note that KiCad has two ways to do this - plotting fabrication as an SVG, and exporting just edge as an SVG directly. The latter gives a more stable output.
@@ -208,6 +209,7 @@ You may prefer to modify an existing config, from `./preset_configs/`.
 Currently there are configs for:
 * [ferris](https://github.com/pierrechevalier83/ferris)
 * [maizeless](https://github.com/BlueDrink9/maizeless)
+* [corne](https://github.com/foostan/crkbd) (cherry version, although it may not have enough height in the carrycase for cherry keycaps - measure and tweak yourself!)
 * [Sofle (v1 and v2)](https://github.com/josefadamcik/SofleKeyboard)
 * [Lily58](https://github.com/kata0510/Lily58)
 

@@ -865,5 +865,5 @@ if __name__ in ["temp", "__cq_main__", "__main__"]:
     # bf = make_face(base_face).face()
     # show_object(bf)
 
-    carry = generate_carrycase(base_face, pcb_case_wall_height)
     case = generate_pcb_case(base_face, pcb_case_wall_height)
+    carry = generate_carrycase(base_face, pcb_case_wall_height)
