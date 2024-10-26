@@ -245,8 +245,8 @@ def generate_pcb_case(base_face, pcb_case_wall_height):
 
 
 def generate_carrycase(base_face, pcb_case_wall_height):
-    total_wall_cutout_height = (
-        pcb_case_wall_height + cfg["base_z_thickness"] + cfg["carrycase_tolerance_z"]
+    z_space_for_case = (
+        cfg["base_z_thickness"] + pcb_case_wall_height + cfg["carrycase_tolerance_z"]
     )
     cutout_outline = offset(
         base_face, cfg["wall_xy_thickness"] + cfg["carrycase_tolerance_xy"]
@@ -262,7 +262,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     wall = extrude(wall_outline, wall_height)
     # cutout = extrude(cutout_outline, wall_height)
 
-    blocker = _carrycase_blocker(base_face, wall_height)
+    blocker = _carrycase_blocker(base_face, z_space_for_case)
     case = wall + blocker
 
     # Have to chamfer before cutout because cutout breaks the face
@@ -283,7 +283,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
         # cfg["base_z_thickness"] - 0.2,
         # Actually, screw the magnet holes, better to have an easy to remvoe
         # board.
-        total_wall_cutout_height
+        z_space_for_case
 
     )
     # show_object(cutout_box, name="carry case cutout box")
@@ -303,7 +303,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
             .first
         )
         cutout_face = offset(make_hull(strap_loop.edges()), misc_tol).face()
-        case -= extrude(cutout_face, total_wall_cutout_height)
+        case -= extrude(cutout_face, z_space_for_case)
 
     if cfg["tenting_stand"]:
         # Cut out case hinge
@@ -311,13 +311,13 @@ def generate_carrycase(base_face, pcb_case_wall_height):
             _tent_hinge(base_face, pcb_case_wall_height + cfg["base_z_thickness"])
         )
         cutout_face = offset(cutout_face, misc_tol).face()
-        case -= extrude(cutout_face, total_wall_cutout_height)
+        case -= extrude(cutout_face, z_space_for_case)
         # Cut out leg hinges
         cutout_face = _get_tenting_flap_shadow(
             base_face, pcb_case_wall_height + cfg["base_z_thickness"]
         )
         cutout_face = offset(cutout_face, tent_leg_cutout_tolerance).face()
-        case -= extrude(cutout_face, total_wall_cutout_height)
+        case -= extrude(cutout_face, z_space_for_case)
 
     # Add lip to hold board in. Do after chamfer or chamfer breaks. If not
     # flush, changes the top face so do after finger cutout.
@@ -336,7 +336,7 @@ def generate_carrycase(base_face, pcb_case_wall_height):
     return case
 
 
-def _carrycase_blocker(base_face, wall_height):
+def _carrycase_blocker(base_face, z_space_for_case):
     """
     Part that blocks the pcb case from going all the way through.
     Blocker is made of 3 parts:
@@ -367,20 +367,8 @@ def _carrycase_blocker(base_face, wall_height):
         taper=-taper,
     ).moved(Loc((0, 0, blocker_thickness_z)))
     blocker = blocker_hull - overhang - inner_cutout
-    # Locate the blocker at the top of the pcb case all
-    blocker.move(
-        Loc(
-            (
-                0,
-                0,
-                (
-                    wall_height
-                    + cfg["carrycase_tolerance_z"]
-                    - cfg["carrycase_z_gap_between_cases"]
-                ),
-            )
-        )
-    )
+    # Locate the blocker at the top of the pcb case wall
+    blocker.move(Loc((0, 0, z_space_for_case)))
     # show_object(blocker, name="blocker")
     return blocker
 
