@@ -42,6 +42,8 @@ def main():
         svg = input_file
     elif input_file.suffix == ".kicad_pcb":
         svg = pcb_to_svg(input_file)
+    elif input_file.suffix == ".dxf":
+        svg = dxf_to_svg(input_file)
     else:
         # Exit with error.
         sys.exit(
@@ -127,7 +129,7 @@ def pcb_to_svg(input_file):
         return output_path
     except FileNotFoundError:
         print(
-            "Error: The 'kicad-cli' command was not found. Please ensure KiCad is installed and the executable is in your PATH."
+            "Error: The 'kicad-cli' command was not found. Please ensure KiCad is installed and the executable is in your PATH, or provide an svg."
         )
         sys.exit(1)
     except OSError as e:
@@ -140,6 +142,44 @@ def pcb_to_svg(input_file):
         sys.exit(1)
     except subprocess.CalledProcessError as e:
         print("An error occurred while running kicad-cli:", e)
+        print("Error output:", e.stderr)
+        sys.exit(1)
+
+
+def dxf_to_svg(input_file):
+    """Run inkscape to convert the input dxf to svg, and check it ran correctly"""
+    output_path = default_build_dir / input_file.with_suffix(".svg").name
+
+    # Define the kicad-cli command
+    command = [
+        "inkscape",
+        str(input_file),
+        "--export-type",
+        "svg",
+        "--export-filename",
+        str(output_path),
+    ]
+    try:
+        print("Running inkcape to convert .dxf file into svg:")
+        print(output_path)
+        subprocess.run(command, check=True, text=True)
+        # print(list(tmpdir.walk()))
+        return output_path
+    except FileNotFoundError:
+        print(
+            "Error: The 'inkscape' command was not found. Please ensure inkscape is installed and the executable is in your PATH, or provide an svg."
+        )
+        sys.exit(1)
+    except OSError as e:
+        if e.errno == 8:  # Exec format error
+            print(
+                "Error: Unable to execute 'inkscape'. This may be due to an architecture mismatch or a corrupted executable."
+            )
+        else:
+            print(f"Error: An unexpected OS error occurred: {e}")
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print("An error occurred while running inkscape:", e)
         print("Error output:", e.stderr)
         sys.exit(1)
 
