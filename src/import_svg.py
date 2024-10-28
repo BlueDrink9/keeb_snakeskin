@@ -242,7 +242,7 @@ def _are_paths_similar(path1, path2, tolerance=0.01):
 
     def lengths_are_close(p1, p2):
         return (
-            abs(p1.length() - p2.length()) / max(p1.length(), p2.length()) < tolerance
+            abs(p1.length() - p2.length()) < tolerance
         )
 
     if not lengths_are_close(path1, path2):
@@ -329,7 +329,7 @@ if __name__ not in ["__cq_main__", "temp"]:
                 cleaning_tolerance=0.05,
                 extra_cleaning=True,
                 duplicate_tolerance=0.1,
-                simplify_bezier=True,
+                simplify_beziers=True,
             )
         )
         show_object(base_face, name="base_face")
