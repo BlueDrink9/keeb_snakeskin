@@ -85,9 +85,11 @@ Use `pip install --user git+https://github.com/BlueDrink9/keeb_snakeskin.git` fo
 The program requires an SVG outline of the PCB, which is then used as the base shape for the case.
 You can pass in either a:
 * `.svg` file
-* `kicad_pcb` file (if `kicad-cli` is available (on your `$PATH`))
+* `kicad_pcb` file (if `kicad-cli` is installed and on your `$PATH`)
 
-For example:
+If KiCad cannot be found, you will have to convert your file to svg manually.
+
+Example usage:
 ```bash
 snakeskin -o maizeless ~/src/maizeless/pcb/build/maizeless.svg --split false
 ```
@@ -98,7 +100,7 @@ not an absolute path, it will be created as a subfolder or file within the
 
 In this case the output would be `./build/maizeless/case.step` and `./build/maizeless/case_mirrored.stl`
 
-See the [Configuration](#configuration) section for more information on how to customise the case design.
+`--split false` sets a configuration option. See the [Configuration](#configuration) section for more information on how to customise the case design.
 
 #### Getting the starting svg
 
@@ -155,6 +157,13 @@ disconnections should be handled by the code, but large ones, especially in PCBs
   need to delete one before simplifying.
 
 #### Other PCB file formats
+##### DXF
+
+These are easily converted to SVG in Inkscape or other tools, so Snakeskin doesn't support them directly.
+The inkscape command line will not export them correctly; the GUI must be used.
+Open the DXF, then save as an SVG. Do not export as SVG, this may change the
+shape.
+
 ##### Gerber
 
 Only use this format if you can't get an outline some other way. The steps below should be unnecessary if you can get an SVG or KiCad PCB.

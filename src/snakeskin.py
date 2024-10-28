@@ -42,8 +42,8 @@ def main():
         svg = input_file
     elif input_file.suffix == ".kicad_pcb":
         svg = pcb_to_svg(input_file)
-    elif input_file.suffix == ".dxf":
-        svg = dxf_to_svg(input_file)
+    # elif input_file.suffix == ".dxf":
+    #     svg = dxf_to_svg(input_file)
     else:
         # Exit with error.
         sys.exit(
