@@ -33,7 +33,11 @@ def main():
 
     input_file = Path(args.input_file).expanduser()
     if input_file.suffix == ".gm1":
+        print(
+            "Warning: .gm1 files are not fully supported. They are not pure outlines, they are thin shapes. Snakeskin will convert it to an SVG file for you to fix (note: requires installing pygerber). See readme#Gerber for details."
+        )
         svg = gerber_to_svg(input_file)
+        sys.exit(f"Please modify '{svg}' to be a path-based outline, then call the program again with that file.")
     elif input_file.suffix == ".svg":
         svg = input_file
     elif input_file.suffix == ".kicad_pcb":

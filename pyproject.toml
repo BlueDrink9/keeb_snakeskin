@@ -10,7 +10,7 @@ dependencies = [
     # "build123d > 0.7.0",
     "build123d @ git+https://github.com/gumyr/build123d.git@6452e1bfd600b1514c3b8c8f58057b3c789f05b9",
     "svgpathtools > 1",
-    "pygerber > 2.0"
+    "pygerber > 2.0", "drawsvg",
 ]
 requires-python = ">=3.8"
 authors = [

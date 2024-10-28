@@ -89,7 +89,7 @@ You can pass in either a:
 
 For example:
 ```bash
-snakeskin -o maizeless ~/src/maizeless/pcb/build/maizeless.gm1 --split true
+snakeskin -o maizeless ~/src/maizeless/pcb/build/maizeless.svg --split false
 ```
 
 The `-o` option specifies the output directory for your case files. If it is
@@ -153,6 +153,28 @@ often exported by default in KiCad. Remove these if you are using an SVG input.
 disconnections should be handled by the code, but large ones, especially in PCBs with bezier edges, may cause issues). To connect them, go to node edit mode, and draw a box around each node and each close pairs of nodes (drawing a box is important, don't just click) to select them both, then double-click `Join selected nodes` in the node editing toolbar.
 * Note that KiCad usually exports a double layer for the edge cuts, so you may
   need to delete one before simplifying.
+
+#### Other PCB file formats
+##### Gerber
+
+Only use this format if you can't get an outline some other way. The steps below should be unnecessary if you can get an SVG or KiCad PCB.
+
+Edge cut exports in gerber format (i.e. `.gm1` or `.gbr`) don't output an
+outline, rather they output a thin shape surrounding the board that *looks*
+like an outline. You will need to modify this, e.g. in Inkscape, to get a
+single outline path. For convenience, passing the `.gm1` file to `snakeskin`
+will output an SVG of the edge cuts in the build folder, which you can then
+modify and pass back in. (Requires the `pygerber` pip package to be installed.)
+
+To fix this in Inkscape, you can:
+1. Select all, then Path -> Stroke to Path (ctrl + alt + c)
+2. Edit -> Find and replace to search and select all paths with "circle" in their id, then delete them.
+3. Go to preferences (Edit -> Preferences -> imported images) and set the "Resolution for create bitmap copy" to 1000 dpi.
+4. Select the paths, then Edit -> Make a bitmap copy.
+5. Select the bitmap copy, go to Path -> Trace bitmap, select detection mode to "centerline tracing (autotrace)".
+6. Ensure the path is closed (if there are gaps, you can use the node editing tool to connect the ends of the path).
+7. Compare the result against the original paths, and tweak nodes to get it as close as possible.
+8. Delete any other paths and objects under the view -> layers and objects panel, to ensure only the outline is left.
 
 ### Printing
 
