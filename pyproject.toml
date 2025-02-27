@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "keeb_snakeskin"
-version = "1.0.0"
+version = "1.1.1"
 description = "Automatically generate a 3D printable case and magnetic carrycase for your custom split keyboard PCBs, from just the outline. (Also generates cases for other PCBs.)"
 dependencies = [
     "build123d == 0.8.0",
