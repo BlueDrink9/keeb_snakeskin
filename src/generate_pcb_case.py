@@ -141,7 +141,11 @@ def generate_cases(svg_file, user_params=None):
 
     if cfg["tenting_stand"]:
         print("Generating tenting legs...")
-        from tenting_stand import _calc_leg_open_angle, tenting_legs
+        try:
+            from tenting_stand import _calc_leg_open_angle, tenting_legs
+        except ImportError:
+            from .tenting_stand import _calc_leg_open_angle, tenting_legs
+
 
         wall_height = pcb_case_wall_height + cfg["base_z_thickness"]
         case_len = _calc_case_len(base_face)
@@ -657,7 +661,10 @@ def _create_honeycomb_tile(depth, face):
 
 def _tent_hinge(base_face, wall_height):
     """Attach hinge for quick-tenting system to right side of case."""
-    from tenting_stand import case_hinge
+    try:
+        from tenting_stand import case_hinge
+    except ImportError:
+        from .tenting_stand import case_hinge
 
     hinge = case_hinge(wall_height, cfg["tent_hinge_bolt_d"], cfg["tent_hinge_bolt_l"])
     reposition = _find_hinge_reposition(base_face, hinge)
@@ -712,7 +719,10 @@ def _cutout_tenting_flaps(case, base_face, wall_height):
 @cache
 def _get_tenting_flap_shadow(base_face, wall_height):
     # Import it after updating cnf, because it uses the cnf values on import.
-    from tenting_stand import _calc_leg_open_angle, tenting_legs
+    try:
+        from tenting_stand import _calc_leg_open_angle, tenting_legs
+    except ImportError:
+        from .tenting_stand import _calc_leg_open_angle, tenting_legs
 
     case_len = _calc_case_len(base_face)
     # Avoiding filleting the end is important until b123d fixes the bug
