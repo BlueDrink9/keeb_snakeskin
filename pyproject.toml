@@ -7,12 +7,13 @@ name = "keeb_snakeskin"
 version = "1.0.0"
 description = "Automatically generate a 3D printable case and magnetic carrycase for your custom split keyboard PCBs, from just the outline. (Also generates cases for other PCBs.)"
 dependencies = [
-    # "build123d > 0.7.0",
-    "build123d @ git+https://github.com/gumyr/build123d.git@6452e1bfd600b1514c3b8c8f58057b3c789f05b9",
+    "build123d == 0.8.0",
     "svgpathtools > 1",
-    "pygerber > 2.0", "drawsvg",
+    "pygerber >2.0,<3.0", "drawsvg",
+    # https://github.com/gumyr/build123d/issues/866, can remove once upgraded to build123d 0.9.0+
+    "cadquery-ocp<7.8",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.8, <=3.12"
 authors = [
   {name = "BlueDrink9"},
 ]
