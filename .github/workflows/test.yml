@@ -15,7 +15,6 @@ jobs:
         python-version: "3.12"
     - name: Build all
       run: >-
+        python3 -m pip install .
         make
-        # python3 -m
-        # pip install
 
