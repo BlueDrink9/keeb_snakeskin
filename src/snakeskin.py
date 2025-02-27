@@ -5,8 +5,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-from default_params import default_params
-from generate_pcb_case import generate_cases
+try:
+    from default_params import default_params
+    from generate_pcb_case import generate_cases
+except ImportError:
+    from .default_params import default_params
+    from .generate_pcb_case import generate_cases
 
 script_dir = Path(__file__).parent
 default_build_dir = default_params["output_dir"]

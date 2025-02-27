@@ -4,11 +4,16 @@ import os
 from functools import cache
 from pathlib import Path
 
-from import_svg import import_svg_as_forced_outline
 from build123d import *
 import OCP
 
-from default_params import default_params
+try:
+    from default_params import default_params
+    from import_svg import import_svg_as_forced_outline
+except ImportError:
+    from .default_params import default_params
+    from .import_svg import import_svg_as_forced_outline
+
 
 cfg = default_params
 

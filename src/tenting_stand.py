@@ -6,7 +6,12 @@ from build123d import *
 
 # Operating under the assumption that the other script will end up directly
 # updating this dict for user preferences.
-from default_params import default_params as cfg
+try:
+    from default_params import default_params as cfg
+except ImportError:
+    from .default_params import default_params as cfg
+
+
 
 # If I wanted to make this more modular, I could probably put the default
 # params for this module here, and add them to the main dict on import...
